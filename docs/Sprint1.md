@@ -2,7 +2,7 @@
 
 TeamPike
 
-assignment: [Software Development Project](https://docs.google.com/document/d/1MaZrbTlu2FrwinPGP1obtDrS6oGFSCh3ftlcqyPdX5k/edit?tab=t.xurf5mr1dfni)
+assignment: [Software Development Project](/docs/assignment.md)
 
 ## **Software Scope document**
 
