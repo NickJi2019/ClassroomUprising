@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import com.aphs.classroomuprising.ui.ChoiceList?>
+
+<StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" styleClass="screen, blocked">
+    <AnchorPane pickOnBounds="false">
+        <VBox spacing="18" maxWidth="720.0" AnchorPane.leftAnchor="90.0" AnchorPane.topAnchor="170.0">
+            <Label fx:id="heading" styleClass="display, place-title"/>
+            <VBox fx:id="notice" maxWidth="720.0"/>
+            <ChoiceList fx:id="choices"/>
+        </VBox>
+    </AnchorPane>
+</StackPane>

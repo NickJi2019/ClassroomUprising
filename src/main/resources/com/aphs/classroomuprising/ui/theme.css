@@ -1,0 +1,226 @@
+/*
+ * Classroom Uprising theme.
+ * Motif: the "//" slant (about 14 degrees), code glyphs, a blinking caret.
+ * Palette: ink-indigo base, caret-yellow focus, cyan for code/information,
+ * green for HP/pass, violet for SAN, red for failure and late-night risk.
+ * Fonts are chosen at runtime by Theme.java (.display / .mono / body).
+ */
+
+.root {
+    -cu-ink: #0B0F2A;
+    -cu-panel: #141A3D;
+    -cu-deep: #0E1330;
+    -cu-line: #2A3366;
+    -cu-dim: #5A6499;
+    -cu-soft: #AEB6E0;
+    -cu-text: #F4F6FF;
+    -cu-caret: #FFD23F;
+    -cu-cyan: #5CE1E6;
+    -cu-green: #3DDC97;
+    -cu-red: #FF4D6D;
+    -cu-violet: #B48CFF;
+    -cu-glyph: #151C47;
+    -cu-figure: #1C2452;
+    -fx-font-size: 15px;
+}
+
+.window { -fx-background-color: #05071A; }
+.canvas, .screen { -fx-background-color: -cu-ink; }
+.label { -fx-text-fill: -cu-text; }
+
+/* ---------- shared shapes ---------- */
+.slant-bg { -fx-fill: transparent; }
+.tag-caret > .slant-bg { -fx-fill: -cu-caret; }
+.tag-caret .label { -fx-text-fill: -cu-ink; }
+.tag-light > .slant-bg { -fx-fill: -cu-text; }
+.tag-light .label { -fx-text-fill: -cu-ink; }
+.tag-danger > .slant-bg { -fx-fill: -cu-red; }
+.tag-danger .label { -fx-text-fill: -cu-ink; }
+.tag-caret, .tag-light, .tag-danger { -fx-padding: 2 22 2 20; }
+.tag-label { -fx-font-size: 22px; }
+
+.glyph { -fx-fill: -cu-glyph; }
+.portrait-shape { -fx-fill: -cu-figure; }
+.portrait-accent { -fx-fill: -cu-caret; }
+.portrait-accent-cyan { -fx-fill: -cu-cyan; }
+
+/* ---------- choices ---------- */
+.choice-list { -fx-background-color: transparent; }
+.choice { -fx-padding: 5 38 5 30; -fx-cursor: hand; }
+.choice > .slant-bg { -fx-fill: -cu-panel; -fx-stroke: -cu-line; -fx-stroke-width: 1.5; }
+.choice-label { -fx-font-size: 22px; -fx-text-fill: -cu-soft; }
+.choice-hint { -fx-font-size: 12px; -fx-text-fill: -cu-dim; }
+.choice:selected > .slant-bg { -fx-fill: -cu-caret; -fx-stroke: -cu-caret; }
+.choice:selected .choice-label { -fx-text-fill: -cu-ink; }
+.choice:selected .choice-hint { -fx-text-fill: #4A3F00; }
+.choice.tone-cyan .choice-label { -fx-text-fill: -cu-cyan; }
+.choice.tone-cyan:selected > .slant-bg { -fx-fill: -cu-cyan; -fx-stroke: -cu-cyan; }
+.choice.tone-cyan:selected .choice-label { -fx-text-fill: -cu-ink; }
+.choice.tone-cyan:selected .choice-hint { -fx-text-fill: #0D3B3D; }
+.choice.tone-danger .choice-label { -fx-text-fill: -cu-red; }
+.choice.tone-danger:selected > .slant-bg { -fx-fill: -cu-red; -fx-stroke: -cu-red; }
+.choice.tone-danger:selected .choice-label { -fx-text-fill: -cu-ink; }
+.choice.tone-danger:selected .choice-hint { -fx-text-fill: #4A0D1A; }
+.choice:unavailable { -fx-opacity: 0.38; -fx-cursor: default; }
+.choice-list.large .choice { -fx-padding: 2 46 4 36; }
+.choice-list.large .choice-label { -fx-font-size: 38px; }
+.choice-list.large .choice-hint { -fx-font-size: 13px; }
+
+/* ---------- dialogue ---------- */
+.dialogue-box {
+    -fx-background-color: -cu-panel;
+    -fx-border-color: -cu-caret;
+    -fx-border-width: 0 0 0 5;
+    -fx-padding: 30 34 20 30;
+    -fx-cursor: hand;
+}
+.dialogue-text { -fx-font-size: 20px; -fx-line-spacing: 4px; -fx-text-fill: -cu-text; }
+.name-tag { -fx-padding: 2 22 2 20; }
+.name-tag > .slant-bg { -fx-fill: -cu-text; }
+.name-tag-label { -fx-font-size: 20px; -fx-text-fill: -cu-ink; }
+.dialogue-more { -fx-text-fill: -cu-caret; -fx-font-size: 14px; }
+.side-prompt { -fx-font-size: 24px; -fx-text-fill: -cu-cyan; }
+
+/* ---------- HUD ---------- */
+.hud-day { -fx-padding: 0 22 0 18; }
+.hud-day-label { -fx-font-size: 40px; }
+.hud-course { -fx-font-size: 14px; -fx-text-fill: -cu-cyan; }
+.hud-period { -fx-font-size: 14px; -fx-text-fill: -cu-caret; }
+.pip { -fx-min-width: 26; -fx-pref-width: 26; -fx-max-width: 26; -fx-min-height: 8; -fx-pref-height: 8; -fx-max-height: 8; }
+.pip.pip-half { -fx-min-width: 13; -fx-pref-width: 13; -fx-max-width: 13; }
+.pip > .slant-bg { -fx-fill: -cu-line; }
+.pip-done > .slant-bg { -fx-fill: -cu-dim; }
+.pip-now > .slant-bg { -fx-fill: -cu-caret; }
+.pip-risk > .slant-bg { -fx-fill: transparent; -fx-stroke: -cu-red; -fx-stroke-width: 1.5; }
+.stat-chip { -fx-padding: 3 20 3 18; }
+.stat-chip > .slant-bg { -fx-fill: rgba(11, 15, 42, 0.75); -fx-stroke: -cu-text; -fx-stroke-width: 1.5; }
+.stat-name { -fx-font-size: 13px; }
+.stat-value { -fx-font-size: 24px; }
+.stat-hp { -fx-text-fill: -cu-green; }
+.stat-san { -fx-text-fill: -cu-violet; }
+.stat-vibe { -fx-text-fill: -cu-cyan; }
+.stat-plain { -fx-text-fill: -cu-soft; }
+.demo-label { -fx-font-size: 11px; -fx-text-fill: -cu-dim; }
+.hud-hint { -fx-font-size: 13px; -fx-text-fill: -cu-dim; }
+
+/* ---------- notices ---------- */
+.diag { -fx-padding: 10 14 10 14; -fx-spacing: 4; -fx-border-width: 1.5; -fx-background-color: rgba(11, 15, 42, 0.88); }
+.diag-head { -fx-font-size: 13px; }
+.diag-sub { -fx-font-size: 12px; -fx-text-fill: -cu-soft; }
+.diag-warning { -fx-border-color: -cu-caret; }
+.diag-warning .diag-head { -fx-text-fill: -cu-caret; }
+.diag-error { -fx-border-color: -cu-red; }
+.diag-error .diag-head { -fx-text-fill: -cu-red; }
+.diag-info { -fx-border-color: -cu-cyan; }
+.diag-info .diag-head { -fx-text-fill: -cu-cyan; }
+
+.toast { -fx-padding: 3 22 3 20; }
+.toast > .slant-bg { -fx-fill: -cu-panel; -fx-stroke: -cu-line; -fx-stroke-width: 1.5; }
+.toast-label { -fx-font-size: 18px; }
+.toast-up .toast-label { -fx-text-fill: -cu-green; }
+.toast-down .toast-label { -fx-text-fill: -cu-red; }
+.toast-warn > .slant-bg { -fx-stroke: -cu-caret; }
+.toast-warn .toast-label { -fx-text-fill: -cu-caret; -fx-font-size: 12px; }
+
+.wipe-band { -fx-fill: -cu-caret; }
+.wipe-trail { -fx-fill: -cu-cyan; }
+.wipe-caption { -fx-font-size: 72px; -fx-text-fill: -cu-ink; }
+
+/* ---------- title ---------- */
+.title-word { -fx-font-size: 104px; }
+.title-tag { -fx-padding: 0 34 0 26; }
+.title-sub { -fx-font-size: 16px; -fx-text-fill: -cu-cyan; -fx-padding: 8 0 0 4; }
+.panel-title { -fx-font-size: 26px; -fx-text-fill: -cu-caret; }
+.name-field {
+    -fx-background-color: -cu-deep;
+    -fx-background-radius: 0;
+    -fx-border-color: -cu-caret;
+    -fx-border-width: 0 0 2 0;
+    -fx-text-fill: -cu-text;
+    -fx-prompt-text-fill: -cu-dim;
+    -fx-highlight-fill: -cu-line;
+    -fx-font-size: 22px;
+    -fx-padding: 8 12 8 12;
+}
+.field-error { -fx-text-fill: -cu-red; -fx-font-size: 13px; }
+
+/* ---------- opening / day cards ---------- */
+.opening-sub { -fx-font-size: 18px; -fx-text-fill: -cu-red; }
+.intro-tag { -fx-padding: 0 44 0 34; }
+.intro-day-word { -fx-font-size: 54px; }
+.intro-day { -fx-font-size: 190px; }
+.intro-total { -fx-font-size: 54px; -fx-text-fill: -cu-dim; }
+.intro-course { -fx-font-size: 34px; -fx-text-fill: -cu-cyan; }
+.intro-tutorial { -fx-font-size: 14px; -fx-text-fill: -cu-caret; }
+
+/* ---------- places (other classes, hub, day end) ---------- */
+.place-title { -fx-font-size: 64px; }
+.place-kicker { -fx-font-size: 22px; -fx-text-fill: -cu-cyan; }
+.place-sub { -fx-font-size: 16px; -fx-text-fill: -cu-soft; }
+.section-label { -fx-font-size: 16px; -fx-text-fill: -cu-dim; }
+.detail-card {
+    -fx-background-color: -cu-panel;
+    -fx-border-color: -cu-caret transparent transparent transparent;
+    -fx-border-width: 4 0 0 0;
+    -fx-padding: 18 24 22 24;
+}
+.detail-title { -fx-font-size: 32px; }
+.detail-cost { -fx-font-size: 14px; -fx-text-fill: -cu-soft; }
+.detail-caution { -fx-font-size: 12px; -fx-text-fill: -cu-caret; }
+.effect-chip { -fx-font-size: 18px; -fx-padding: 2 10 2 10; -fx-border-width: 1.5; }
+.effect-up { -fx-text-fill: -cu-green; -fx-border-color: -cu-green; }
+.effect-down { -fx-text-fill: -cu-red; -fx-border-color: -cu-red; }
+.save-status { -fx-font-size: 12px; }
+.save-ok { -fx-text-fill: -cu-green; }
+.save-failed { -fx-text-fill: -cu-red; }
+
+/* ---------- ESC menu ---------- */
+.pause-dim { -fx-background-color: rgba(5, 7, 26, 0.96); }
+.pause-title { -fx-font-size: 72px; -fx-text-fill: -cu-caret; }
+.pause-content {
+    -fx-background-color: -cu-panel;
+    -fx-border-color: -cu-caret transparent transparent transparent;
+    -fx-border-width: 4 0 0 0;
+    -fx-padding: 26 30 26 30;
+}
+.panel-muted { -fx-font-size: 12px; -fx-text-fill: -cu-dim; }
+.panel-line { -fx-font-size: 13px; -fx-text-fill: -cu-soft; }
+.panel-stat-name { -fx-font-size: 18px; }
+.panel-stat-value { -fx-font-size: 22px; }
+.unit-cell { -fx-background-color: -cu-deep; -fx-padding: 6 14 6 14; -fx-min-width: 64; }
+.unit-name { -fx-font-size: 13px; -fx-text-fill: -cu-dim; }
+.unit-value { -fx-font-size: 24px; -fx-text-fill: -cu-cyan; }
+.cal-cell { -fx-background-color: -cu-deep; -fx-padding: 4 8 4 8; -fx-min-width: 70; -fx-pref-width: 70; -fx-border-width: 0 0 3 0; -fx-border-color: -cu-line; }
+.cal-day { -fx-font-size: 20px; }
+.cal-type { -fx-font-size: 10px; -fx-text-fill: -cu-soft; }
+.cal-lab { -fx-border-color: -cu-cyan; }
+.cal-unit_test { -fx-border-color: -cu-violet; }
+.cal-review { -fx-border-color: -cu-dim; }
+.cal-midterm, .cal-final { -fx-border-color: -cu-red; }
+.cal-past { -fx-opacity: 0.4; }
+.cal-today { -fx-background-color: -cu-caret; }
+.cal-today .label { -fx-text-fill: -cu-ink; }
+
+/* ---------- Java Lab ---------- */
+.lab-title { -fx-font-size: 15px; -fx-text-fill: -cu-cyan; }
+.lab-statement { -fx-font-size: 15px; -fx-text-fill: -cu-soft; }
+.editor { -fx-border-color: -cu-line; -fx-border-width: 1; -fx-background-color: -cu-deep; }
+.gutter { -fx-background-color: -cu-deep; -fx-border-color: transparent -cu-line transparent transparent; -fx-border-width: 0 1 0 0; }
+.gutter-text { -fx-font-size: 14px; -fx-text-fill: -cu-dim; -fx-padding: 5 8 0 0; -fx-line-spacing: -0.2px; -fx-alignment: top-right; -fx-min-width: 44; -fx-pref-width: 44; -fx-text-alignment: right; }
+.text-area { -fx-background-color: -cu-deep; -fx-background-radius: 0; -fx-background-insets: 0; -fx-focus-color: transparent; -fx-faint-focus-color: transparent; }
+.text-area .content { -fx-background-color: -cu-deep; -fx-background-radius: 0; }
+.code-area { -fx-font-size: 14px; -fx-text-fill: -cu-text; -fx-highlight-fill: #2C3A7A; -fx-highlight-text-fill: -cu-text; }
+.console { -fx-font-size: 12px; -fx-text-fill: -cu-soft; -fx-border-color: -cu-line; -fx-border-width: 1; }
+.text-area .scroll-bar { -fx-background-color: -cu-deep; }
+.text-area .scroll-bar .thumb { -fx-background-color: -cu-line; -fx-background-radius: 0; }
+.text-area .scroll-bar .increment-button, .text-area .scroll-bar .decrement-button { -fx-padding: 0; -fx-background-color: transparent; }
+.text-area .scroll-bar .increment-arrow, .text-area .scroll-bar .decrement-arrow { -fx-shape: ""; -fx-padding: 0; }
+.text-area .corner { -fx-background-color: -cu-deep; }
+.stale-banner { -fx-font-size: 12px; -fx-text-fill: -cu-caret; -fx-border-color: -cu-caret; -fx-border-style: segments(4, 3); -fx-padding: 4 8 4 8; }
+.result-row { -fx-background-color: -cu-panel; -fx-padding: 6 10 6 10; }
+.result-name { -fx-font-size: 13px; }
+.result-status { -fx-font-size: 13px; }
+.result-pass { -fx-text-fill: -cu-green; }
+.result-fail { -fx-text-fill: -cu-red; }
+.result-idle { -fx-text-fill: -cu-dim; }
+.result-list:stale { -fx-opacity: 0.45; }

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import com.aphs.classroomuprising.ui.ChoiceList?>
+<?import com.aphs.classroomuprising.ui.Hud?>
+<?import com.aphs.classroomuprising.ui.Slant?>
+
+<StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" styleClass="screen, day-end">
+    <AnchorPane pickOnBounds="false">
+        <VBox spacing="12" AnchorPane.leftAnchor="80.0" AnchorPane.topAnchor="170.0" prefWidth="620.0">
+            <HBox spacing="16" alignment="CENTER_LEFT">
+                <Label fx:id="dayLabel" styleClass="display, place-title"/>
+                <Slant styleClass="tag-light">
+                    <Label text="COMPLETE" styleClass="display, tag-label"/>
+                </Slant>
+            </HBox>
+            <Label text="TODAY" styleClass="display, section-label"/>
+            <FlowPane fx:id="summary" hgap="8" vgap="8" prefWrapLength="600.0"/>
+            <Label fx:id="saveStatus" styleClass="mono, save-status"/>
+            <VBox fx:id="notice" maxWidth="600.0"/>
+        </VBox>
+        <ChoiceList fx:id="choices" styleClass="large" alignment="TOP_RIGHT"
+                    AnchorPane.rightAnchor="90.0" AnchorPane.topAnchor="300.0"/>
+    </AnchorPane>
+    <Hud fx:id="hud"/>
+</StackPane>

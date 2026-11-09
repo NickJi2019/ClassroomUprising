@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import com.aphs.classroomuprising.ui.ChoiceList?>
+<?import com.aphs.classroomuprising.ui.Slant?>
+
+<StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" styleClass="screen, title-screen">
+    <AnchorPane pickOnBounds="false">
+        <VBox styleClass="title-block" spacing="4" AnchorPane.leftAnchor="90.0" AnchorPane.topAnchor="120.0">
+            <Label text="CLASSROOM" styleClass="display, title-word"/>
+            <Slant styleClass="tag-caret, title-tag" maxWidth="-Infinity">
+                <Label text="UPRISING" styleClass="display, title-word"/>
+            </Slant>
+            <Label text="ICS4U  //  SUMMER RETAKE" styleClass="mono, title-sub"/>
+        </VBox>
+
+        <ChoiceList fx:id="menu" styleClass="large" alignment="TOP_RIGHT"
+                    AnchorPane.rightAnchor="110.0" AnchorPane.topAnchor="330.0"/>
+
+        <VBox fx:id="namePanel" styleClass="name-panel" spacing="10" visible="false" managed="false" prefWidth="420.0"
+              AnchorPane.rightAnchor="110.0" AnchorPane.topAnchor="330.0">
+            <Label text="YOUR NAME" styleClass="display, panel-title"/>
+            <TextField fx:id="nameField" styleClass="name-field" promptText="Student name"/>
+            <Label fx:id="nameError" styleClass="mono, field-error"/>
+            <ChoiceList fx:id="nameActions"/>
+        </VBox>
+
+        <VBox fx:id="notice" maxWidth="620.0" AnchorPane.leftAnchor="90.0" AnchorPane.bottomAnchor="64.0"/>
+        <Label fx:id="demoLabel" styleClass="mono, demo-label" AnchorPane.leftAnchor="24.0" AnchorPane.bottomAnchor="8.0"/>
+    </AnchorPane>
+</StackPane>
