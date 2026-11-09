@@ -1,7 +1,6 @@
 package com.aphs.classroomuprising.ui;
 
 import com.aphs.classroomuprising.AssessmentRecord;
-import com.aphs.classroomuprising.CourseType;
 import com.aphs.classroomuprising.DayPlan;
 import com.aphs.classroomuprising.GameState;
 import com.aphs.classroomuprising.SchoolCalendar;
@@ -70,7 +69,7 @@ final class PausePanels {
             int index = plan.day() - 1;
             boolean makeup = s.makeups().containsKey(plan.day());
             Label number = label("%02d".formatted(plan.day()), "display", "cal-day");
-            Label type = label(makeup ? "MAKEUP" : abbreviation(plan.course()), "mono", "cal-type");
+            Label type = label(makeup ? "MAKEUP" : UiText.courseShort(plan.course()), "mono", "cal-type");
             VBox cell = new VBox(0, number, type);
             cell.getStyleClass().addAll("cal-cell", "cal-" + plan.course().name().toLowerCase(java.util.Locale.ROOT));
             if (plan.day() < s.day()) cell.getStyleClass().add("cal-past");
@@ -103,17 +102,6 @@ final class PausePanels {
         page.getChildren().add(label("Final percentage is not shown: the grading weights are still pending (T02).",
                 "mono", "panel-muted"));
         return page;
-    }
-
-    private static String abbreviation(CourseType type) {
-        return switch (type) {
-            case LESSON -> "L";
-            case LAB -> "LAB";
-            case UNIT_TEST -> "TEST";
-            case REVIEW -> "REV";
-            case MIDTERM -> "MID";
-            case FINAL -> "FIN";
-        };
     }
 
     private static VBox page(String title, String subtitle) {

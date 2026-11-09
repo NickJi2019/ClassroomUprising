@@ -1,5 +1,6 @@
 package com.aphs.classroomuprising.ui;
 
+import com.aphs.classroomuprising.DayPeriod;
 import com.aphs.classroomuprising.DemoProfile;
 import com.aphs.classroomuprising.GameState;
 
@@ -17,6 +18,9 @@ final class AppContext {
     private final Router router;
     private GameSession session;
     private GameState dayStart;
+    /** What the window last showed; used only to choose the transition animation. */
+    private DayPeriod shownPeriod;
+    private int shownDay;
 
     AppContext(DemoProfile profile, Path savePath, Router router) {
         this.profile = profile;
@@ -45,23 +49,39 @@ final class AppContext {
     void begin(GameSession newSession) {
         session = newSession;
         dayStart = null;
+        shownPeriod = null;
     }
 
-    /** Opens the screen that matches the current period, with the period name on the wipe. */
+    /**
+     * Opens the screen that matches the current period. A time change within the day the
+     * window was showing plays the clock; anything else (new day, load) uses the wipe.
+     */
     void advance() {
         GameState view = session().view();
-        router.show(screenFor(view), view.openingCompleted() ? UiText.period(view.period()) : null);
+        Screen next = screenFor(view);
+        if (ClockTimes.animates(shownPeriod, shownDay, view)) {
+            router.showTimeChange(next, shownPeriod, view.period());
+        } else {
+            router.show(next, view.openingCompleted() ? UiText.period(view.period()) : null);
+        }
+        shownPeriod = view.period();
+        shownDay = view.day();
     }
 
     /** Shows the day card after the opening or after {@code beginNextDay()}. */
     void startDay(Outcome outcome) {
-        dayStart = session().view();
-        router.show(new DayIntroScreen(this, outcome instanceof Outcome.Done done ? done : null), null);
+        GameState view = session().view();
+        dayStart = view;
+        Outcome.Done done = outcome instanceof Outcome.Done d ? d : null;
+        int previousDay = done != null && done.before().day() < view.day() ? done.before().day() : view.day() - 1;
+        shownPeriod = null;
+        router.show(new DayIntroScreen(this, done, previousDay), null);
     }
 
     void toTitle() {
         session = null;
         dayStart = null;
+        shownPeriod = null;
         router.show(new TitleScreen(this), null);
     }
 

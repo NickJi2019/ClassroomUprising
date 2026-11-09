@@ -119,6 +119,22 @@ classDiagram
     class Hud {
         +show(GameState state, String demoLabel) void
     }
+    class ClockShift {
+        +animation() Animation
+    }
+    class ClockTimes {
+        +minutes(DayPeriod period, DayPeriod from) int$
+        +elapsed(int from, int to) int$
+        +animates(DayPeriod shown, int shownDay, GameState view) boolean$
+    }
+    class FlipNumber {
+        +setText(String value) void
+        +flipTo(String next) Animation
+    }
+    class CalendarStrip {
+        +focus(int day) void
+        +advance(int fromDay, int toDay) Animation
+    }
     class GameController {
         -GameState state
         -RuleValues rules
@@ -389,6 +405,11 @@ classDiagram
     ClassroomScreen --> ChoiceList
     ClassroomScreen --> Hud
     HubScreen --> ChoiceList
+    Router ..> ClockShift : time change within a day
+    ClockShift ..> ClockTimes : display clock only
+    AppContext ..> ClockTimes : clock or wipe
+    DayIntroScreen --> FlipNumber : date flip
+    DayIntroScreen --> CalendarStrip : scrolls to new day
     LabScreen --> LabRunService
     LabRunService --> JavaAssessmentRunner : background thread
     GameSession --> GameController : one call per player action

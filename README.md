@@ -117,6 +117,8 @@ Code is in `com.aphs.classroomuprising.ui`; layouts and the stylesheet are in `s
 | --- | --- |
 | Window, fixed 1280×720 canvas scaled to the window | `ClassroomApp`, `Theme` |
 | Screen switching, slanted wipe, input blocking during transitions, Esc menu overlay | `Router`, `PauseMenu`, `PausePanels` |
+| Time-of-day change: clock hands sweep from the old period's time to the new one (display times only, not rules) | `ClockShift`, `ClockTimes` |
+| Day change: split-flap date flip and a calendar strip that scrolls to the new day | `FlipNumber`, `CalendarStrip` (on `DayIntroScreen`) |
 | Shared context; picks the screen from the core's current period | `AppContext` |
 | Frontend controller: one core call per player action, refusals turned into results, day-end save path | `GameSession`, `Outcome`, `Fetch` |
 | Screens (one per scene; abstract base `Screen`) | `TitleScreen`, `OpeningScreen`, `DayIntroScreen`, `ClassroomScreen`, `OtherClassesScreen`, `HubScreen`, `DayEndScreen`, `LabScreen`, `BlockedScreen` |
