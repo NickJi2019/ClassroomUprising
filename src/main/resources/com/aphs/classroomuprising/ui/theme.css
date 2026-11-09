@@ -55,21 +55,29 @@
 .choice > .slant-bg { -fx-fill: -cu-panel; -fx-stroke: -cu-line; -fx-stroke-width: 1.5; }
 .choice-label { -fx-font-size: 22px; -fx-text-fill: -cu-soft; }
 .choice-hint { -fx-font-size: 12px; -fx-text-fill: -cu-dim; }
-.choice:selected > .slant-bg { -fx-fill: -cu-caret; -fx-stroke: -cu-caret; }
-.choice:selected .choice-label { -fx-text-fill: -cu-ink; }
-.choice:selected .choice-hint { -fx-text-fill: #4A3F00; }
 .choice.tone-cyan .choice-label { -fx-text-fill: -cu-cyan; }
-.choice.tone-cyan:selected > .slant-bg { -fx-fill: -cu-cyan; -fx-stroke: -cu-cyan; }
-.choice.tone-cyan:selected .choice-label { -fx-text-fill: -cu-ink; }
-.choice.tone-cyan:selected .choice-hint { -fx-text-fill: #0D3B3D; }
 .choice.tone-danger .choice-label { -fx-text-fill: -cu-red; }
-.choice.tone-danger:selected > .slant-bg { -fx-fill: -cu-red; -fx-stroke: -cu-red; }
-.choice.tone-danger:selected .choice-label { -fx-text-fill: -cu-ink; }
-.choice.tone-danger:selected .choice-hint { -fx-text-fill: #4A0D1A; }
 .choice:unavailable { -fx-opacity: 0.38; -fx-cursor: default; }
+/* Big menus float as type over the art; only the cursor gives them a shape. */
 .choice-list.large .choice { -fx-padding: 2 46 4 36; }
-.choice-list.large .choice-label { -fx-font-size: 38px; }
+.choice-list.large .choice > .slant-bg { -fx-fill: transparent; -fx-stroke: transparent; }
+.choice-list.large .choice-label { -fx-font-size: 38px; -fx-effect: dropshadow(gaussian, rgba(11, 15, 42, 0.6), 12, 0.2, 0, 2); }
 .choice-list.large .choice-hint { -fx-font-size: 13px; }
+
+/* The selection cursor: a slab, a trailing accent shard and dark text where the slab covers it. */
+.cursor-slab { -fx-fill: -cu-caret; }
+.cursor-slab.tone-cyan { -fx-fill: -cu-cyan; }
+.cursor-slab.tone-danger { -fx-fill: -cu-red; }
+.cursor-slab.flash { -fx-fill: #FFFFFF; }
+.cursor-shard { -fx-fill: -cu-cyan; -fx-opacity: 0.85; }
+.cursor-shard.tone-cyan { -fx-fill: -cu-caret; }
+.cursor-shard.tone-danger { -fx-fill: -cu-caret; }
+.cursor-echo { -fx-fill: transparent; -fx-stroke: -cu-caret; -fx-stroke-width: 2; }
+.cursor-echo.tone-cyan { -fx-stroke: -cu-cyan; }
+.cursor-echo.tone-danger { -fx-stroke: -cu-red; }
+.choice-ghost .choice-label,
+.choice-list.large .choice-ghost .choice-label { -fx-text-fill: -cu-ink; -fx-effect: null; }
+.choice-ghost .choice-hint { -fx-text-fill: #2B2A12; }
 
 /* ---------- dialogue ---------- */
 .dialogue-box {

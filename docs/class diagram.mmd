@@ -109,8 +109,25 @@ classDiagram
     }
     class ChoiceList {
         -boolean locked
+        -int selected
         +setChoices(List choices) void
+        +hasChoices() boolean
         +unlock() void
+        -move(Pose to) void
+        -spawn(Pose at) void
+        -makeRoom() void
+    }
+    class CursorGeometry {
+        +corners(Pose pose, double slope) double[]$
+        +travel(Pose from, Pose to) List~Step~$
+        +spawn(Pose at) List~Step~$
+    }
+    class MotionTokens {
+        +Duration SNAP$
+        +Duration QUICK$
+        +Duration BASE$
+        +Interpolator OUT$
+        +int STEP_RATE$
     }
     class DialogueBox {
         +play(List lines, Runnable whenDone) void
@@ -446,6 +463,8 @@ classDiagram
     ClassroomScreen --> ChoiceList
     ClassroomScreen --> Hud
     HubScreen --> ChoiceList
+    ChoiceList ..> CursorGeometry : cursor shape and paths
+    ChoiceList ..> MotionTokens : timing
     Router ..> ClockShift : time change within a day
     ClockShift ..> ClockTimes : display clock only
     AppContext ..> ClockTimes : clock or wipe

@@ -122,7 +122,9 @@ Code is in `com.aphs.classroomuprising.ui`; layouts and the stylesheet are in `s
 | Shared context; picks the screen from the core's current period | `AppContext` |
 | Frontend controller: one core call per player action, refusals turned into results, day-end save path | `GameSession`, `Outcome`, `Fetch` |
 | Screens (one per scene; abstract base `Screen`) | `TitleScreen`, `OpeningScreen`, `DayIntroScreen`, `ClassroomScreen`, `OtherClassesScreen`, `HubScreen`, `DayEndScreen`, `LabScreen`, `BlockedScreen` |
-| Reusable controls | `ChoiceList` (locks after one activation), `DialogueBox`, `Hud`, `Slant`, `Backdrop` (large background typography), `Toasts`, `Diagnostic`, `Motion` |
+| Menus: one selection cursor that travels between options (overshoot and settle, idle breathing and twitch, a trailing accent shard); only the text under the cursor turns dark; neighbours step aside; unselected options shimmer in steps; one activation then the list locks | `ChoiceList`, `CursorGeometry` (pure shape/path maths) |
+| Shared motion timing (durations, curves, stepped rate) | `MotionTokens`, `Motion` |
+| Reusable controls | `DialogueBox`, `Hud`, `Slant`, `Backdrop` (large background typography), `Toasts`, `Diagnostic` |
 | Scene art behind each screen (package `ui.scene`): background art that drifts and is colour-graded per time of day, characters with expressions and speaker focus, foreground plane, ambient grain/motes/vignette | `SceneView`, `BackgroundLayer`, `CharacterView`, `AmbientLayer`, `Grade` |
 | Art loading by key from the asset manifest; labelled "missing art" plates for anything not delivered | `AssetManifest`, `AssetStore`, `Placeholders`; files in `src/main/resources/com/aphs/classroomuprising/assets/` |
 | Java Lab runs off the UI thread; one run at a time; stale results after edits | `LabRunService` |
