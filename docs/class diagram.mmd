@@ -1,73 +1,105 @@
 classDiagram
     direction TB
-    %% Design proposal, 2026-11-09. Not implemented Java.
-    %% Rules R01-R15 and sole TBD register T01-T14: Sprint1.md, Design Documents.
-    class MainMenuController {
-        +newGame(String name) void
-        +continueGame() boolean
-        +showInstructions() void
-        +exitGame() void
-    }
-    class GameUI {
-        +showMainMenu() void
-        +showInstructions() void
-        +showDay(GameState state) void
-        +showLesson(DayPlan plan) void
-        +showChoice(String kind) void
-        +showAssessment(AssessmentSession session) void
-        +showResult(AssessmentRecord record) void
-        +showFeedback(String message) void
-        +showEnding(String outcome) void
+    %% Implemented foundation, 2026-11-09. Not a complete game.
+    %% See implementation-status.md for delivery boundaries, Sprint1.md for target rules.
+    class Main {
+        +main(String[] args) void
     }
     class GameController {
         -GameState state
-        +newGame(String name) void
-        +continueGame() boolean
-        +beginDay() void
-        +chooseAttendance(boolean attend, boolean excused) void
-        +advancePeriod() boolean
-        +chooseSleep() void
-        +resolveMidterm(String choice) void
-        +finishSemester() void
-        +endDay() boolean
+        -RuleValues rules
+        -ContentCatalog content
+        +snapshot() GameState
+        +completeOpening() Result
+        +showLesson() Lesson
+        +lessonChoice(String choice) Result
+        +completeReview() Result
+        +otherClasses(boolean reviseIcs) Result
+        +hubActivity(String id) Result
+        +sleepImmediatelyAfterSchool() Result
+        +beginNextDay() Result
+        +skipClass(boolean excused) Result
+        +scheduleMakeup(int missedDay, int lessonDay) Result
+        +startAssessment() AssessmentView
+        +recordEvaluatedSubmission(double mark, String evidence) Result
+        +recordSelfEstimate(double mark, double cost, double delta) Result
+        +caughtCheating(boolean serious) Result
+        +applyOfficialFeedback(String id, StatChange effect) Result
+        +resolveMidterm(String choice) Result
     }
     class GameState {
+        -String name
+        -int day
+        -DayPeriod period
         -StudentState student
-        -SchoolCalendar calendar
-        -ActionBudget time
         -GradeBook grades
-        -ContentProgress content
         -RunProgress run
-        -ArrayList~TimedEffect~ effects
-        +applyEffects(String sourceId, String context) void
-        +replaceEstimateEffects(String assessmentId) void
-        +isPenaltyFreeTutorial() boolean
+        -Status status
+        -boolean openingCompleted
+        -boolean lessonShown
+        -boolean nextMorningBonus
+        -double nextMorningSanBonus
+        -List~TimedEffect~ effects
+        -Map makeups
+        -Set missedAssessments
+        -Set seriousCheating
+        -Set feedbackApplied
+        -Map estimates
+        -Set rewards
+        -Map relationships
+        -ActiveAssessment active
+        +currentCourse() DayPlan
+        +effectiveSan() double
+        +xpMultiplier() double
+        +canSave() boolean
     }
     class StudentState {
-        -String name
-        -double hp
-        -double san
-        -double codingVibe
-        -double[] unitKnowledge
+        <<record>>
+        +double hp
+        +double san
+        +double codingVibe
+        +List~Double~ unitKnowledge
+    }
+    class StatChange {
+        <<record>>
+        +double hp
+        +double san
+        +double codingVibe
+        +List~Double~ unitKnowledge
+        +none() StatChange
+        +learning(int unit, double vibe, double knowledge, double san) StatChange
+    }
+    class TimedEffect {
+        <<record>>
+        +String id
+        +int firstDay
+        +int lastDay
+        +double sanDelta
+        +double xpMultiplier
+        +activeOn(int day) boolean
+    }
+    class RuleValues {
+        <<record>>
+        +Double lateNightSanReduction
+        +Double lateNightXpMultiplier
+        +Double earlySleepSanBonus
+        +Double makeupSanReduction
+        +Double caughtCheatingSanReduction
+        +TutorialAbsences tutorialAbsences
+        +pending() RuleValues
     }
     class SchoolCalendar {
-        -int currentDay
-        -DayPeriod period
-        -ArrayList~DayPlan~ schedule
-        +today() DayPlan
-        +makeupCandidates(String assessmentId) ArrayList~DayPlan~
-        +recordMakeup(int day, String assessmentId) void
-        +advancePeriod() void
-        +advanceDay() void
+        +days() List~DayPlan~
+        +day(int number) DayPlan
+        +makeupCandidates(int missedDay) List~Integer~
     }
     class DayPlan {
-        -int day
-        -CourseType course
-        -String unitId
-        -String assessmentId
-        -String makeupAssessmentId
-        -String lessonInteractionKind
-        -boolean tutorial
+        <<record>>
+        +int day
+        +CourseType course
+        +int unit
+        +boolean tutorial
+        +assessmentId() String
     }
     class DayPeriod {
         <<enumeration>>
@@ -78,6 +110,8 @@ classDiagram
         EVENING
         LATE_NIGHT
         DAY_END
+        +activityUnits() double
+        +next() DayPeriod
     }
     class CourseType {
         <<enumeration>>
@@ -87,176 +121,126 @@ classDiagram
         REVIEW
         MIDTERM
         FINAL
+        +isAssessment() boolean
+        +isMajor() boolean
+        +isTermAssessment() boolean
     }
-    class ActionBudget {
-        -double remainingTime
-        -boolean nextMorningHalfUnit
-        +openPeriod(DayPeriod period) void
-        +canSpend(double cost) boolean
-        +spend(double cost) void
-        +recordEarlySleep() void
-        +activityScale() double
+    class ContentCatalog {
+        -Map lessons
+        -Map hub
+        -Map reviews
+        -Map banks
+        -Map sampleCounts
+        -StatChange otherClassRevision
+        +pending() ContentCatalog
+        +lesson(int day) Lesson
+        +hub(String id) StatChange
+        +review(int day) StatChange
+        +otherRevision() StatChange
+        +questions(DayPlan original, RandomGenerator random) List~Question~
+    }
+    class Lesson {
+        <<nested record>>
+        +String text
+        +Interaction interaction
+        +Map choices
+    }
+    class Question {
+        <<nested record>>
+        +String id
+        +String prompt
     }
     class GradeBook {
-        -ArrayList~AssessmentRecord~ records
+        -Map records
         -int unexcusedAbsences
-        -double participationPoints
-        +recordAttendance(boolean excused, boolean tutorial) void
-        +recordSubmission(AssessmentRecord record) void
-        +returnDueGrades(int day) ArrayList~AssessmentRecord~
-        +releaseOfficialGrade(String id) AssessmentRecord
-        +applySeriousCheatingZero(String id) void
-        +currentAverage() double
-        +finalPercentage() double
+        +records() List~AssessmentRecord~
+        +record(String id) AssessmentRecord
+        +absenceDeductionPoints() int
+        +finalPercentage(double midtermWeight, double participationPercent) double
     }
     class AssessmentRecord {
         -String id
         -CourseType type
-        -String unitId
-        -String status
         -int submittedDay
-        -int officialReturnDay
-        -boolean hasEstimate
-        -double estimatedScore
-        -double officialScore
-        -boolean resultEffectsApplied
+        -int returnDay
+        -List~String~ questionIds
         -boolean makeup
-        -String gradingEvidence
+        -double score
+        -boolean released
+        -String evidence
+        +officialScore() OptionalDouble
     }
-    class AssessmentController {
-        -AssessmentSession active
-        +start(GameState state, DayPlan plan) void
-        +respond(GameState state, String input) void
-        +submit(GameState state) AssessmentRecord
-        +selfEstimate(GameState state) void
-        +useReward(GameState state, String rewardId) void
-        +resolveCheating(GameState state, boolean serious) void
-    }
-    class AssessmentSession {
-        -String assessmentId
-        -ArrayList~Question~ questions
-        -ArrayList~String~ responses
-        -String javaSource
-        -String battleState
-        -boolean makeup
-        -String timingState
-    }
-    class JavaAssessmentRunner {
-        +compileAndTest(String source, String assessmentId) String
-        +checkStyle(String source, String rubricId) String
-    }
-    class ActivityController {
-        +lessonChoice(GameState state, String choice) void
-        +otherClassChoice(GameState state, String choice) void
-        +hubChoice(GameState state, String activityId) void
-        +peerInteraction(GameState state, String peerId, String choice) void
-    }
-    class TimedEffect {
-        -String sourceId
-        -String target
-        -int effectiveDay
-        -String expiryCondition
-        -String valueRule
-    }
-    class StoryController {
-        -StoryEvent activeEvent
-        -int sceneIndex
-        +playOpening(GameState state) void
-        +playDueStories(GameState state) void
-        +choose(GameState state, String choice) void
-        +hasPendingScene() boolean
-    }
-    class StoryEvent {
-        -String id
-        -ArrayList~String~ scenes
-        -ArrayList~String~ choices
-        -String triggerCondition
-        -String effectDefinition
-    }
-    class ContentCatalog {
-        -ArrayList~StoryEvent~ stories
-        -ArrayList~Question~ questions
-        -ArrayList~Activity~ activities
-        +findActivity(String id) Activity
-        +questionsFor(DayPlan plan) ArrayList~Question~
-    }
-    class Activity {
-        -String id
-        -String availability
-        -double normalTimeCost
-        -String effectDefinition
-    }
-    class Question {
-        -String id
-        -String unitId
-        -String prompt
-        -String assessmentDefinition
-    }
-    class ContentProgress {
-        -boolean introductionCompleted
-        -ArrayList~String~ completedStoryIds
-        -ArrayList~String~ unlockedTopicIds
-        -Map peerRelationships
+    class ActiveAssessment {
+        <<nested record>>
+        +DayPlan original
+        +List~Question~ questions
+        +boolean makeup
     }
     class RunProgress {
-        -int retakesUsed
-        -String outcome
-        -ArrayList~String~ ownedRewardIds
-        -ArrayList~String~ newPlaythroughRewardIds
-        +hasRetakeOpportunity() boolean
-        +recordRetake() void
+        <<record>>
+        +int retakesUsed
+        +remainingRetakes() int
+        +consumeRetake() RunProgress
+        +rewardsForNewPlaythrough(Set owned, Set selected) Set
     }
     class SaveManager {
-        +saveAtDayEnd(GameState state) boolean
-        +load() GameState
-        -validate(GameState state) boolean
+        +saveAtDayEnd(GameState state, Path destination) void
+        +load(Path path) GameState
+    }
+    class JavaAssessmentRunner {
+        -Path jdk
+        -Limits limits
+        +evaluate(String className, String source, List tests, List rubric) Report
+    }
+    class StyleRule {
+        <<interface>>
+        +id() String
+        +inspect(String source) Finding
+    }
+    class LineLength {
+        <<nested record>>
+        +String id
+        +int maximum
+        +inspect(String source) Finding
+    }
+    class PendingRuleException {
+        +ruleId() String
     }
 
-    MainMenuController --> GameController : starts or resumes a run
-    MainMenuController --> GameUI : menu and instructions
-    GameController --> GameUI : presents and accepts input
-    GameController "1" --> "0..1" GameState : coordinates active run
-    GameController --> ActivityController : class and Hub actions
-    GameController --> AssessmentController : assessments
-    GameController --> StoryController : narrative and tutorial
-    GameController --> SaveManager : day-end boundary only
-    GameState "1" *-- "1" StudentState
-    GameState "1" *-- "1" SchoolCalendar
-    GameState "1" *-- "1" ActionBudget
-    GameState "1" *-- "1" GradeBook
-    GameState "1" *-- "1" ContentProgress
-    GameState "1" *-- "1" RunProgress
-    GameState "1" *-- "0..*" TimedEffect
-    SchoolCalendar "1" *-- "40" DayPlan : original schedule plus replacements
-    SchoolCalendar --> DayPeriod
+    Main --> GameController : labelled fixture demo
+    Main --> SaveManager : demo save and load
+    Main --> JavaAssessmentRunner : separate trusted Lab demo
+    GameController --> GameState : copies then commits atomically
+    GameController --> RuleValues : explicit policy inputs
+    GameController --> ContentCatalog : supplied content
+    GameController ..> PendingRuleException : missing decision
+    GameState *-- StudentState
+    GameState *-- GradeBook
+    GameState *-- RunProgress
+    GameState *-- TimedEffect
+    GameState --> DayPeriod
+    GameState --> SchoolCalendar : static day lookup
+    GameState --> ActiveAssessment
+    SchoolCalendar "1" *-- "40" DayPlan
     DayPlan --> CourseType
-    ActionBudget --> DayPeriod
-    GradeBook "1" *-- "0..*" AssessmentRecord : only owner of mark records
+    ContentCatalog *-- Lesson
+    ContentCatalog *-- Question
+    ContentCatalog --> StatChange
+    Lesson --> StatChange : configured choices
+    GameController --> StatChange
+    GradeBook *-- AssessmentRecord
     AssessmentRecord --> CourseType
-    AssessmentController "1" --> "0..1" AssessmentSession
-    AssessmentController --> JavaAssessmentRunner : full Java tests and style evidence
-    AssessmentController --> ContentCatalog : fixed or sampled questions
-    AssessmentController --> GameState : submission and effect coordination
-    AssessmentSession "1" --> "1..*" Question
-    ActivityController --> ContentCatalog : configured choices
-    ActivityController --> GameState : validate time and apply effects
-    StoryController --> ContentCatalog : scenes
-    StoryController --> GameState : story flags and effects
-    StoryController "1" --> "0..1" StoryEvent
-    ContentCatalog "1" *-- "0..*" StoryEvent
-    ContentCatalog "1" *-- "0..*" Activity
-    ContentCatalog "1" *-- "0..*" Question
-    SaveManager ..> GameState : includes pending marks and next-day effects
+    ActiveAssessment --> DayPlan
+    ActiveAssessment --> Question
+    SaveManager ..> GameState : versioned day-end snapshot
+    JavaAssessmentRunner --> StyleRule : independent rubric evidence
+    StyleRule <|.. LineLength
 
-    note for StudentState "HP is not a grade percentage or energy.<br/>Coding Vibe plus unit Knowledge are XP.<br/>HP mapping and SAN influence: T01, T03."
-    note for GameState "One effect-application boundary.<br/>All tutorial penalties become warnings only.<br/>Temporary and estimate effects keep their source identity.<br/>Values and estimate replacement: T03, T08, T11."
-    note for DayPlan "40-day calendar in Sprint1.md.<br/>Lesson: one post-content choice; ask OR raise hand.<br/>Review details T14; makeup placement T05."
-    note for ActionBudget "ICS and OTHER_CLASSES: one unit each.<br/>Hub: after school, evening, late night.<br/>Early sleep: next-morning 0.5 unit and SAN bonus.<br/>Half activity values; discrete details T04."
-    note for GradeBook "65 percent Term, 10 Participation, 25 Final.<br/>Midterm belongs to Term; its relative weight is TBD.<br/>Unit Lab and Unit Test equal weight.<br/>After two free absences: minus 1 overall percentage point each.<br/>Excused leave is exempt. Formulas and limits: T02."
-    note for AssessmentRecord "Ordinary results: three days after submission.<br/>Midterm and Final: immediate official result.<br/>Estimated and official marks stay distinct.<br/>Submission is not result release; T05, T08."
-    note for AssessmentController "No skipping Midterm or Final.<br/>Final: turn-based question combat. Other formats T01.<br/>Caught cheating: large SAN loss; serious: this mark becomes zero.<br/>Makeup: same questions, no lesson bonus, SAN debuff,<br/>no peeking, higher detection risk. Details T05, T09."
-    note for JavaAssessmentRunner "Planned capability, not an existing service.<br/>Compiler, limits, test/rubric scoring and failure handling: T06."
-    note for TimedEffect "Late night lowers next-day SAN and XP gain multiplier.<br/>Self-estimate effects are provisional until official return.<br/>No unspecified magnitude or stacking formula: T03, T08."
-    note for RunProgress "Two Retakes; back to Day 1, keep XP, initial SAN debuff.<br/>Retake count must survive the reset.<br/>New playthrough keeps selected rewards only, not XP.<br/>Other reset data and ending priority: T10."
-    note for ContentProgress "Persistent shallow peer relationships: T13.<br/>No other-subject Knowledge stat."
-    note for SaveManager "Only save at day end.<br/>Retake/ending boundary, resume and failure rules: T12."
+    note for GameController "Opening is acknowledgement, not rendered combat.<br/>Midterm Continue/Retake explicitly report T10.<br/>Final combat and ending selector are not implemented."
+    note for GameState "HP is separate from marks and energy.<br/>Returned snapshots are defensive copies.<br/>Relationships/rewards are persisted data, not playable systems yet."
+    note for RuleValues "Null is TBD, never zero.<br/>No production balancing defaults.<br/>Demo and test values are labelled fixtures."
+    note for ContentCatalog "One Lesson node: ask OR raise hand.<br/>Fixed ordinary questions, supplied major sample size.<br/>No authored course bank is installed."
+    note for GradeBook "65 Term / 10 Participation / 25 Final.<br/>Midterm belongs to Term; its weight is supplied explicitly.<br/>First two absences free, then minus one overall percentage point."
+    note for AssessmentRecord "Ordinary including makeup: three-day delay.<br/>Midterm and Final: immediate result, no skip.<br/>Evaluator supplies mark; no HP or automatic rubric conversion."
+    note for SaveManager "Only active DAY_END snapshots.<br/>Load does not advance or regrant effects.<br/>Ending/Retake autosave boundaries remain T12."
+    note for JavaAssessmentRunner "Actual compiler and test processes with time/output limits.<br/>Trusted local code only, not an OS security sandbox.<br/>No automatic course-score rubric."

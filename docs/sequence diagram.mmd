@@ -1,203 +1,118 @@
 sequenceDiagram
     autonumber
-    actor Player
-    participant UI as GameUI
+    actor Caller as Prototype caller (CLI or test)
     participant Game as GameController
     participant State as GameState
-    participant Story as StoryController
-    participant Activity as ActivityController
-    participant Exam as AssessmentController
+    participant Content as ContentCatalog
+    participant Grades as GradeBook
     participant Runner as JavaAssessmentRunner
     participant Save as SaveManager
 
-    Note over Player,Save: Design proposal, not implemented gameplay. Rules and TBD IDs: Sprint1.md / Design Documents.
-    opt New-game opening
-        Game->>Story: playOpening(state)
-        Story->>UI: Teach previous-semester Final battle against Mr. Reward
-        Player->>UI: Follow tutorial interactions
-        Story->>State: Record scripted defeat and opening completion
-        Game->>State: Enter current semester at Day 1
+    Note over Caller,Save: Implemented foundation, not complete gameplay. Fixture values are not approved rules.
+    Caller->>Game: Construct with initial state, explicit RuleValues and ContentCatalog
+    Note over Game,State: Every changing operation works on a copy and commits only after success.
+    opt Opening not acknowledged
+        Caller->>Game: completeOpening()
+        Game->>State: Mark opening completed
+        Note over Caller,Game: Actual opening battle/dialogue remains T01/T11, not rendered by this method.
     end
-    Note over Game,State: Opening and Days 1-2: all penalties are warnings only, never deferred. Tutorial details T11.
-    Note over Game,State: Very low SAN unlocks a bad ending. Trigger points and priority with Midterm remain T10.
-    Game->>Game: beginDay()
-    Game->>State: Read day plan, makeup replacement and dated effects
-    State-->>Game: Course, phase, due results and early-sleep entitlement
-    Game->>State: Activate this day's late-night SAN and XP-gain reductions if present
-    Note over Game,State: Next-day duration is fixed, amounts and SAN interactions remain T03.
-    opt Ordinary results are due after three days
-        Game->>State: grades.returnDueGrades(day)
-        Game->>State: replaceEstimateEffects(assessmentId)
-        Note over Game,State: Estimates stay distinct from official marks. Replacement and average/SAN formulas: T02, T03, T08.
-        Game->>UI: Show official marks and their one-time feedback
-    end
-    Game->>Story: playDueStories(state)
-    Note over Story,State: Exact content, choice effects and release conditions: T14.
-    opt Early-sleep bonus was earned
-        Game->>State: Offer next-morning half-unit and SAN bonus
-        Game->>UI: Show eligible half-time activities
-        Player->>UI: Choose bonus-time activity
-        UI->>Activity: hubChoice(state, activityId)
-        Activity->>State: Validate and spend half-unit, scale numerical activity effects by 0.5
-        Note over State,Activity: Rounding, discrete effects and eligibility details: T04.
-    end
-    Game->>UI: showDay(state), including today's ICS4U course
-    Player->>UI: Choose attendance where a choice is permitted
-    UI->>Game: chooseAttendance(attend, excused)
-    alt Attempt to skip Midterm or Final
-        Game->>UI: Reject skip, major assessment remains due
-        Note over Game,State: A rejected skip does not create an absence or completed-course record.
-    else Permitted ordinary absence
-        Game->>State: Record excused status and attendance under tutorial policy
-        Note over Game,State: Excused leave exempt. First two unexcused absences free, then minus 1 overall percentage point each. T02, T11.
-        opt Missed ordinary assessment
-            Game->>State: Record makeup requirement and next two Lesson candidates
-            Note over Game,State: Replace a Lesson with the same questions, not an extra slot. Selection, collisions and late-term gaps: T05.
+    alt Lesson slot
+        Caller->>Game: showLesson()
+        Game->>Content: lesson(day)
+        Content-->>Game: Text, ask OR raise-hand interaction, configured choices
+        Game->>State: Record content shown
+        Game-->>Caller: Lesson content
+        Caller->>Game: lessonChoice(choice)
+        Game->>State: Apply supplied effects, waive tutorial penalties, advance to OTHER_CLASSES
+        Note over Caller,Game: Exactly one choice because the successful operation consumes the class slot.
+    else Assessment slot
+        Caller->>Game: startAssessment()
+        Game->>Content: questions(originalPlan, random)
+        Content-->>Game: Fixed ordinary bank or configured major sample
+        Game->>State: Open active assessment and apply configured makeup conditions if relevant
+        Game-->>Caller: Questions, makeup flag, peeking and detection conditions
+        opt Separate trusted local Java evaluation
+            Caller->>Runner: evaluate(className, source, tests, rubric)
+            Runner-->>Caller: Compilation, test outcomes and independent style findings
+            Note over Caller,Runner: Evidence only. T06 decides how to assign a course mark.
         end
-        Game->>UI: Show attendance consequence and applicable absence route
-        Note over Game,UI: Detailed use of the skipped class slot remains T04.
-    else Attend the scheduled course
-        alt Lesson, including a tutorial Lesson
-            Game->>UI: showLesson(todayPlan)
-            Game->>UI: showChoice(one configured post-content interaction)
-            Note over Player,Activity: Exactly one node. This Lesson offers asking OR raising a hand, not both.
-            Player->>UI: Submit the classroom choice
-            UI->>Activity: lessonChoice(state, choice)
-            Activity->>State: Record choice and apply configured learning/participation effects once
-        else Review
-            Game->>UI: Present scheduled review content
-            Note over Player,Activity: Review interactions remain T14, do not invent additional Lesson nodes.
-        else Original or makeup assessment
-            Game->>Exam: start(state, todayPlan)
-            Exam->>State: Read Coding Vibe, unit Knowledge, SAN, HP and assessment conditions
-            Note over State,Exam: HP is distinct from the mark, its mapping and SAN influence are T01, T03.
-            Exam->>Exam: Load fixed ordinary questions or sample Midterm/Final questions
-            opt Makeup assessment
-                Exam->>State: No normal Lesson bonus, apply makeup SAN debuff
-                Exam->>Exam: Use original questions, disable peeking, increase cheating detection risk
-            end
-            Exam->>UI: showAssessment(session)
-            loop Permitted interactions while assessment is active
-                alt Normal assessment input
-                    alt Lab
-                        Player->>UI: Enter complete Java source
-                        UI->>Exam: respond(state, source)
-                        Exam->>Runner: compileAndTest(source, assessmentId)
-                        Runner-->>Exam: Compilation and built-in-test evidence
-                        Exam->>Runner: checkStyle(source, rubricId)
-                        Runner-->>Exam: Coding-style evidence
-                        Note over Exam,Runner: Planned evaluation only. Execution limits, errors, retries and scoring: T06.
-                    else Final question-battle turn
-                        Player->>UI: Submit question answer or permitted battle choice
-                        UI->>Exam: respond(state, input)
-                        Exam->>State: Apply defined battle effects through tutorial-aware boundary
-                        Exam->>UI: Show turn feedback with HP separate from marks
-                        Note over State,Exam: Turn rules, HP changes, defeat and mark mapping remain T01.
-                    else Unit Test or Midterm
-                        Player->>UI: Submit assessment responses
-                        UI->>Exam: respond(state, input)
-                        Note over Player,Exam: Fixed Unit Test versus random Midterm questions. Combat format and timing: T01, T07.
-                    end
-                else Reward or cheating interaction
-                    opt Player uses an available reward
-                        Player->>UI: Select reward
-                        UI->>Exam: useReward(state, rewardId)
-                    end
-                    Note over Player,Exam: Item effects, consumption, use timing and detection details: T09.
-                    opt Cheating is detected
-                        Exam->>Exam: resolveCheating(state, serious)
-                        alt Penalty-free tutorial
-                            Exam->>UI: Warn only, apply no SAN loss or zero mark
-                        else Normal semester
-                            Exam->>State: Apply large SAN loss
-                            opt Serious cheating
-                                Exam->>State: grades.applySeriousCheatingZero(assessmentId)
-                            end
-                        end
-                    end
-                else Player self-estimates where applicable
-                    Player->>UI: Request self-estimate during assessment
-                    UI->>Exam: selfEstimate(state)
-                    Exam->>State: Apply SAN cost unless tutorial, record uncertain mark and provisional effects
-                    Exam->>UI: Show clearly labelled estimate, not official result
-                    Note over State,Exam: Accuracy, repeat requests, immediate-exam availability and later reset: T08.
-                end
-            end
-            Note over UI,Exam: Available actions, attempts and completion conditions remain T01, T06-T09, not unlimited retries.
-            UI->>Exam: submit(state)
-            Exam->>State: grades.recordSubmission(record), preserving any serious-cheating zero
-            Exam-->>Game: Submission accepted with assessment record
-            alt Midterm or Final
-                Game->>State: grades.releaseOfficialGrade(assessmentId) immediately
-                Game->>State: Replace provisional effects and apply official grade feedback once
-                Game->>UI: showResult(officialRecord)
-            else Ordinary Lab or Unit Test
-                Exam->>State: Record official return three days after submission
-                Exam->>UI: Confirm submission and pending mark
-                Note over Game,State: Pending marking does not block leaving the completed class. Ordinary makeups also return marks after three days.
-            end
-            alt Midterm checkpoint
-                Game->>State: Evaluate official grades, SAN and Retake opportunities
-                Game->>UI: Show permitted Continue, Drop or Retake choices
-                Note over Game,UI: Low grade plus low SAN forbids Continue. Thresholds and bad-ending priority: T10.
-                Player->>UI: Choose permitted outcome
-                UI->>Game: resolveMidterm(choice)
-                alt Retake with an opportunity remaining
-                    Game->>State: Consume one of two opportunities, keep XP, return to Day 1 with initial SAN debuff
-                    Note over Game,State: Other reset data, tutorial replay and save boundary: T10-T12. Do not continue today's afternoon.
-                else Drop
-                    Game->>State: Record the run's ending
-                else Continue is permitted
-                    Game->>State: Keep current-day continuation
-                end
-            else Final completion
-                Game->>State: Determine percentage and ending using grades, XP and SAN
-                Game->>UI: showEnding(outcome)
-                Note over Game,State: Formula and ending branches: T01-T03, T10. No invented playable Day 41.
+        opt Estimator supplied for an ordinary assessment
+            Caller->>Game: recordSelfEstimate(mark, cost, provisionalSanDelta)
+            Game->>State: Separate estimate, SAN cost and source-labelled provisional effect
+            Note over Caller,Game: No invented accuracy model. Major-exam estimates/repeats report T08.
+        end
+        opt Cheating detected by a configured caller
+            Caller->>Game: caughtCheating(serious)
+            alt Tutorial
+                Game-->>Caller: Warning only
+            else Ordinary semester
+                Game->>State: Configured SAN loss and serious-zero flag if applicable
             end
         end
+        Caller->>Game: recordEvaluatedSubmission(mark, evidence)
+        Note over Caller,Game: Evaluator output, not a player's answer or an HP conversion.
+        Game->>Grades: Store submission, preserving any serious-cheating zero
+        alt Ordinary Lab or Unit Test including makeup
+            Grades-->>Game: Pending mark, return day = submission day + 3
+            Game->>State: Advance to OTHER_CLASSES
+        else Midterm or Final
+            Grades-->>Game: Immediate official mark
+            Game->>State: Enter MIDTERM_DECISION or FINAL_DECISION
+            Note over Caller,State: No automatic continuation, Final combat or ending formula is claimed.
+        end
+    else Review slot
+        Caller->>Game: completeReview()
+        Game->>Content: review(day)
+        Game->>State: Apply explicitly supplied review effect and finish class
     end
-    opt ICS4U slot is resolved AND this same day continues
-        Game->>State: Advance to OTHER_CLASSES
-        Game->>UI: Offer focus on other class or revise ICS
-        Player->>UI: Choose other-class activity
-        UI->>Activity: otherClassChoice(state, choice)
-        Activity->>State: Spend one slot, focus means no stat change, ICS revision means +XP and -SAN
-        Note over State,Activity: Tutorial penalties warn only. XP uses today's multiplier, no other-subject Knowledge stat.
+
+    opt Active run has reached OTHER_CLASSES
+        Caller->>Game: otherClasses(reviseIcs)
+        Game->>State: Focus = no stat change, revision = supplied +XP/-SAN effect
         Game->>State: Advance to AFTER_SCHOOL
-        Game->>UI: Offer Hub activity or immediate sleep
         alt Sleep immediately after school
-            Player->>UI: Choose sleep
-            UI->>Game: chooseSleep()
-            Game->>State: Record next-morning half-unit and SAN bonus, finish today's activity periods
-        else Continue Hub activities
-            loop AFTER_SCHOOL, EVENING, then LATE_NIGHT while awake
-                Player->>UI: Choose an available activity
-                UI->>Activity: hubChoice(state, activityId)
-                alt Valid activity
-                    Activity->>State: Spend one unit and apply configured effects once
-                    Note over State,Activity: Learning, rest, entertainment and shallow relationships, exact values T04, T13.
-                    opt LATE_NIGHT was used
-                        Activity->>State: Record lower SAN and XP gain multiplier for next day, unless tutorial
-                    end
-                else Invalid activity
-                    Activity->>UI: Explain rejection without spending time or changing stats
-                    Note over Game,Activity: Remain in the same slot after rejection, advance only when its activity is resolved.
+            Caller->>Game: sleepImmediatelyAfterSchool()
+            Game->>State: Record morning half-slot and supplied SAN bonus, close day
+        else Hub activities
+            loop One accepted activity per named Hub period
+                Caller->>Game: hubActivity(activityId)
+                Game->>Content: hub(activityId)
+                Game->>State: Apply configured effect and consume current slot
+                opt Late night used outside tutorial
+                    Game->>State: Record next-day SAN reduction and XP gain multiplier
                 end
+                Note over Game,State: Tutorial penalties only warn, never schedule a deferred penalty.
             end
-            Note over Game,UI: Other sleep/unused-slot details remain T04, no extra recovery amount is assumed.
+        end
+        Caller->>Save: saveAtDayEnd(game.snapshot(), path)
+        Save->>Save: Validate, write temporary versioned file, atomically replace destination
+        Save-->>Caller: Success or explicit failure
+        Caller->>Save: load(path)
+        Save-->>Caller: Same closed-day snapshot, no automatic time advancement
+        Caller->>Game: Construct controller with restored state and compatible policy/content
+        Caller->>Game: beginNextDay()
+        Game->>State: Expire old effects, activate dated effects, grant earned morning entitlement once
+        Game->>Grades: releaseDue(day)
+        Grades-->>Game: Newly official ordinary results
+        Game->>State: Remove only corresponding estimate values/effects
+        Game-->>Caller: New day and explicit pending grade-feedback notice
+        opt Earned morning half-slot
+            Caller->>Game: hubActivity(activityId)
+            Game->>State: Half numerical activity values, then enter ICS_CLASS
         end
     end
-    opt The run reaches a defined day-end boundary
-        Game->>Game: endDay()
-        Game->>UI: Show day summary without repeating effects
-        Game->>Save: saveAtDayEnd(state)
-        Save-->>Game: Success or failure
-        Game->>UI: Show actual save status
-        Note over Game,Save: Include pending marks, estimates, future effects, schedule replacements, relationships and Retake count.
-        Note over Game,Save: Snapshot/advance order, failure and Drop/Retake/Final persistence boundaries remain T12. No extra save point.
+
+    opt Caller supplies approved official-grade feedback
+        Caller->>Game: applyOfficialFeedback(assessmentId, effect)
+        Game->>State: Apply once after official release, retaining unrelated effects
     end
-    opt A new playthrough is chosen after an ending
-        Game->>State: Carry selected rewards only, do not inherit XP or other progress
-        Note over Game,State: This is not the Midterm Retake rule. Reward selection and opening details: T09-T10.
+    opt Midterm choice
+        Caller->>Game: resolveMidterm(choice)
+        alt Drop
+            Game->>State: Mark run DROPPED
+        else Continue or Retake
+            Game-->>Caller: Explicit T10 pending-rule exception, state unchanged
+        end
+        Note over Game,State: Two-opportunity counter helper exists. Complete reset, low-SAN priority and ending saves remain TBD.
     end
+    Note over Caller,Save: Invalid choices or missing rule/content inputs preserve state. No hidden game defaults or mid-activity saves.
