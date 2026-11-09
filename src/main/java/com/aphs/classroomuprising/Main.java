@@ -4,12 +4,15 @@ import java.nio.file.*;
 import java.time.Duration;
 import java.util.*;
 
-/** Console entry point for the core prototype, not a finished story/GUI game. */
+/** Swing demo entry point plus the existing command-line core checks. */
 public final class Main {
     private Main() {}
     public static void main(String[] args) throws Exception {
-        String command=args.length==0?"--help":args[0];
+        String command=args.length==0?"--gui":args[0];
         switch(command) {
+            case "--gui" -> javax.swing.SwingUtilities.invokeLater(() ->
+                    GameWindow.open(args.length > 1 ? Path.of(args[1]) : Path.of("demo-save.properties")));
+
             case "--calendar" -> {
                 for(var d:SchoolCalendar.days())
                     System.out.printf(Locale.ROOT,"Day %02d | %-9s | unit %d%s%n",d.day(),d.course(),d.unit(),d.tutorial()?" | tutorial":"");
@@ -18,12 +21,13 @@ public final class Main {
             case "--lab-demo" -> labDemo();
             case "--rules" -> System.out.println("Production values/content remain TBD: T01-T14 in docs/Sprint1.md. No balancing defaults are installed.");
             case "--help" -> System.out.println("""
-                    Classroom Uprising - confirmed-rule core prototype
+                    Classroom Uprising - pure Java Swing demo (JDK 21+)
+                    --gui [save-file]    Open the playable Days 1-8 fixture (default when no arguments).
                     --calendar           Show the approved forty-day schedule.
                     --rules              Show the unresolved-policy boundary.
                     --demo [save-file]   Run a labelled fixture scenario and a real day-end save/load.
                     --lab-demo           Compile and run a built-in trusted Java fixture with tests and a style rule.
-                    No GUI, authored lesson bank, automatic mark rubric or Final combat formula is claimed.
+                    GUI lesson/rubric values are demo fixtures; production grading and Final combat remain TBD.
                     """);
             default -> throw new IllegalArgumentException("Unknown command. Use --help.");
         }
