@@ -1,6 +1,8 @@
 package com.aphs.classroomuprising.ui;
 
 import com.aphs.classroomuprising.DemoProfile;
+import com.aphs.classroomuprising.ui.scene.AssetManifest;
+import com.aphs.classroomuprising.ui.scene.AssetStore;
 import javafx.application.Application;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.DoubleBinding;
@@ -49,7 +51,13 @@ public final class ClassroomApp extends Application {
         } catch (IOException e) {
             loadError = e.getMessage();
         }
-        AppContext context = new AppContext(profile, GameSession.defaultSavePath(), router);
+        AssetStore assets = null;
+        try {
+            assets = AssetStore.bundled(AssetManifest.bundled());
+        } catch (IOException e) {
+            loadError = (loadError == null ? "" : loadError + "; ") + e.getMessage();
+        }
+        AppContext context = new AppContext(profile, GameSession.defaultSavePath(), router, assets);
         router.bind(context);
 
         stage.setTitle("Classroom Uprising");
@@ -58,11 +66,11 @@ public final class ClassroomApp extends Application {
         stage.setMinHeight(360);
         stage.show();
 
-        if (profile != null) {
+        if (profile != null && assets != null) {
             router.show(new TitleScreen(context), null);
         } else {
             router.show(new BlockedScreen(context, "CANNOT START", Diagnostic.of(
-                    new Outcome.Rejected("Demo configuration could not be loaded: " + loadError))), null);
+                    new Outcome.Rejected("Game data could not be loaded: " + loadError))), null);
         }
     }
 }

@@ -31,6 +31,16 @@ public class Hud extends AnchorPane {
         getStyleClass().add("hud");
         setPickOnBounds(false);
 
+        // A soft gradient behind the HUD keeps it readable over any background art.
+        javafx.scene.layout.Region scrim = new javafx.scene.layout.Region();
+        scrim.getStyleClass().add("scrim-top");
+        scrim.setMouseTransparent(true);
+        scrim.setPrefHeight(170);
+        AnchorPane.setLeftAnchor(scrim, 0.0);
+        AnchorPane.setRightAnchor(scrim, 0.0);
+        AnchorPane.setTopAnchor(scrim, 0.0);
+        getChildren().add(scrim);
+
         day.getStyleClass().addAll("display", "hud-day-label");
         Slant dayTag = new Slant(day);
         dayTag.getStyleClass().addAll("tag-caret", "hud-day");

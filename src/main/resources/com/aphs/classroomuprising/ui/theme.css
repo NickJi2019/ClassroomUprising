@@ -39,10 +39,15 @@
 .tag-caret, .tag-light, .tag-danger { -fx-padding: 2 22 2 20; }
 .tag-label { -fx-font-size: 22px; }
 
-.glyph { -fx-fill: -cu-glyph; }
-.portrait-shape { -fx-fill: -cu-figure; }
-.portrait-accent { -fx-fill: -cu-caret; }
-.portrait-accent-cyan { -fx-fill: -cu-cyan; }
+/* Big background typography now sits over art, so it is a faint light wash, not a dark fill. */
+.glyph { -fx-fill: rgba(244, 246, 255, 0.07); }
+
+/* ---------- scene art layers ---------- */
+.scene-dim { -fx-fill: -cu-ink; }
+.scrim-top { -fx-background-color: linear-gradient(to bottom, rgba(11, 15, 42, 0.82) 0%, rgba(11, 15, 42, 0.35) 60%, transparent 100%); }
+.scrim-bottom { -fx-background-color: linear-gradient(to top, rgba(11, 15, 42, 0.9) 0%, rgba(11, 15, 42, 0.5) 50%, transparent 100%); }
+.scrim-left { -fx-background-color: linear-gradient(to right, rgba(11, 15, 42, 0.85) 0%, rgba(11, 15, 42, 0.45) 60%, transparent 100%); }
+.scrim-right { -fx-background-color: linear-gradient(to left, rgba(11, 15, 42, 0.85) 0%, rgba(11, 15, 42, 0.45) 60%, transparent 100%); }
 
 /* ---------- choices ---------- */
 .choice-list { -fx-background-color: transparent; }

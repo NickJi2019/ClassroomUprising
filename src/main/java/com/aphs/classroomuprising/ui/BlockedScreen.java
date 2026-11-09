@@ -15,6 +15,7 @@ final class BlockedScreen extends Screen {
     private final String title;
     private final Node reason;
 
+    @FXML private com.aphs.classroomuprising.ui.scene.SceneView scene;
     @FXML private Label heading;
     @FXML private VBox notice;
     @FXML private ChoiceList choices;
@@ -28,7 +29,9 @@ final class BlockedScreen extends Screen {
     @Override
     protected Parent build() {
         StackPane root = Views.load("blocked.fxml", this);
-        root.getChildren().add(0, new Backdrop(new Backdrop.Glyph("throw new PendingRule();", 160, 470, 70, false)));
+        ctx.stage(scene, "title", null, "title");
+        scene.setDim(0.55);
+        root.getChildren().add(1, new Backdrop(new Backdrop.Glyph("throw new PendingRule();", 160, 470, 70, false)));
         heading.setText(title);
         notice(notice, reason);
         choices.setChoices(List.of(ctx.profile() != null

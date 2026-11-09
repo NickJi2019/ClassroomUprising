@@ -135,6 +135,47 @@ classDiagram
         +focus(int day) void
         +advance(int fromDay, int toDay) Animation
     }
+
+    %% ---------- Scene art (com.aphs.classroomuprising.ui.scene) ----------
+    class SceneView {
+        -AssetStore assets
+        -Map cast
+        +setAssets(AssetStore store) void
+        +show(String place, String variant, String grade) void
+        +regrade(String grade, Duration duration) Animation
+        +setDim(double amount) void
+        +enter(String characterId, double slotX, String expression, Duration delay) boolean
+        +speak(String characterId, String expression) void
+    }
+    class AssetManifest {
+        -Map files
+        -Map characters
+        -Map grades
+        +bundled()$ AssetManifest
+        +read(Reader reader)$ AssetManifest
+        +background(String place, String variant) Optional
+        +characterNamed(String name) Optional
+    }
+    class AssetStore {
+        -AssetManifest manifest
+        -Map cache
+        +background(String place, String variant) Image
+        +character(CharacterSpec spec, String expression) Image
+        +texture(String name) Optional
+        +missingFiles() Set
+    }
+    class Grade {
+        <<record>>
+        +Color tint
+        +BlendMode mode
+        +double tintOpacity
+        +double saturation
+        +double brightness
+    }
+    class BackgroundLayer
+    class CharacterView
+    class AmbientLayer
+    class Placeholders
     class GameController {
         -GameState state
         -RuleValues rules
@@ -410,6 +451,14 @@ classDiagram
     AppContext ..> ClockTimes : clock or wipe
     DayIntroScreen --> FlipNumber : date flip
     DayIntroScreen --> CalendarStrip : scrolls to new day
+    Screen --> SceneView : art behind each screen
+    AppContext --> AssetStore
+    AssetStore --> AssetManifest : keys to files
+    AssetStore ..> Placeholders : missing art
+    AssetManifest --> Grade
+    SceneView *-- BackgroundLayer
+    SceneView *-- CharacterView
+    SceneView *-- AmbientLayer
     LabScreen --> LabRunService
     LabRunService --> JavaAssessmentRunner : background thread
     GameSession --> GameController : one call per player action

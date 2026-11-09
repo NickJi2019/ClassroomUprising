@@ -25,6 +25,7 @@ final class HubScreen extends Screen {
     private record Option(String label, String cost, List<StatDelta> effects, String caution,
                           String tone, Supplier<Outcome> action) {}
 
+    @FXML private com.aphs.classroomuprising.ui.scene.SceneView scene;
     @FXML private Label place;
     @FXML private ChoiceList options;
     @FXML private Label detailTitle;
@@ -41,7 +42,7 @@ final class HubScreen extends Screen {
     @Override
     protected Parent build() {
         StackPane root = Views.load("hub.fxml", this);
-        root.getChildren().add(0, new Backdrop(
+        root.getChildren().add(1, new Backdrop(
                 new Backdrop.Glyph("STUDENT HUB", 420, 300, 170, true),
                 new Backdrop.Glyph("while (awake)", 760, 90, 58, false)));
         options.setOnSelect(this::preview);
@@ -58,6 +59,10 @@ final class HubScreen extends Screen {
     protected void onShown() {
         GameState view = ctx.session().view();
         hud.show(view, ctx.demoLabel());
+        // Late night and the early-sleep morning happen in the dorm; other Hub periods at the Hub.
+        boolean dorm = view.period() == DayPeriod.LATE_NIGHT || view.period() == DayPeriod.MORNING_BONUS;
+        String time = view.period().name().toLowerCase(java.util.Locale.ROOT);
+        ctx.stage(scene, dorm ? "dorm" : "hub", time, time);
         place.setText(view.period() == DayPeriod.MORNING_BONUS ? "MORNING  ·  BONUS TIME" : "STUDENT HUB  ·  " + UiText.period(view.period()));
         current = optionsFor(view);
         options.setChoices(current.stream()

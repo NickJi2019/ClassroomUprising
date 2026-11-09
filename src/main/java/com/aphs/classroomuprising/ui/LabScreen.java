@@ -45,6 +45,7 @@ final class LabScreen extends Screen {
     private final LabRunService runs;
     private LabRunService.RunResult last;
 
+    @FXML private com.aphs.classroomuprising.ui.scene.SceneView scene;
     @FXML private Label labTag;
     @FXML private Label labTitle;
     @FXML private Label statement;
@@ -73,6 +74,8 @@ final class LabScreen extends Screen {
     @Override
     protected Parent build() {
         StackPane root = Views.load("lab.fxml", this);
+        ctx.stage(scene, "computer-lab", null, "ics_class");
+        scene.setDim(0.8);
         labTag.setText(task.tag());
         labTitle.setText("// " + task.title());
         statement.setText(task.statement());

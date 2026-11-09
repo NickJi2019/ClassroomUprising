@@ -19,6 +19,14 @@ class PresentationHelpersTest {
                 new DialogueScript.Line("Narrator", "No speaker here.")), lines);
     }
 
+    @Test void expressionTagSelectsArtAndIsNotShown() {
+        var line = DialogueScript.parse("Mr. Reward[smile]: Good question.", "Narrator").get(0);
+        assertEquals("Mr. Reward", line.speaker());
+        assertEquals("smile", line.expression());
+        assertEquals("Good question.", line.text());
+        assertNull(DialogueScript.parse("Mr. Reward: Hi.", "Narrator").get(0).expression());
+    }
+
     @Test void colonInsideASentenceIsNotASpeaker() {
         var lines = DialogueScript.parse("remember this: private fields stay private", "Mr. Reward");
         assertEquals("Mr. Reward", lines.get(0).speaker());

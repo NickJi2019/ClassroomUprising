@@ -25,6 +25,7 @@ public class DialogueBox extends StackPane {
     private int index;
     private Transition typing;
     private Runnable onFinished = () -> {};
+    private java.util.function.Consumer<DialogueScript.Line> onLine = line -> {};
     private boolean finished = true;
 
     public DialogueBox() {
@@ -71,6 +72,9 @@ public class DialogueBox extends StackPane {
 
     public boolean isFinished() { return finished; }
 
+    /** Called as each line starts, e.g. to put its speaker in focus. */
+    void setOnLine(java.util.function.Consumer<DialogueScript.Line> listener) { onLine = listener; }
+
     public void advance() {
         if (typing != null && typing.getStatus() == Animation.Status.RUNNING) {
             typing.stop();
@@ -92,6 +96,7 @@ public class DialogueBox extends StackPane {
         }
         DialogueScript.Line line = lines.get(index);
         speaker.setText(line.speaker().toUpperCase(Locale.ROOT));
+        onLine.accept(line);
         type(line.text());
     }
 

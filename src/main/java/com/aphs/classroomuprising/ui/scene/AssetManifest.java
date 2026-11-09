@@ -1,0 +1,175 @@
+package com.aphs.classroomuprising.ui.scene;
+
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Properties;
+import java.util.TreeSet;
+import java.util.regex.Pattern;
+
+/**
+ * The list of art the game asks for, read from {@code assets/manifest.properties}.
+ * Code refers to art only by key (for example {@code background.classroom}); the manifest
+ * says which file holds it. A key whose file is not delivered yet is still valid: the scene
+ * shows a labelled "missing art" plate for it.
+ *
+ * <pre>
+ * background.&lt;place&gt;                = backgrounds/classroom.png
+ * background.&lt;place&gt;.&lt;variant&gt;      = backgrounds/classroom-evening.png   (optional, e.g. a time of day)
+ * foreground.&lt;place&gt;                = backgrounds/classroom-desks.png     (optional, drawn in front of characters)
+ * character.&lt;id&gt;.name               = Mr. Reward
+ * character.&lt;id&gt;.height             = 640        (display height on the 1280x720 canvas)
+ * character.&lt;id&gt;.anchor             = 0.5, 1.0   (point in the image that stands on the slot, 0..1)
+ * character.&lt;id&gt;.expression.&lt;name&gt;  = characters/reward/neutral.png
+ * texture.&lt;name&gt;                    = textures/grain.png
+ * grade.&lt;name&gt;                      = #3B4FB8, MULTIPLY, 0.45, -0.25, -0.10
+ * </pre>
+ */
+public final class AssetManifest {
+    /** One character's display settings and its expressions (name to file). */
+    public record CharacterSpec(String id, String name, double height, double anchorX, double anchorY,
+                                Map<String, String> expressions) {
+        public CharacterSpec {
+            expressions = Map.copyOf(expressions);
+        }
+    }
+
+    public static final String RESOURCE = "/com/aphs/classroomuprising/assets/manifest.properties";
+    private static final Pattern NAME = Pattern.compile("[a-z0-9][a-z0-9_-]*");
+    private static final Pattern FILE = Pattern.compile("[a-z0-9_-]+(/[a-z0-9_-]+)*\\.(png|jpg|jpeg)");
+
+    private final Map<String, String> files;
+    private final Map<String, CharacterSpec> characters;
+    private final Map<String, Grade> grades;
+
+    private AssetManifest(Map<String, String> files, Map<String, CharacterSpec> characters, Map<String, Grade> grades) {
+        this.files = Map.copyOf(files);
+        this.characters = Map.copyOf(characters);
+        this.grades = Map.copyOf(grades);
+    }
+
+    /** Reads the manifest bundled with the game. */
+    public static AssetManifest bundled() throws IOException {
+        var stream = AssetManifest.class.getResourceAsStream(RESOURCE);
+        if (stream == null) throw new IOException("Missing " + RESOURCE);
+        try (Reader reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {
+            return read(reader);
+        }
+    }
+
+    /** Parses a manifest; any malformed or unknown entry is an error, never silently skipped. */
+    public static AssetManifest read(Reader reader) throws IOException {
+        Properties p = new Properties();
+        p.load(reader);
+        var files = new LinkedHashMap<String, String>();
+        var grades = new LinkedHashMap<String, Grade>();
+        var names = new LinkedHashMap<String, String>();
+        var heights = new LinkedHashMap<String, Double>();
+        var anchors = new LinkedHashMap<String, double[]>();
+        var expressions = new LinkedHashMap<String, Map<String, String>>();
+        try {
+            for (String key : new TreeSet<>(p.stringPropertyNames())) {
+                String value = p.getProperty(key).strip();
+                String[] part = key.split("\\.");
+                switch (part[0]) {
+                    case "background", "foreground", "texture" -> {
+                        if (part.length < 2 || part.length > 3 || (part.length == 3 && !part[0].equals("background")))
+                            throw new IllegalArgumentException("Unexpected key " + key);
+                        for (int i = 1; i < part.length; i++) name(part[i], key);
+                        files.put(key, file(value, key));
+                    }
+                    case "grade" -> {
+                        if (part.length != 2) throw new IllegalArgumentException("Unexpected key " + key);
+                        grades.put(name(part[1], key), Grade.parse(value));
+                    }
+                    case "character" -> {
+                        if (part.length < 3) throw new IllegalArgumentException("Unexpected key " + key);
+                        String id = name(part[1], key);
+                        switch (part[2]) {
+                            case "name" -> names.put(id, value);
+                            case "height" -> heights.put(id, positive(value, key));
+                            case "anchor" -> anchors.put(id, anchor(value, key));
+                            case "expression" -> {
+                                if (part.length != 4) throw new IllegalArgumentException("Unexpected key " + key);
+                                expressions.computeIfAbsent(id, k -> new LinkedHashMap<>()).put(name(part[3], key), file(value, key));
+                            }
+                            default -> throw new IllegalArgumentException("Unexpected key " + key);
+                        }
+                    }
+                    default -> throw new IllegalArgumentException("Unexpected key " + key);
+                }
+            }
+            var characters = new LinkedHashMap<String, CharacterSpec>();
+            var ids = new TreeSet<String>();
+            ids.addAll(names.keySet()); ids.addAll(heights.keySet()); ids.addAll(anchors.keySet()); ids.addAll(expressions.keySet());
+            for (String id : ids) {
+                if (!names.containsKey(id) || !heights.containsKey(id) || !anchors.containsKey(id)
+                        || !expressions.getOrDefault(id, Map.of()).containsKey("neutral"))
+                    throw new IllegalArgumentException("Character " + id + " needs name, height, anchor and a neutral expression.");
+                double[] a = anchors.get(id);
+                characters.put(id, new CharacterSpec(id, names.get(id), heights.get(id), a[0], a[1], expressions.get(id)));
+            }
+            return new AssetManifest(files, characters, grades);
+        } catch (IllegalArgumentException e) {
+            throw new IOException("Invalid asset manifest: " + e.getMessage(), e);
+        }
+    }
+
+    /** The file for a background, preferring the variant (e.g. a time of day) when one is listed. */
+    public Optional<String> background(String place, String variant) {
+        if (variant != null && files.containsKey("background." + place + "." + variant))
+            return Optional.of(files.get("background." + place + "." + variant));
+        return Optional.ofNullable(files.get("background." + place));
+    }
+
+    public Optional<String> foreground(String place) { return Optional.ofNullable(files.get("foreground." + place)); }
+
+    public Optional<String> texture(String name) { return Optional.ofNullable(files.get("texture." + name)); }
+
+    public Optional<Grade> grade(String name) { return Optional.ofNullable(grades.get(name)); }
+
+    public Optional<CharacterSpec> character(String id) { return Optional.ofNullable(characters.get(id)); }
+
+    /** Finds the character whose dialogue name is {@code name} (e.g. "Mr. Reward"). */
+    public Optional<CharacterSpec> characterNamed(String name) {
+        return characters.values().stream().filter(c -> c.name().equals(name)).findFirst();
+    }
+
+    /** Every file the manifest refers to, for the art checklist. */
+    public List<String> allFiles() {
+        var all = new ArrayList<>(files.values());
+        characters.values().forEach(c -> all.addAll(c.expressions().values()));
+        return all.stream().distinct().sorted().toList();
+    }
+
+    private static String name(String text, String key) {
+        if (!NAME.matcher(text).matches()) throw new IllegalArgumentException("Bad name '" + text + "' in " + key);
+        return text;
+    }
+
+    private static String file(String text, String key) {
+        if (!FILE.matcher(text).matches())
+            throw new IllegalArgumentException("Bad file '" + text + "' in " + key + " (lower-case relative .png/.jpg path)");
+        return text;
+    }
+
+    private static double positive(String text, String key) {
+        double value = Double.parseDouble(text);
+        if (!(value > 0 && value <= 2000)) throw new IllegalArgumentException("Bad number in " + key);
+        return value;
+    }
+
+    private static double[] anchor(String text, String key) {
+        double[] values = Arrays.stream(text.split(",")).map(String::strip).mapToDouble(Double::parseDouble).toArray();
+        if (values.length != 2 || Arrays.stream(values).anyMatch(v -> !(v >= 0 && v <= 1)))
+            throw new IllegalArgumentException("Anchor must be two numbers from 0 to 1 in " + key);
+        return values;
+    }
+}

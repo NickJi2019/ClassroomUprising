@@ -3,6 +3,9 @@ package com.aphs.classroomuprising.ui;
 import com.aphs.classroomuprising.DayPeriod;
 import com.aphs.classroomuprising.DemoProfile;
 import com.aphs.classroomuprising.GameState;
+import com.aphs.classroomuprising.ui.scene.AssetManifest;
+import com.aphs.classroomuprising.ui.scene.AssetStore;
+import com.aphs.classroomuprising.ui.scene.SceneView;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -16,19 +19,24 @@ final class AppContext {
     private final DemoProfile profile;
     private final Path savePath;
     private final Router router;
+    private final AssetStore assets;
     private GameSession session;
     private GameState dayStart;
     /** What the window last showed; used only to choose the transition animation. */
     private DayPeriod shownPeriod;
     private int shownDay;
 
-    AppContext(DemoProfile profile, Path savePath, Router router) {
+    AppContext(DemoProfile profile, Path savePath, Router router, AssetStore assets) {
         this.profile = profile;
         this.savePath = savePath;
         this.router = router;
+        this.assets = assets;
     }
 
     DemoProfile profile() { return profile; }
+
+    /** The art store, or null when the asset manifest could not be read. */
+    AssetStore assets() { return assets; }
 
     Path savePath() { return savePath; }
 
@@ -87,12 +95,25 @@ final class AppContext {
 
     String demoLabel() { return profile.label(); }
 
-    /** Splits authored text into dialogue lines; "You" is shown as the player's name. */
+    /**
+     * Splits authored text into dialogue lines, attaches each speaker's art id from the asset
+     * manifest, and shows "You" as the player's name.
+     */
     List<DialogueScript.Line> script(String raw) {
         String name = session().view().name();
-        return DialogueScript.parse(raw, "Mr. Reward").stream()
-                .map(line -> line.speaker().equals("You") ? new DialogueScript.Line(name, line.text()) : line)
-                .toList();
+        return DialogueScript.parse(raw, "Mr. Reward").stream().map(line -> {
+            String id = assets == null ? null : assets.manifest().characterNamed(line.speaker())
+                    .map(AssetManifest.CharacterSpec::id).orElse(null);
+            String shown = line.speaker().equals("You") ? name : line.speaker();
+            return new DialogueScript.Line(shown, line.expression(), line.text(), id);
+        }).toList();
+    }
+
+    /** Points a scene at the art store and shows a place; does nothing without a manifest. */
+    void stage(SceneView scene, String place, String variant, String grade) {
+        if (assets == null) return;
+        scene.setAssets(assets);
+        scene.show(place, variant, grade);
     }
 
     private Screen screenFor(GameState view) {
