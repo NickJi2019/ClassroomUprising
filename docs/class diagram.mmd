@@ -1,6 +1,6 @@
 classDiagram
     direction TB
-    %% Implemented foundation + Swing demo slice, 2026-11-09. Not a complete game.
+    %% Implemented foundation only, 2026-11-09. Frontend removed; frameworks are build dependencies.
     %% See implementation-status.md for delivery boundaries, Sprint1.md for target rules.
     class Main {
         +main(String[] args) void
@@ -207,9 +207,6 @@ classDiagram
         +ruleId() String
     }
 
-    Main --> GameController : labelled fixture demo
-    Main --> SaveManager : demo save and load
-    Main --> JavaAssessmentRunner : separate trusted Lab demo
     GameController --> GameState : copies then commits atomically
     GameController --> RuleValues : explicit policy inputs
     GameController --> ContentCatalog : supplied content
@@ -238,36 +235,11 @@ classDiagram
 
     note for GameController "Opening is acknowledgement, not rendered combat.<br/>Midterm Continue/Retake explicitly report T10.<br/>Final combat and ending selector are not implemented."
     note for GameState "HP is separate from marks and energy.<br/>Returned snapshots are defensive copies.<br/>Relationships/rewards are persisted data, not playable systems yet."
-    note for RuleValues "Null is TBD, never zero.<br/>No production balancing defaults.<br/>Demo and test values are labelled fixtures."
+    note for RuleValues "Null is TBD, never zero.<br/>No production balancing defaults.<br/>Only tests supply fixture values."
     note for ContentCatalog "One Lesson node: ask OR raise hand.<br/>Fixed ordinary questions, supplied major sample size.<br/>No authored course bank is installed."
     note for GradeBook "65 Term / 10 Participation / 25 Final.<br/>Midterm belongs to Term; its weight is supplied explicitly.<br/>First two absences free, then minus one overall percentage point."
     note for AssessmentRecord "Ordinary including makeup: three-day delay.<br/>Midterm and Final: immediate result, no skip.<br/>Evaluator supplies mark; no HP or automatic rubric conversion."
     note for SaveManager "Only active DAY_END snapshots.<br/>Load does not advance or regrant effects.<br/>Ending/Retake autosave boundaries remain T12."
     note for JavaAssessmentRunner "Actual compiler and test processes with time/output limits.<br/>Trusted local code only, not an OS security sandbox.<br/>No automatic course-score rubric."
 
-    class GameWindow {
-        +open(Path save) JFrame
-    }
-    class DemoSession {
-        +state() GameState
-        +act(String action) String
-        +submitLab(Report report) String
-        +answerQuiz(String answer) String
-        +save(Path file) void
-        +load(Path file) void
-    }
-    class DemoScenario {
-        +rules() RuleValues
-        +content() ContentCatalog
-        +evaluateLab(String source) Report
-        +labMark(Report report) double
-    }
-    Main --> GameWindow : default Swing launch
-    GameWindow --> DemoSession : EDT actions and snapshots
-    GameWindow --> DemoScenario : SwingWorker evaluation
-    DemoSession --> GameController : existing rule owner
-    DemoSession --> SaveManager : day-end only
-    DemoSession --> DemoScenario : labelled fixtures
-    DemoScenario --> JavaAssessmentRunner : actual JDK processes
-    note for GameWindow "Pure JDK Swing and Java2D.<br/>Days 1-8 playable; text opening, not Final combat.<br/>UI on EDT; compilation off EDT."
-    note for DemoScenario "DEMO ONLY: values, content and 80/20 Lab rubric.<br/>Does not replace production pending rules."
+    note for Main "Entry placeholder only.<br/>No UI, CLI routing, or framework startup.<br/>FXGL and libGDX are prepared by Gradle, not gameplay classes."

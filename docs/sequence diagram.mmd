@@ -1,6 +1,6 @@
 sequenceDiagram
     autonumber
-    actor Caller as Caller (CLI, test, or GUI DemoSession)
+    actor Caller as Core API caller (tests or future frontend)
     participant Game as GameController
     participant State as GameState
     participant Content as ContentCatalog
@@ -116,7 +116,3 @@ sequenceDiagram
         Note over Game,State: Two-opportunity counter helper exists. Complete reset, low-SAN priority and ending saves remain TBD.
     end
     Note over Caller,Save: Invalid choices or missing rule/content inputs preserve state. No hidden game defaults or mid-activity saves.
-
-    Note over Caller,Runner: Swing path: GameWindow dispatches actions to DemoSession on EDT. DemoScenario supplies labelled fixtures.
-    Note over Caller,Runner: Lab evaluation uses SwingWorker off EDT. Editing code invalidates evidence. Navigation is locked while busy.
-    Note over Caller,Save: GUI only: playable Days 1-8, fresh labelled Day-5 shortcut, explicit day-end Save/Load. No invented later content.
