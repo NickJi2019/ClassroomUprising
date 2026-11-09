@@ -64,6 +64,22 @@ public final class AssetStore {
         return manifest.texture(name).flatMap(this::load);
     }
 
+    /**
+     * A frame sequence, only when it is listed and every frame is delivered;
+     * otherwise empty and the caller uses its built-in transition.
+     */
+    public Optional<FrameSequence> sequence(String name) {
+        Optional<AssetManifest.SequenceSpec> spec = manifest.sequence(name);
+        if (spec.isEmpty()) return Optional.empty();
+        var frames = new java.util.ArrayList<Image>();
+        for (String file : spec.get().files()) {
+            Optional<Image> frame = load(file);
+            if (frame.isEmpty()) return Optional.empty();
+            frames.add(frame.get());
+        }
+        return Optional.of(new FrameSequence(frames, spec.get().frameMillis(), spec.get().swapAt()));
+    }
+
     public Grade grade(String name) {
         return manifest.grade(name).orElse(Grade.NONE);
     }

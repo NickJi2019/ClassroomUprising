@@ -62,6 +62,29 @@ class AssetManifestTest {
         assertEquals(javafx.scene.effect.BlendMode.MULTIPLY, grade.mode());
     }
 
+    @Test void sequencesListEveryFrameAndDefaultTheirTiming() throws IOException {
+        var spec = read("""
+                sequence.menu-open.frames = transitions/menu-open/frame-%02d.png
+                sequence.menu-open.count = 3
+                """).sequence("menu-open").orElseThrow();
+        assertEquals(java.util.List.of("transitions/menu-open/frame-00.png", "transitions/menu-open/frame-01.png",
+                "transitions/menu-open/frame-02.png"), spec.files());
+        assertEquals(50, spec.frameMillis(), 1e-9);
+        assertEquals(1, spec.swapAt());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "sequence.x.frames = t/f-%02d.png",                                         // no count
+            "sequence.x.frames = t/f.png\nsequence.x.count = 4",                        // no frame number
+            "sequence.x.frames = t/f-%02d.png\nsequence.x.count = 4\nsequence.x.swap-at = 4",  // swap past the end
+            "sequence.x.frames = t/f-%02d.png\nsequence.x.count = 4\nsequence.x.frame-ms = 2", // too fast
+            "sequence.x.speed = 3",                                                      // unknown field
+    })
+    void malformedSequencesAreRejected(String text) {
+        assertThrows(IOException.class, () -> read(text));
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {
             "sprite.hero = a.png",                                  // unknown kind

@@ -116,7 +116,9 @@ Code is in `com.aphs.classroomuprising.ui`; layouts and the stylesheet are in `s
 | Responsibility | Classes / files |
 | --- | --- |
 | Window, fixed 1280×720 canvas scaled to the window | `ClassroomApp`, `Theme` |
-| Screen switching, slanted wipe, input blocking during transitions, Esc menu overlay | `Router`, `PauseMenu`, `PausePanels` |
+| Screen changes: the old UI steps out, the new screen opens out of the old one through a growing slanted mask that starts where the player chose, a cool "ghost" of the new screen runs just ahead of the edge, the new UI steps in. Input is blocked while any transition runs | `Router`, `RevealMask` (pure geometry), `RevealOriginEvent` |
+| Artist-drawn transitions: when a `sequence.screen` or `sequence.menu-open` frame sequence is delivered, it plays instead of the built-in one | `FrameSequence`, `AssetStore.sequence` |
+| Esc menu over a captured, blurred, rippling copy of the paused screen; opens and closes through a stepped mask | `PauseMenu`, `MenuBackdrop`, `PausePanels` |
 | Time-of-day change: clock hands sweep from the old period's time to the new one (display times only, not rules) | `ClockShift`, `ClockTimes` |
 | Day change: split-flap date flip and a calendar strip that scrolls to the new day | `FlipNumber`, `CalendarStrip` (on `DayIntroScreen`) |
 | Shared context; picks the screen from the core's current period | `AppContext` |

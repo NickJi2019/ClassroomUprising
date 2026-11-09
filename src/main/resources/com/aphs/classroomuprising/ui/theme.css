@@ -207,7 +207,15 @@
 .save-failed { -fx-text-fill: -cu-red; }
 
 /* ---------- ESC menu ---------- */
-.pause-dim { -fx-background-color: rgba(5, 7, 26, 0.96); }
+.pause-dim { -fx-background-color: -cu-ink; }
+.menu-backdrop-wash { -fx-fill: linear-gradient(to right, #3A48A8 0%, #6474D2 55%, #A3B0F2 100%); }
+.menu-backdrop-glow { -fx-fill: linear-gradient(to bottom, rgba(92, 225, 230, 0.10) 0%, transparent 60%); }
+
+/* ---------- screen reveal ---------- */
+.reveal-edge { -fx-fill: transparent; -fx-stroke: -cu-caret; -fx-stroke-width: 4; }
+.reveal-echo-tint { -fx-fill: #5CC8E6; }
+.reveal-caption { -fx-padding: 4 40 4 34; }
+.reveal-caption-label { -fx-font-size: 56px; }
 .pause-title { -fx-font-size: 72px; -fx-text-fill: -cu-caret; }
 .pause-content {
     -fx-background-color: -cu-panel;

@@ -59,6 +59,24 @@ The current two files are generated placeholders and can be replaced.
 
 Each time of day has a grade line in the manifest: `grade.<name> = #tint, BLEND_MODE, tintOpacity, saturation, brightness`. The tint is a full-screen colour blended over the background (`MULTIPLY` darkens, `SCREEN` lightens, `OVERLAY`/`SOFT_LIGHT` shift contrast and hue); saturation and brightness run from -1 to 1. Artists can tune these without code changes. Characters are not graded, so they stay readable in any light.
 
+## Transition frame sequences (optional)
+
+Hand-drawn frames can replace the built-in transitions. Each sequence is a numbered run of **1280×720 transparent PNGs** (deliver at 2560×1440 for sharpness) played at a fixed frame time with no in-betweening:
+
+```
+sequence.<name>.frames  = transitions/<name>/frame-%02d.png   (numbered from 00)
+sequence.<name>.count   = 10
+sequence.<name>.frame-ms = 50     (optional, default 50 = 20 frames per second)
+sequence.<name>.swap-at = 5       (optional, default count/2: the frame on which the screen behind changes)
+```
+
+| Name | Used for |
+| --- | --- |
+| `screen` | Every screen change except the clock (time of day) and the day card |
+| `menu-open` | Opening the Esc menu; the menu appears on the swap frame |
+
+Frames should cover the whole canvas around the swap frame, so the change underneath is hidden. A sequence is used only when every frame is delivered; otherwise the built-in transition plays. None are listed in the manifest yet.
+
 ## Naming
 
 Lower-case letters, digits, `-` and `_` only; `.png`, `.jpg` or `.jpeg`; paths relative to the assets folder (e.g. `backgrounds/classroom.png`). The game refuses to start with a malformed manifest and says which line is wrong.
