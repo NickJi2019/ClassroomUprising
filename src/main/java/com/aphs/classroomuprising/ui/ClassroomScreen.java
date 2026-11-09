@@ -1,0 +1,147 @@
+package com.aphs.classroomuprising.ui;
+
+import com.aphs.classroomuprising.ContentCatalog;
+import com.aphs.classroomuprising.CourseType;
+import com.aphs.classroomuprising.DayPlan;
+import com.aphs.classroomuprising.GameController;
+import com.aphs.classroomuprising.GameState;
+import javafx.fxml.FXML;
+import javafx.scene.Parent;
+import javafx.scene.control.Label;
+import javafx.scene.input.KeyCode;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+
+import java.util.List;
+
+/**
+ * The ICS4U slot. A Lesson shows its content once, then offers its single choice node.
+ * Review and assessment days go to the matching core operation; when that hits a pending
+ * rule the notice says so and the player can return to the title with the save intact.
+ */
+final class ClassroomScreen extends Screen {
+    @FXML private StackPane portraitHost;
+    @FXML private Label prompt;
+    @FXML private ChoiceList choices;
+    @FXML private VBox notice;
+    @FXML private DialogueBox dialogue;
+    @FXML private Hud hud;
+
+    ClassroomScreen(AppContext ctx) { super(ctx); }
+
+    @Override
+    protected Parent build() {
+        StackPane root = Views.load("classroom.fxml", this);
+        root.getChildren().add(0, new Backdrop(
+                new Backdrop.Glyph("private int sanity;", 330, 150, 62, false),
+                new Backdrop.Glyph("{ ; }", 1040, 420, 54, false),
+                new Backdrop.Glyph("ICS4U", 600, 330, 170, true)));
+        portraitHost.getChildren().add(Portraits.reward(560));
+        root.setOnKeyPressed(e -> {
+            if ((e.getCode() == KeyCode.ENTER || e.getCode() == KeyCode.SPACE) && !dialogue.isFinished()) {
+                dialogue.advance();
+                e.consume();
+            }
+        });
+        return root;
+    }
+
+    @Override
+    protected boolean allowsPause() { return true; }
+
+    @Override
+    protected void focus() {
+        if (!choices.getChildren().isEmpty()) choices.requestFocus();
+        else root().requestFocus();
+    }
+
+    @Override
+    protected void onShown() {
+        GameState view = ctx.session().view();
+        hud.show(view, ctx.demoLabel());
+        DayPlan plan = view.currentCourse();
+        boolean makeup = view.makeups().containsKey(view.day());
+        if (plan.course() == CourseType.LESSON && !makeup) lesson();
+        else if (plan.course() == CourseType.REVIEW) review();
+        else assessment(plan, makeup);
+    }
+
+    private void lesson() {
+        Fetch<ContentCatalog.Lesson> fetch = ctx.session().openLesson();
+        if (!fetch.ok()) {
+            blocked(fetch.failure());
+            return;
+        }
+        ContentCatalog.Lesson lesson = fetch.value();
+        dialogue.play(ctx.script(lesson.text()), () -> offer(lesson));
+        root().requestFocus();
+    }
+
+    private void offer(ContentCatalog.Lesson lesson) {
+        prompt.setText(UiText.interactionPrompt(lesson.interaction()));
+        choices.setChoices(UiText.choiceOrder(lesson.choices().keySet()).stream()
+                .map(id -> ChoiceList.Choice.of(UiText.lessonChoice(id), null, () -> choose(id)))
+                .toList());
+        choices.requestFocus();
+    }
+
+    private void choose(String choiceId) {
+        Outcome outcome = ctx.session().lessonChoice(choiceId);
+        if (outcome instanceof Outcome.Done done) {
+            ctx.toasts().outcome(done);
+            hud.show(done.after(), ctx.demoLabel());
+            notice(notice, null);
+            prompt.setText("CLASS DISMISSED");
+            choices.setChoices(List.of(ChoiceList.Choice.of("CONTINUE", "Go to your other class", ctx::advance)));
+            choices.requestFocus();
+        } else {
+            notice(notice, Diagnostic.of(outcome));
+            choices.unlock();
+        }
+    }
+
+    private void review() {
+        dialogue.say("Schedule", "Today: " + UiText.courseLine(ctx.session().view().currentCourse()) + ".");
+        prompt.setText("REVIEW DAY");
+        choices.setChoices(List.of(ChoiceList.Choice.of("START REVIEW", null, () -> {
+            Outcome outcome = ctx.session().completeReview();
+            if (outcome instanceof Outcome.Done done) {
+                ctx.toasts().outcome(done);
+                ctx.advance();
+            } else {
+                blocked(outcome);
+            }
+        })));
+    }
+
+    private void assessment(DayPlan plan, boolean makeup) {
+        String name = (makeup ? "MAKEUP " : "") + UiText.course(plan.course());
+        dialogue.say("Schedule", "Today: " + (makeup ? "MAKEUP " : "") + UiText.courseLine(plan) + ".");
+        prompt.setText(name);
+        choices.setChoices(List.of(ChoiceList.Choice.of("BEGIN " + name, null, this::beginAssessment)));
+    }
+
+    private void beginAssessment() {
+        Fetch<GameController.AssessmentView> fetch = ctx.session().startAssessment();
+        if (!fetch.ok()) {
+            blocked(fetch.failure());
+            return;
+        }
+        // The core opened the assessment, but no Lab/test content model exists to drive a screen yet.
+        notice(notice, Diagnostic.warning("warning: no screen for " + fetch.value().id(),
+                "The backend has not supplied Lab problems or question options yet."));
+        choices.setChoices(List.of(returnToTitle()));
+    }
+
+    /** The class cannot go on: show why, and offer the title screen (the day-end save is kept). */
+    private void blocked(Outcome reason) {
+        notice(notice, Diagnostic.of(reason));
+        prompt.setText("END OF DEMO CONTENT");
+        choices.setChoices(List.of(returnToTitle()));
+        choices.requestFocus();
+    }
+
+    private ChoiceList.Choice returnToTitle() {
+        return ChoiceList.Choice.of("RETURN TO TITLE", "Your last day-end save is kept", ctx::toTitle).tone("cyan");
+    }
+}
