@@ -6,15 +6,26 @@ package com.aphs.classroomuprising;
  */
 public record RuleValues(Double lateNightSanReduction, Double lateNightXpMultiplier,
                          Double earlySleepSanBonus, Double makeupSanReduction,
-                         Double caughtCheatingSanReduction, TutorialAbsences tutorialAbsences) {
+                         Double caughtCheatingSanReduction, TutorialAbsences tutorialAbsences,
+                         Double normalSleepSanRecovery) {
     public enum TutorialAbsences { UNDECIDED, COUNT, IGNORE }
     public RuleValues {
         positiveOrNull(lateNightSanReduction); positiveOrNull(earlySleepSanBonus);
         positiveOrNull(makeupSanReduction); positiveOrNull(caughtCheatingSanReduction);
+        if (normalSleepSanRecovery != null &&
+                (!Double.isFinite(normalSleepSanRecovery) || normalSleepSanRecovery < 0))
+            throw new IllegalArgumentException("Normal-sleep SAN recovery must be non-negative.");
         if (lateNightXpMultiplier != null &&
                 (!Double.isFinite(lateNightXpMultiplier) || lateNightXpMultiplier <= 0 || lateNightXpMultiplier >= 1))
             throw new IllegalArgumentException("A reduced XP multiplier must be between zero and one.");
         java.util.Objects.requireNonNull(tutorialAbsences);
+    }
+    /** Existing callers retain pending normal-sleep values, not a silently chosen default. */
+    public RuleValues(Double lateNightSanReduction, Double lateNightXpMultiplier,
+                      Double earlySleepSanBonus, Double makeupSanReduction,
+                      Double caughtCheatingSanReduction, TutorialAbsences tutorialAbsences) {
+        this(lateNightSanReduction, lateNightXpMultiplier, earlySleepSanBonus,
+                makeupSanReduction, caughtCheatingSanReduction, tutorialAbsences, null);
     }
     private static void positiveOrNull(Double v) {
         if (v != null && (!Double.isFinite(v) || v <= 0))

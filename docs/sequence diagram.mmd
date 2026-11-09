@@ -1,6 +1,7 @@
 sequenceDiagram
     autonumber
     actor Caller as Core API caller (tests or future frontend)
+    participant Demo as DemoProfile (opt-in)
     participant Game as GameController
     participant State as GameState
     participant Content as ContentCatalog
@@ -9,6 +10,11 @@ sequenceDiagram
     participant Save as SaveManager
 
     Note over Caller,Save: Implemented foundation, not complete gameplay. Fixture values are not approved rules.
+    opt Explicitly selected Demo
+        Caller->>Demo: load()
+        Demo-->>Caller: Label, initial attributes, rules and Days 1-4 content
+        Note over Caller,Demo: Display DEMO label. Values are provisional, not production balancing.
+    end
     Caller->>Game: Construct with initial state, explicit RuleValues and ContentCatalog
     Note over Game,State: Every changing operation works on a copy and commits only after success.
     opt Opening not acknowledged
@@ -74,7 +80,7 @@ sequenceDiagram
             Caller->>Game: sleepImmediatelyAfterSchool()
             Game->>State: Record morning half-slot and supplied SAN bonus, close day
         else Hub activities
-            loop One accepted activity per named Hub period
+            loop While a Hub period remains (one accepted activity per slot)
                 Caller->>Game: hubActivity(activityId)
                 Game->>Content: hub(activityId)
                 Game->>State: Apply configured effect and consume current slot
@@ -82,6 +88,11 @@ sequenceDiagram
                     Game->>State: Record next-day SAN reduction and XP gain multiplier
                 end
                 Note over Game,State: Tutorial penalties only warn, never schedule a deferred penalty.
+                opt Player chooses sleep at EVENING or LATE_NIGHT instead of another activity
+                    Caller->>Game: sleepNormally()
+                    Game->>State: Apply configured SAN recovery once and enter DAY_END
+                    Note over Game,State: No morning half-slot or new late-night penalty. Existing effects remain.
+                end
             end
         end
         Caller->>Save: saveAtDayEnd(game.snapshot(), path)

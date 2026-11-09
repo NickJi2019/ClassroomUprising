@@ -107,6 +107,18 @@ public final class GameController {
             s.nextMorningBonus = true; s.period = DayPeriod.DAY_END; return List.of();
         });
     }
+    /** Close an evening/late-night slot without using it as an activity or earning early-sleep time. */
+    public Result sleepNormally() {
+        return change("Normal sleep completed.", s -> {
+            active(s);
+            if (s.period != DayPeriod.EVENING && s.period != DayPeriod.LATE_NIGHT)
+                throw new IllegalStateException("Normal sleep requires EVENING or LATE_NIGHT.");
+            double recovery = RuleValues.require(rules.normalSleepSanRecovery(), "T04", "Normal-sleep SAN recovery");
+            var warnings = apply(s, new StatChange(0, recovery, 0, Collections.nCopies(6, 0.0)), 1);
+            s.period = DayPeriod.DAY_END;
+            return warnings;
+        });
+    }
     public Result beginNextDay() {
         return change("Next day started.", s -> {
             phase(s, DayPeriod.DAY_END);

@@ -50,6 +50,10 @@ public final class ContentCatalog {
         if (value == null) throw new PendingRuleException("T14", "Lesson content for day " + day);
         return value;
     }
+    /** Available IDs in stable natural order. This immutable list does not grant activity eligibility. */
+    public List<String> hubActivityIds() {
+        return hub.keySet().stream().sorted().toList();
+    }
     public StatChange hub(String id) {
         var value = hub.get(id);
         if (value == null) throw new PendingRuleException("T04", "Hub activity " + id);

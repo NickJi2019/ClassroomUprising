@@ -51,6 +51,10 @@ public final class GameState {
     public RunProgress run() { return run; }
     public Status status() { return status; }
     public boolean openingCompleted() { return openingCompleted; }
+    /** Whether today's Lesson has been shown; retained through day end and reset on beginNextDay(). */
+    public boolean lessonShown() { return lessonShown; }
+    /** True between a successful assessment start and submission; exposes no mutable assessment data. */
+    public boolean hasActiveAssessment() { return active != null; }
     public boolean hasMorningBonus() { return nextMorningBonus; }
     public List<TimedEffect> effects() { return List.copyOf(effects); }
     public Map<Integer, Integer> makeups() { return Map.copyOf(makeups); }

@@ -17,6 +17,7 @@ classDiagram
         +otherClasses(boolean reviseIcs) Result
         +hubActivity(String id) Result
         +sleepImmediatelyAfterSchool() Result
+        +sleepNormally() Result
         +beginNextDay() Result
         +skipClass(boolean excused) Result
         +scheduleMakeup(int missedDay, int lessonDay) Result
@@ -48,6 +49,8 @@ classDiagram
         -Set rewards
         -Map relationships
         -ActiveAssessment active
+        +lessonShown() boolean
+        +hasActiveAssessment() boolean
         +currentCourse() DayPlan
         +effectiveSan() double
         +xpMultiplier() double
@@ -86,7 +89,18 @@ classDiagram
         +Double makeupSanReduction
         +Double caughtCheatingSanReduction
         +TutorialAbsences tutorialAbsences
+        +Double normalSleepSanRecovery
         +pending() RuleValues
+    }
+    class DemoProfile {
+        <<record>>
+        +String label
+        +StudentState initialStudent
+        +RuleValues rules
+        +ContentCatalog content
+        +load() DemoProfile
+        +read(Reader reader) DemoProfile
+        +newGame(String name, RandomGenerator random) GameController
     }
     class SchoolCalendar {
         +days() List~DayPlan~
@@ -134,6 +148,7 @@ classDiagram
         -StatChange otherClassRevision
         +pending() ContentCatalog
         +lesson(int day) Lesson
+        +hubActivityIds() List~String~
         +hub(String id) StatChange
         +review(int day) StatChange
         +otherRevision() StatChange
@@ -207,6 +222,10 @@ classDiagram
         +ruleId() String
     }
 
+    DemoProfile --> StudentState : configured initial values
+    DemoProfile --> RuleValues : explicit Demo policy
+    DemoProfile --> ContentCatalog : Days 1-4 only
+    DemoProfile ..> GameController : creates independent run
     GameController --> GameState : copies then commits atomically
     GameController --> RuleValues : explicit policy inputs
     GameController --> ContentCatalog : supplied content
@@ -235,8 +254,8 @@ classDiagram
 
     note for GameController "Opening is acknowledgement, not rendered combat.<br/>Midterm Continue/Retake explicitly report T10.<br/>Final combat and ending selector are not implemented."
     note for GameState "HP is separate from marks and energy.<br/>Returned snapshots are defensive copies.<br/>Relationships/rewards are persisted data, not playable systems yet."
-    note for RuleValues "Null is TBD, never zero.<br/>No production balancing defaults.<br/>Only tests supply fixture values."
-    note for ContentCatalog "One Lesson node: ask OR raise hand.<br/>Fixed ordinary questions, supplied major sample size.<br/>No authored course bank is installed."
+    note for RuleValues "Null is TBD, never zero.<br/>No production balancing defaults.<br/>Separate opt-in Demo supplies provisional values."
+    note for ContentCatalog "One Lesson node: ask OR raise hand.<br/>Fixed ordinary questions, supplied major sample size.<br/>Demo supplies four lessons and two Hub activities.<br/>Assessment banks and later content remain pending."
     note for GradeBook "65 Term / 10 Participation / 25 Final.<br/>Midterm belongs to Term; its weight is supplied explicitly.<br/>First two absences free, then minus one overall percentage point."
     note for AssessmentRecord "Ordinary including makeup: three-day delay.<br/>Midterm and Final: immediate result, no skip.<br/>Evaluator supplies mark; no HP or automatic rubric conversion."
     note for SaveManager "Only active DAY_END snapshots.<br/>Load does not advance or regrant effects.<br/>Ending/Retake autosave boundaries remain T12."
