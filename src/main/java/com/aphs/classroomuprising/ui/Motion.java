@@ -17,11 +17,11 @@ final class Motion {
         node.setOpacity(0);
         node.setTranslateX(48);
         node.setTranslateY(-12);
-        TranslateTransition move = new TranslateTransition(Duration.millis(260), node);
+        TranslateTransition move = new TranslateTransition(MotionTokens.BASE, node);
         move.setToX(0);
         move.setToY(0);
-        move.setInterpolator(Interpolator.SPLINE(0.2, 0.8, 0.2, 1));
-        FadeTransition fade = new FadeTransition(Duration.millis(200), node);
+        move.setInterpolator(MotionTokens.OUT);
+        FadeTransition fade = new FadeTransition(MotionTokens.QUICK, node);
         fade.setToValue(1);
         ParallelTransition both = new ParallelTransition(move, fade);
         both.setDelay(Duration.millis(delayMillis));
@@ -30,7 +30,7 @@ final class Motion {
 
     /** A quick press feedback on the activated option. */
     static void pop(Node node) {
-        ScaleTransition scale = new ScaleTransition(Duration.millis(80), node);
+        ScaleTransition scale = new ScaleTransition(MotionTokens.SNAP, node);
         scale.setToX(1.05);
         scale.setToY(1.05);
         scale.setAutoReverse(true);

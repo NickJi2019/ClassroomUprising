@@ -53,7 +53,7 @@ final class ClassroomScreen extends Screen {
 
     @Override
     protected void focus() {
-        if (!choices.getChildren().isEmpty()) choices.requestFocus();
+        if (choices.hasChoices()) choices.requestFocus();
         else root().requestFocus();
     }
 
