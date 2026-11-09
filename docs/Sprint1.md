@@ -196,7 +196,7 @@ The playable semester has 40 days. The opening shows the previous semester's dif
 
 ### **Class diagram**
 
-Mermaid file: [class diagram.mmd](class%20diagram.mmd). It shows implemented foundation classes and explicit policy boundaries. Methods accepting evaluated scores or effect inputs do not imply an automatic grader or approved numerical policy. See implementation-status.md for undelivered features.
+Mermaid file: [class diagram.mmd](class%20diagram.mmd). It shows implemented foundation classes, the JavaFX frontend layer and explicit policy boundaries. Methods accepting evaluated scores or effect inputs do not imply an automatic grader or approved numerical policy. See implementation-status.md for undelivered features.
 
 ### **Sequence diagram**
 

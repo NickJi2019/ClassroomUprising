@@ -1,9 +1,123 @@
 classDiagram
     direction TB
-    %% Implemented foundation only, 2026-11-09. Frontend removed; frameworks are build dependencies.
-    %% See implementation-status.md for delivery boundaries, Sprint1.md for target rules.
+    %% Implemented classes, 2026-11-09: rule core plus the JavaFX frontend (package ui).
+    %% FXGL and libGDX are build dependencies only. See implementation-status.md and Sprint1.md.
     class Main {
         +main(String[] args) void
+    }
+
+    %% ---------- JavaFX frontend (com.aphs.classroomuprising.ui) ----------
+    class ClassroomApp {
+        +start(Stage stage) void
+    }
+    class Router {
+        -Screen current
+        -PauseMenu pause
+        -boolean transitioning
+        +show(Screen next, String caption) void
+        +closePause() void
+        +toasts() Toasts
+    }
+    class AppContext {
+        -DemoProfile profile
+        -Path savePath
+        -GameSession session
+        -GameState dayStart
+        +begin(GameSession session) void
+        +advance() void
+        +startDay(Outcome outcome) void
+        +toTitle() void
+        -screenFor(GameState view) Screen
+    }
+    class Screen {
+        <<abstract>>
+        #AppContext ctx
+        +root() Parent
+        #build() Parent*
+        #onShown() void
+        #onHidden() void
+        #focus() void
+        #allowsPause() boolean
+    }
+    class TitleScreen
+    class OpeningScreen
+    class DayIntroScreen
+    class ClassroomScreen
+    class OtherClassesScreen
+    class HubScreen
+    class DayEndScreen
+    class BlockedScreen
+    class PauseMenu
+    class LabScreen {
+        -LabTask task
+        -LabRunService runs
+        -RunResult last
+    }
+    class GameSession {
+        -DemoProfile profile
+        -GameController game
+        -Path savePath
+        +newGame(DemoProfile profile, String name, RandomGenerator random, Path savePath) GameSession$
+        +load(DemoProfile profile, Path savePath, RandomGenerator random) GameSession$
+        +view() GameState
+        +completeOpening() Outcome
+        +openLesson() Fetch
+        +lessonChoice(String id) Outcome
+        +completeReview() Outcome
+        +otherClasses(boolean reviseIcs) Outcome
+        +hubActivity(String id) Outcome
+        +sleepAfterSchool() Outcome
+        +sleepNormally() Outcome
+        +beginNextDay() Outcome
+        +startAssessment() Fetch
+        +saveDayEnd() Outcome
+    }
+    class Outcome {
+        <<sealed interface>>
+        +ok() boolean
+    }
+    class Done {
+        <<record>>
+        +String message
+        +List~String~ warnings
+        +GameState before
+        +GameState after
+    }
+    class Pending {
+        <<record>>
+        +String ruleId
+        +String detail
+    }
+    class Rejected {
+        <<record>>
+        +String reason
+    }
+    class Fetch~T~ {
+        <<record>>
+        +T value
+        +Outcome failure
+        +ok() boolean
+    }
+    class LabRunService {
+        -Evaluator evaluator
+        -long revision
+        -boolean running
+        +start(String className, String source, List tests, List rubric, Consumer onResult) boolean
+        +sourceEdited() void
+        +isCurrent(RunResult result) boolean
+        +close() void
+    }
+    class ChoiceList {
+        -boolean locked
+        +setChoices(List choices) void
+        +unlock() void
+    }
+    class DialogueBox {
+        +play(List lines, Runnable whenDone) void
+        +advance() void
+    }
+    class Hud {
+        +show(GameState state, String demoLabel) void
     }
     class GameController {
         -GameState state
@@ -252,6 +366,41 @@ classDiagram
     JavaAssessmentRunner --> StyleRule : independent rubric evidence
     StyleRule <|.. LineLength
 
+    Main ..> ClassroomApp : Application.launch, no arguments
+    ClassroomApp --> Router
+    ClassroomApp --> AppContext
+    AppContext --> Router
+    AppContext --> GameSession : current playthrough
+    AppContext ..> Screen : picks screen from snapshot period
+    Router --> Screen : current
+    Router --> PauseMenu : Esc overlay
+    Screen --> AppContext
+    Screen <|-- TitleScreen
+    Screen <|-- OpeningScreen
+    Screen <|-- DayIntroScreen
+    Screen <|-- ClassroomScreen
+    Screen <|-- OtherClassesScreen
+    Screen <|-- HubScreen
+    Screen <|-- DayEndScreen
+    Screen <|-- BlockedScreen
+    Screen <|-- PauseMenu
+    Screen <|-- LabScreen
+    ClassroomScreen --> DialogueBox
+    ClassroomScreen --> ChoiceList
+    ClassroomScreen --> Hud
+    HubScreen --> ChoiceList
+    LabScreen --> LabRunService
+    LabRunService --> JavaAssessmentRunner : background thread
+    GameSession --> GameController : one call per player action
+    GameSession --> DemoProfile : rules and content
+    GameSession --> SaveManager : day-end slot
+    GameSession ..> Outcome : returns
+    GameSession ..> Fetch : returns
+    Outcome <|.. Done
+    Outcome <|.. Pending
+    Outcome <|.. Rejected
+    Pending ..> PendingRuleException : shown, never swallowed
+
     note for GameController "Opening is acknowledgement, not rendered combat.<br/>Midterm Continue/Retake explicitly report T10.<br/>Final combat and ending selector are not implemented."
     note for GameState "HP is separate from marks and energy.<br/>Returned snapshots are defensive copies.<br/>Relationships/rewards are persisted data, not playable systems yet."
     note for RuleValues "Null is TBD, never zero.<br/>No production balancing defaults.<br/>Separate opt-in Demo supplies provisional values."
@@ -261,4 +410,6 @@ classDiagram
     note for SaveManager "Only active DAY_END snapshots.<br/>Load does not advance or regrant effects.<br/>Ending/Retake autosave boundaries remain T12."
     note for JavaAssessmentRunner "Actual compiler and test processes with time/output limits.<br/>Trusted local code only, not an OS security sandbox.<br/>No automatic course-score rubric."
 
-    note for Main "Entry placeholder only.<br/>No UI, CLI routing, or framework startup.<br/>FXGL and libGDX are prepared by Gradle, not gameplay classes."
+    note for Main "Opens the JavaFX game window only.<br/>Arguments are ignored: no CLI routes, modes or day jumps.<br/>FXGL and libGDX are prepared by Gradle, not started."
+    note for GameSession "Frontend controller: never edits GameState.<br/>Refusals become Pending/Rejected with nothing changed.<br/>showLesson() is called once per class."
+    note for LabRunService "One run at a time; results return on the UI thread.<br/>Edits make older results stale.<br/>Evidence-to-mark is T06; Lab problems not supplied yet."
