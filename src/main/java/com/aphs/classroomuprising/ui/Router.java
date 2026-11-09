@@ -1,5 +1,7 @@
 package com.aphs.classroomuprising.ui;
 
+import com.aphs.classroomuprising.DayPeriod;
+import javafx.animation.Animation;
 import javafx.animation.Interpolator;
 import javafx.animation.PauseTransition;
 import javafx.animation.SequentialTransition;
@@ -7,6 +9,7 @@ import javafx.animation.TranslateTransition;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Group;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.input.KeyCode;
@@ -17,14 +20,14 @@ import javafx.scene.shape.Polygon;
 import javafx.util.Duration;
 
 /**
- * Owns the canvas layers (screen, menu overlay, toasts, transition wipe) and switches screens
- * with the slanted wipe. Input is blocked while a wipe is running, so a click cannot reach a
- * screen that is being replaced.
+ * Owns the canvas layers (screen, toasts, menu overlay, transitions) and switches screens.
+ * Two transitions exist: the slanted wipe, and the clock for a time change within a day.
+ * Input is blocked while either runs, so a click cannot reach a screen being replaced.
  */
 final class Router {
     private final StackPane screenLayer = new StackPane();
     private final StackPane overlayLayer = new StackPane();
-    private final Pane wipeLayer = new Pane();
+    private final Pane transitionLayer = new Pane();
     private final Toasts toasts = new Toasts();
     private AppContext context;
     private Screen current;
@@ -33,13 +36,13 @@ final class Router {
 
     Router(StackPane canvas, Scene scene) {
         overlayLayer.setPickOnBounds(false);
-        wipeLayer.setMouseTransparent(true);
+        transitionLayer.setMouseTransparent(true);
         StackPane toastLayer = new StackPane(toasts);
         toastLayer.setMouseTransparent(true);
         StackPane.setAlignment(toasts, Pos.TOP_RIGHT);
         StackPane.setMargin(toasts, new Insets(92, 32, 0, 0));
         // Toasts sit under the menu overlay, so the ESC menu is never covered by feedback.
-        canvas.getChildren().addAll(screenLayer, toastLayer, overlayLayer, wipeLayer);
+        canvas.getChildren().addAll(screenLayer, toastLayer, overlayLayer, transitionLayer);
         scene.addEventFilter(KeyEvent.KEY_PRESSED, this::filterKeys);
     }
 
@@ -47,15 +50,26 @@ final class Router {
 
     Toasts toasts() { return toasts; }
 
-    /** Shows a screen. With a caption, the wipe band carries that text (e.g. the next time of day). */
+    /** Shows a screen with the slanted wipe; a caption is carried on the band. */
     void show(Screen next, String caption) {
+        if (!prepare(next)) return;
+        cover(wipe(caption, () -> swap(next)));
+    }
+
+    /** Shows a screen with the clock: hands sweep from one time of day to the next. */
+    void showTimeChange(Screen next, DayPeriod from, DayPeriod to) {
+        if (!prepare(next)) return;
+        ClockShift clock = new ClockShift(from, to, () -> swap(next));
+        cover(clock, clock.animation());
+    }
+
+    /** Builds the screen; returns false when it was shown directly because nothing was on screen. */
+    private boolean prepare(Screen next) {
         closePause();
         next.root();
-        if (current == null) {
-            swap(next);
-            return;
-        }
-        wipe(caption, () -> swap(next));
+        if (current != null) return true;
+        swap(next);
+        return false;
     }
 
     private void swap(Screen next) {
@@ -66,9 +80,23 @@ final class Router {
         next.focus();
     }
 
-    private void wipe(String caption, Runnable midpoint) {
+    private void cover(Node overlay, Animation animation) {
         transitioning = true;
         screenLayer.setMouseTransparent(true);
+        transitionLayer.getChildren().add(overlay);
+        animation.setOnFinished(e -> {
+            transitionLayer.getChildren().remove(overlay);
+            screenLayer.setMouseTransparent(false);
+            transitioning = false;
+        });
+        animation.play();
+    }
+
+    private void cover(Wipe wipe) { cover(wipe.node(), wipe.animation()); }
+
+    private record Wipe(Node node, Animation animation) {}
+
+    private static Wipe wipe(String caption, Runnable midpoint) {
         Polygon trail = new Polygon(180, 0, 1760, 0, 1580, 720, 0, 720);
         trail.getStyleClass().add("wipe-trail");
         trail.setTranslateX(-90);
@@ -82,7 +110,6 @@ final class Router {
             wipe.getChildren().add(text);
         }
         wipe.setTranslateX(-1900);
-        wipeLayer.getChildren().add(wipe);
 
         TranslateTransition in = new TranslateTransition(Duration.millis(240), wipe);
         in.setToX(-170);
@@ -91,13 +118,8 @@ final class Router {
         TranslateTransition out = new TranslateTransition(Duration.millis(300), wipe);
         out.setToX(1500);
         out.setInterpolator(Interpolator.SPLINE(0.6, 0, 0.4, 1));
-        SequentialTransition all = new SequentialTransition(in, new PauseTransition(Duration.millis(caption == null ? 90 : 380)), out);
-        all.setOnFinished(e -> {
-            wipeLayer.getChildren().remove(wipe);
-            screenLayer.setMouseTransparent(false);
-            transitioning = false;
-        });
-        all.play();
+        return new Wipe(wipe, new SequentialTransition(in,
+                new PauseTransition(Duration.millis(caption == null ? 90 : 380)), out));
     }
 
     private void filterKeys(KeyEvent event) {

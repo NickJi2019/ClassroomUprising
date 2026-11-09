@@ -26,6 +26,18 @@ final class UiText {
         };
     }
 
+    /** Short label for calendar cells. */
+    static String courseShort(CourseType type) {
+        return switch (type) {
+            case LESSON -> "L";
+            case LAB -> "LAB";
+            case UNIT_TEST -> "TEST";
+            case REVIEW -> "REV";
+            case MIDTERM -> "MID";
+            case FINAL -> "FIN";
+        };
+    }
+
     static String courseLine(DayPlan plan) {
         String suffix = plan.tutorial() ? " · TUTORIAL" : plan.unit() > 0 ? " · UNIT " + plan.unit() : "";
         return course(plan.course()) + suffix;

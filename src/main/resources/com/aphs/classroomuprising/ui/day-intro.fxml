@@ -5,20 +5,23 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
+<?import com.aphs.classroomuprising.ui.CalendarStrip?>
+<?import com.aphs.classroomuprising.ui.FlipNumber?>
 <?import com.aphs.classroomuprising.ui.Slant?>
 
 <StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" styleClass="screen, day-intro">
     <AnchorPane pickOnBounds="false">
-        <VBox spacing="10" AnchorPane.leftAnchor="120.0" AnchorPane.topAnchor="140.0">
+        <VBox spacing="14" AnchorPane.leftAnchor="120.0" AnchorPane.topAnchor="96.0">
             <HBox spacing="18" alignment="BOTTOM_LEFT">
                 <Slant styleClass="tag-caret, intro-tag" maxWidth="-Infinity">
-                    <HBox spacing="14" alignment="BASELINE_LEFT">
+                    <HBox spacing="8" alignment="BOTTOM_LEFT">
                         <Label text="DAY" styleClass="display, intro-day-word"/>
-                        <Label fx:id="dayNumber" styleClass="display, intro-day"/>
+                        <FlipNumber fx:id="dayNumber" cellWidth="230.0" cellHeight="220.0"/>
                     </HBox>
                 </Slant>
                 <Label text="/ 40" styleClass="display, intro-total"/>
             </HBox>
+            <CalendarStrip fx:id="strip"/>
             <Label fx:id="course" styleClass="display, intro-course"/>
             <Label fx:id="tutorial" text="TUTORIAL  &#183;  PENALTIES ARE WARNINGS ONLY" styleClass="mono, intro-tutorial"/>
             <VBox fx:id="notes" spacing="8" maxWidth="560.0"/>
