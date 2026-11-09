@@ -9,8 +9,10 @@
 <?import javafx.scene.layout.VBox?>
 <?import com.aphs.classroomuprising.ui.ChoiceList?>
 <?import com.aphs.classroomuprising.ui.Slant?>
+<?import com.aphs.classroomuprising.ui.scene.SceneView?>
 
 <StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" styleClass="screen, lab">
+    <SceneView fx:id="scene"/>
     <AnchorPane>
         <HBox spacing="14" alignment="CENTER_LEFT" AnchorPane.leftAnchor="40.0" AnchorPane.topAnchor="26.0">
             <Slant styleClass="tag-caret">

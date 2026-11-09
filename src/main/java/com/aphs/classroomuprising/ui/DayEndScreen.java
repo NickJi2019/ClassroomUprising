@@ -16,6 +16,7 @@ import java.util.List;
  * then the player starts the next day or returns to the title.
  */
 final class DayEndScreen extends Screen {
+    @FXML private com.aphs.classroomuprising.ui.scene.SceneView scene;
     @FXML private Label dayLabel;
     @FXML private FlowPane summary;
     @FXML private Label saveStatus;
@@ -28,7 +29,8 @@ final class DayEndScreen extends Screen {
     @Override
     protected Parent build() {
         StackPane root = Views.load("day-end.fxml", this);
-        root.getChildren().add(0, new Backdrop(
+        ctx.stage(scene, "dorm", "day_end", "day_end");
+        root.getChildren().add(1, new Backdrop(
                 new Backdrop.Glyph("save();", 700, 120, 120, false),
                 new Backdrop.Glyph("zzz", 980, 470, 150, true)));
         return root;

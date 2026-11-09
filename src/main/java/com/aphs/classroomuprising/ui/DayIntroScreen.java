@@ -27,6 +27,7 @@ final class DayIntroScreen extends Screen {
     private PauseTransition autoLeave;
     private boolean leaving;
 
+    @FXML private com.aphs.classroomuprising.ui.scene.SceneView scene;
     @FXML private FlipNumber dayNumber;
     @FXML private CalendarStrip strip;
     @FXML private Label course;
@@ -47,7 +48,11 @@ final class DayIntroScreen extends Screen {
     @Override
     protected Parent build() {
         StackPane root = Views.load("day-intro.fxml", this);
-        root.getChildren().add(0, new Backdrop(
+        GameState view = ctx.session().view();
+        boolean morningInDorm = view.period() == DayPeriod.MORNING_BONUS;
+        ctx.stage(scene, morningInDorm ? "dorm" : "classroom", null, view.period().name().toLowerCase(java.util.Locale.ROOT));
+        scene.setDim(0.6);
+        root.getChildren().add(1, new Backdrop(
                 new Backdrop.Glyph("day++;", 760, 90, 110, false),
                 new Backdrop.Glyph("while (day <= 40)", 40, 600, 64, false)));
         root.setOnMouseClicked(e -> leave());

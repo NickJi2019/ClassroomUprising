@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 
 /** The OTHER_CLASSES slot: focus on the other class (no change) or revise ICS. */
 final class OtherClassesScreen extends Screen {
+    @FXML private com.aphs.classroomuprising.ui.scene.SceneView scene;
     @FXML private ChoiceList choices;
     @FXML private VBox notice;
     @FXML private Hud hud;
@@ -20,7 +21,8 @@ final class OtherClassesScreen extends Screen {
     @Override
     protected Parent build() {
         StackPane root = Views.load("other-classes.fxml", this);
-        root.getChildren().add(0, new Backdrop(
+        ctx.stage(scene, "hallway", null, "other_classes");
+        root.getChildren().add(1, new Backdrop(
                 new Backdrop.Glyph("PERIOD 2", 620, 250, 170, true),
                 new Backdrop.Glyph("/* not ICS4U */", 90, 560, 60, false)));
         return root;

@@ -5,7 +5,9 @@ import com.aphs.classroomuprising.CourseType;
 import com.aphs.classroomuprising.DayPlan;
 import com.aphs.classroomuprising.GameController;
 import com.aphs.classroomuprising.GameState;
+import com.aphs.classroomuprising.ui.scene.SceneView;
 import javafx.fxml.FXML;
+import javafx.util.Duration;
 import javafx.scene.Parent;
 import javafx.scene.control.Label;
 import javafx.scene.input.KeyCode;
@@ -20,7 +22,7 @@ import java.util.List;
  * rule the notice says so and the player can return to the title with the save intact.
  */
 final class ClassroomScreen extends Screen {
-    @FXML private StackPane portraitHost;
+    @FXML private SceneView scene;
     @FXML private Label prompt;
     @FXML private ChoiceList choices;
     @FXML private VBox notice;
@@ -32,11 +34,11 @@ final class ClassroomScreen extends Screen {
     @Override
     protected Parent build() {
         StackPane root = Views.load("classroom.fxml", this);
-        root.getChildren().add(0, new Backdrop(
+        ctx.stage(scene, "classroom", null, "ics_class");
+        root.getChildren().add(1, new Backdrop(
                 new Backdrop.Glyph("private int sanity;", 330, 150, 62, false),
-                new Backdrop.Glyph("{ ; }", 1040, 420, 54, false),
-                new Backdrop.Glyph("ICS4U", 600, 330, 170, true)));
-        portraitHost.getChildren().add(Portraits.reward(560));
+                new Backdrop.Glyph("ICS4U", 640, 300, 170, true)));
+        dialogue.setOnLine(line -> scene.speak(line.characterId(), line.expression()));
         root.setOnKeyPressed(e -> {
             if ((e.getCode() == KeyCode.ENTER || e.getCode() == KeyCode.SPACE) && !dialogue.isFinished()) {
                 dialogue.advance();
@@ -59,6 +61,7 @@ final class ClassroomScreen extends Screen {
     protected void onShown() {
         GameState view = ctx.session().view();
         hud.show(view, ctx.demoLabel());
+        if (ctx.assets() != null) scene.enter("reward", 0.24, "neutral", Duration.millis(120));
         DayPlan plan = view.currentCourse();
         boolean makeup = view.makeups().containsKey(view.day());
         if (plan.course() == CourseType.LESSON && !makeup) lesson();

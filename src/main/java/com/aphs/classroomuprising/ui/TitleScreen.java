@@ -1,5 +1,6 @@
 package com.aphs.classroomuprising.ui;
 
+import com.aphs.classroomuprising.ui.scene.SceneView;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.Parent;
@@ -18,6 +19,7 @@ import java.util.random.RandomGenerator;
 final class TitleScreen extends Screen {
     private static final int MAX_NAME = 24;
 
+    @FXML private SceneView scene;
     @FXML private ChoiceList menu;
     @FXML private VBox namePanel;
     @FXML private TextField nameField;
@@ -31,7 +33,8 @@ final class TitleScreen extends Screen {
     @Override
     protected Parent build() {
         StackPane root = Views.load("title.fxml", this);
-        root.getChildren().add(0, new Backdrop(
+        ctx.stage(scene, "title", null, "title");
+        root.getChildren().add(1, new Backdrop(
                 new Backdrop.Glyph("class Uprising {", 420, 70, 92, false),
                 new Backdrop.Glyph("// retake", 760, 470, 120, false),
                 new Backdrop.Glyph("{ ; }", 80, 560, 70, false)));

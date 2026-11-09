@@ -8,8 +8,10 @@
 <?import com.aphs.classroomuprising.ui.CalendarStrip?>
 <?import com.aphs.classroomuprising.ui.FlipNumber?>
 <?import com.aphs.classroomuprising.ui.Slant?>
+<?import com.aphs.classroomuprising.ui.scene.SceneView?>
 
 <StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" styleClass="screen, day-intro">
+    <SceneView fx:id="scene"/>
     <AnchorPane pickOnBounds="false">
         <VBox spacing="14" AnchorPane.leftAnchor="120.0" AnchorPane.topAnchor="96.0">
             <HBox spacing="18" alignment="BOTTOM_LEFT">

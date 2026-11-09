@@ -122,11 +122,15 @@ Code is in `com.aphs.classroomuprising.ui`; layouts and the stylesheet are in `s
 | Shared context; picks the screen from the core's current period | `AppContext` |
 | Frontend controller: one core call per player action, refusals turned into results, day-end save path | `GameSession`, `Outcome`, `Fetch` |
 | Screens (one per scene; abstract base `Screen`) | `TitleScreen`, `OpeningScreen`, `DayIntroScreen`, `ClassroomScreen`, `OtherClassesScreen`, `HubScreen`, `DayEndScreen`, `LabScreen`, `BlockedScreen` |
-| Reusable controls | `ChoiceList` (locks after one activation), `DialogueBox`, `Hud`, `Slant`, `Backdrop`, `Toasts`, `Diagnostic`, `Portraits`, `Motion` |
+| Reusable controls | `ChoiceList` (locks after one activation), `DialogueBox`, `Hud`, `Slant`, `Backdrop` (large background typography), `Toasts`, `Diagnostic`, `Motion` |
+| Scene art behind each screen (package `ui.scene`): background art that drifts and is colour-graded per time of day, characters with expressions and speaker focus, foreground plane, ambient grain/motes/vignette | `SceneView`, `BackgroundLayer`, `CharacterView`, `AmbientLayer`, `Grade` |
+| Art loading by key from the asset manifest; labelled "missing art" plates for anything not delivered | `AssetManifest`, `AssetStore`, `Placeholders`; files in `src/main/resources/com/aphs/classroomuprising/assets/` |
 | Java Lab runs off the UI thread; one run at a time; stale results after edits | `LabRunService` |
 | Layout and style | `*.fxml`, `theme.css` (all colours, sizes and states) |
 
-Visual language: one slant angle (about 14°, from the `//` comment mark), ink-indigo background, caret-yellow focus, cyan for code and information, green for HP and passes, violet for SAN, red for failures and late-night risk. Fonts are picked at runtime from installed families (Impact/Menlo/Avenir Next on macOS, with Windows fallbacks). Character figures are placeholder silhouettes.
+Visual language: one slant angle (about 14°, from the `//` comment mark), ink-indigo background, caret-yellow focus, cyan for code and information, green for HP and passes, violet for SAN, red for failures and late-night risk. Fonts are picked at runtime from installed families (Impact/Menlo/Avenir Next on macOS, with Windows fallbacks).
+
+Backgrounds and characters come only from image files listed in `assets/manifest.properties`; nothing is drawn as stand-in figures in code. Until art is delivered, each listed file appears as a labelled "MISSING ART" plate. Delivery rules (sizes, anchors, expressions, time-of-day variants, colour grades) are in [docs/art-asset-spec.md](docs/art-asset-spec.md).
 
 Connected now: title (new game, continue, quit) → opening scene (text only; the opening battle is not built) → day card → Lesson with its single choice → other classes → Student Hub activities, early or normal sleep, morning bonus slot → day-end save → next day; Esc menu with status, 40-day calendar and grades. Pending rules appear as `warning[Txx]` notices and change nothing. With the Demo profile, Day 5 shows `warning[T07]` and offers a return to the title.
 
