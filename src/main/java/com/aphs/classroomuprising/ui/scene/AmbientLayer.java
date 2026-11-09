@@ -25,8 +25,10 @@ import java.util.Random;
  */
 final class AmbientLayer extends Pane {
     private static final double W = BackgroundLayer.W, H = BackgroundLayer.H;
-    private static final int MOTE_STEPS_PER_SECOND = 8;
-    private static final int GRAIN_STEPS_PER_SECOND = 12;
+    /** Updates per second: high enough to read as motion, still discrete like film grain. */
+    private static final int STEPS_PER_SECOND = 24;
+    /** Motes rise this many canvas pixels per second and sway sideways. */
+    private static final double MOTE_RISE = 12.8;
 
     private final Timeline steps;
 
@@ -54,18 +56,14 @@ final class AmbientLayer extends Pane {
 
         Random random = new Random(7);
         double[] tick = {0};
-        steps = new Timeline(new KeyFrame(Duration.millis(1000.0 / GRAIN_STEPS_PER_SECOND), e -> {
+        steps = new Timeline(new KeyFrame(Duration.millis(1000.0 / STEPS_PER_SECOND), e -> {
             tick[0]++;
+            double seconds = tick[0] / STEPS_PER_SECOND;
             grain.ifPresent(image -> grainRect.setFill(new ImagePattern(image,
                     random.nextInt((int) image.getWidth()), random.nextInt((int) image.getHeight()),
                     image.getWidth(), image.getHeight(), false)));
-            // Motes rise and sway at their own, slower stepped rate.
-            double moteStep = tick[0] * MOTE_STEPS_PER_SECOND / (double) GRAIN_STEPS_PER_SECOND;
-            if (Math.floor(moteStep) != Math.floor(moteStep - MOTE_STEPS_PER_SECOND / (double) GRAIN_STEPS_PER_SECOND)) {
-                double t = Math.floor(moteStep);
-                motes.ifPresent(image -> moteRect.setFill(new ImagePattern(image,
-                        Math.sin(t / 40.0) * 18, -t * 1.6, image.getWidth(), image.getHeight(), false)));
-            }
+            motes.ifPresent(image -> moteRect.setFill(new ImagePattern(image,
+                    Math.sin(seconds / 5.0) * 18, -seconds * MOTE_RISE, image.getWidth(), image.getHeight(), false)));
         }));
         steps.setCycleCount(Animation.INDEFINITE);
     }

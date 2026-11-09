@@ -41,6 +41,19 @@ public final class AssetManifest {
         }
     }
 
+    /**
+     * A hand-drawn frame sequence (e.g. a screen transition). {@code pattern} contains one
+     * {@code %02d} (or %03d) replaced by the frame number from 0; the screen behind is swapped
+     * when frame {@code swapAt} shows.
+     */
+    public record SequenceSpec(String name, String pattern, int count, double frameMillis, int swapAt) {
+        public List<String> files() {
+            var files = new ArrayList<String>();
+            for (int i = 0; i < count; i++) files.add(String.format(java.util.Locale.ROOT, pattern, i));
+            return List.copyOf(files);
+        }
+    }
+
     public static final String RESOURCE = "/com/aphs/classroomuprising/assets/manifest.properties";
     private static final Pattern NAME = Pattern.compile("[a-z0-9][a-z0-9_-]*");
     private static final Pattern FILE = Pattern.compile("[a-z0-9_-]+(/[a-z0-9_-]+)*\\.(png|jpg|jpeg)");
@@ -48,11 +61,14 @@ public final class AssetManifest {
     private final Map<String, String> files;
     private final Map<String, CharacterSpec> characters;
     private final Map<String, Grade> grades;
+    private final Map<String, SequenceSpec> sequences;
 
-    private AssetManifest(Map<String, String> files, Map<String, CharacterSpec> characters, Map<String, Grade> grades) {
+    private AssetManifest(Map<String, String> files, Map<String, CharacterSpec> characters, Map<String, Grade> grades,
+                          Map<String, SequenceSpec> sequences) {
         this.files = Map.copyOf(files);
         this.characters = Map.copyOf(characters);
         this.grades = Map.copyOf(grades);
+        this.sequences = Map.copyOf(sequences);
     }
 
     /** Reads the manifest bundled with the game. */
@@ -74,6 +90,7 @@ public final class AssetManifest {
         var heights = new LinkedHashMap<String, Double>();
         var anchors = new LinkedHashMap<String, double[]>();
         var expressions = new LinkedHashMap<String, Map<String, String>>();
+        var sequenceFields = new LinkedHashMap<String, Map<String, String>>();
         try {
             for (String key : new TreeSet<>(p.stringPropertyNames())) {
                 String value = p.getProperty(key).strip();
@@ -88,6 +105,11 @@ public final class AssetManifest {
                     case "grade" -> {
                         if (part.length != 2) throw new IllegalArgumentException("Unexpected key " + key);
                         grades.put(name(part[1], key), Grade.parse(value));
+                    }
+                    case "sequence" -> {
+                        if (part.length != 3 || !List.of("frames", "count", "frame-ms", "swap-at").contains(part[2]))
+                            throw new IllegalArgumentException("Unexpected key " + key);
+                        sequenceFields.computeIfAbsent(name(part[1], key), k -> new LinkedHashMap<>()).put(part[2], value);
                     }
                     case "character" -> {
                         if (part.length < 3) throw new IllegalArgumentException("Unexpected key " + key);
@@ -116,7 +138,9 @@ public final class AssetManifest {
                 double[] a = anchors.get(id);
                 characters.put(id, new CharacterSpec(id, names.get(id), heights.get(id), a[0], a[1], expressions.get(id)));
             }
-            return new AssetManifest(files, characters, grades);
+            var sequences = new LinkedHashMap<String, SequenceSpec>();
+            sequenceFields.forEach((name, fields) -> sequences.put(name, sequence(name, fields)));
+            return new AssetManifest(files, characters, grades, sequences);
         } catch (IllegalArgumentException e) {
             throw new IOException("Invalid asset manifest: " + e.getMessage(), e);
         }
@@ -137,6 +161,23 @@ public final class AssetManifest {
 
     public Optional<CharacterSpec> character(String id) { return Optional.ofNullable(characters.get(id)); }
 
+    public Optional<SequenceSpec> sequence(String name) { return Optional.ofNullable(sequences.get(name)); }
+
+    private static SequenceSpec sequence(String name, Map<String, String> fields) {
+        String key = "sequence." + name;
+        String pattern = fields.get("frames");
+        if (pattern == null || !fields.containsKey("count"))
+            throw new IllegalArgumentException(key + " needs frames and count.");
+        if (!pattern.matches("[^%]*%0[23]d[^%]*")) throw new IllegalArgumentException(key + ".frames needs one %02d or %03d.");
+        file(String.format(java.util.Locale.ROOT, pattern, 0), key + ".frames");
+        int count = Integer.parseInt(fields.get("count"));
+        double frameMillis = Double.parseDouble(fields.getOrDefault("frame-ms", "50"));
+        int swapAt = Integer.parseInt(fields.getOrDefault("swap-at", Integer.toString(count / 2)));
+        if (count < 1 || count > 240 || !(frameMillis >= 16 && frameMillis <= 500) || swapAt < 0 || swapAt >= count)
+            throw new IllegalArgumentException(key + " has out-of-range count, frame-ms or swap-at.");
+        return new SequenceSpec(name, pattern, count, frameMillis, swapAt);
+    }
+
     /** Finds the character whose dialogue name is {@code name} (e.g. "Mr. Reward"). */
     public Optional<CharacterSpec> characterNamed(String name) {
         return characters.values().stream().filter(c -> c.name().equals(name)).findFirst();
@@ -146,6 +187,7 @@ public final class AssetManifest {
     public List<String> allFiles() {
         var all = new ArrayList<>(files.values());
         characters.values().forEach(c -> all.addAll(c.expressions().values()));
+        sequences.values().forEach(s -> all.addAll(s.files()));
         return all.stream().distinct().sorted().toList();
     }
 

@@ -17,6 +17,7 @@ final class PauseMenu extends Screen {
     private record Page(String label, Function<GameState, Node> content) {}
 
     private final Runnable close;
+    private final javafx.scene.image.Image backdrop;
     private final List<Page> pages = List.of(
             new Page("STATUS", PausePanels::status),
             new Page("CALENDAR", PausePanels::calendar),
@@ -25,14 +26,17 @@ final class PauseMenu extends Screen {
     @FXML private ChoiceList tabs;
     @FXML private StackPane content;
 
-    PauseMenu(AppContext ctx, Runnable close) {
+    /** @param backdrop a capture of the screen being paused, used as the menu's background */
+    PauseMenu(AppContext ctx, Runnable close, javafx.scene.image.Image backdrop) {
         super(ctx);
         this.close = close;
+        this.backdrop = backdrop;
     }
 
     @Override
     protected Parent build() {
         StackPane root = Views.load("pause.fxml", this);
+        if (backdrop != null) root.getChildren().add(0, new MenuBackdrop(backdrop));
         tabs.setOnSelect(this::showPage);
         return root;
     }

@@ -117,6 +117,15 @@ classDiagram
         -spawn(Pose at) void
         -makeRoom() void
     }
+    class RevealMask {
+        +polygon(double ox, double oy, double progress, double turn) double[]$
+        +reach(double ox, double oy) double$
+    }
+    class RevealOriginEvent
+    class MenuBackdrop
+    class FrameSequence {
+        +play(ImageView view, double width, double height, Runnable onSwap) Animation
+    }
     class CursorGeometry {
         +corners(Pose pose, double slope) double[]$
         +travel(Pose from, Pose to) List~Step~$
@@ -464,6 +473,11 @@ classDiagram
     ClassroomScreen --> Hud
     HubScreen --> ChoiceList
     ChoiceList ..> CursorGeometry : cursor shape and paths
+    ChoiceList ..> RevealOriginEvent : where the player chose
+    Router ..> RevealMask : screen reveal
+    Router ..> FrameSequence : artist frames when delivered
+    PauseMenu *-- MenuBackdrop : captured paused screen
+    AssetStore ..> FrameSequence : loads complete sequences
     ChoiceList ..> MotionTokens : timing
     Router ..> ClockShift : time change within a day
     ClockShift ..> ClockTimes : display clock only

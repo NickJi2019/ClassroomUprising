@@ -28,6 +28,26 @@ final class MotionTokens {
     /** Accelerating, for things leaving. */
     static final Interpolator IN = Interpolator.SPLINE(0.5, 0, 0.9, 0.5);
 
-    /** Updates per second for deliberately stepped ambient motion (shimmer, grain, motes). */
-    static final int STEP_RATE = 10;
+    /**
+     * Updates per second for stepped ambient motion (shimmer). 10 read as choppy in review;
+     * 24 keeps a slight film-like texture while still reading as motion.
+     */
+    static final int STEP_RATE = 24;
+
+    /** Slow start, decisive finish: screens opening out of each other. */
+    static final Interpolator REVEAL = Interpolator.SPLINE(0.7, 0, 0.25, 1);
+
+    /**
+     * Limited animation: the value jumps through {@code count} even steps instead of gliding,
+     * like a short run of hand-drawn frames (used for the menu opening and closing).
+     */
+    static Interpolator steps(int count) {
+        if (count < 1) throw new IllegalArgumentException("At least one step.");
+        return new Interpolator() {
+            @Override
+            protected double curve(double t) {
+                return t >= 1 ? 1 : Math.floor(t * count + 1e-9) / count;
+            }
+        };
+    }
 }

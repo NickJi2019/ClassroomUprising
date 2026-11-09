@@ -401,14 +401,16 @@ public class ChoiceList extends VBox {
     /** A bright band crosses each unselected option now and then, in stepped jumps. */
     private void shimmerStep() {
         shimmerTick++;
+        double now = shimmerTick / (double) MotionTokens.STEP_RATE;
         for (int i = 0; i < rows.size(); i++) {
             Row row = rows.get(i);
-            long phase = (shimmerTick + i * 6L) % 34;
-            if (i == selected || !row.choice.enabled() || phase >= 9) {
+            // Every 3.4 s a band takes 0.9 s to cross the option; rows are offset by 0.6 s.
+            double phase = (now + i * 0.6) % 3.4;
+            if (i == selected || !row.choice.enabled() || phase >= 0.9) {
                 if (!row.label.getStyle().isEmpty()) row.label.setStyle("");
                 continue;
             }
-            double p = -0.15 + phase / 8.0 * 1.3;
+            double p = -0.15 + phase / 0.9 * 1.3;
             String base = switch (row.choice.tone()) {
                 case "cyan" -> "#5CE1E6";
                 case "danger" -> "#FF4D6D";
@@ -434,6 +436,8 @@ public class ChoiceList extends VBox {
         punch.setAutoReverse(true);
         punch.setCycleCount(2);
         punch.play();
+        javafx.geometry.Point2D at = localToScene(cx.get(), cy.get());
+        if (at != null) fireEvent(new RevealOriginEvent(at.getX(), at.getY()));
         row.choice.action().run();
     }
 
