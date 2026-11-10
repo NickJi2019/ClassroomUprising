@@ -152,6 +152,20 @@ class LessonDecisionFlowTest {
         assertEquals(DayPeriod.OTHER_CLASSES, done.after().period());
     }
 
+    @Test void whenYouStayQuietAClassmateGivesTheAuthoredRightResponse() {
+        for (int day = 1; day <= 4; day++) {
+            LessonDecision decision = lesson(day).decision();
+            LessonDecision.Option answer = LessonMenu.classmateAnswer(decision);
+            assertEquals(LessonDecision.Outcome.APPROPRIATE, answer.outcome(), "day " + day);
+            assertEquals(options(day, LessonDecision.Outcome.APPROPRIATE).get(0), answer, "first appropriate, day " + day);
+            assertTrue(decision.responses().contains(answer), "one of the menu's responses, day " + day);
+            assertEquals("thumbs-up", LessonMenu.reaction(answer.outcome()));
+        }
+        assertEquals("Use == to compare the two values.", LessonMenu.classmateAnswer(lesson(1).decision()).label());
+        assertTrue(UiText.classmateTurn(lesson(1).interaction()).contains("raises"));
+        assertTrue(UiText.classmateTurn(lesson(2).interaction()).contains("asks"));
+    }
+
     @Test void staleDaysMalformedIdsAndRepeatsNeverSettle() {
         GameSession session = inClass(1);
         String before = signature(session.view());

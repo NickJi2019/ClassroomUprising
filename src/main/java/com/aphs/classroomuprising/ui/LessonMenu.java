@@ -41,6 +41,20 @@ final class LessonMenu {
                 .map(line -> line.speaker() != null).orElse(false);
     }
 
+    /**
+     * When you stay quiet, a classmate takes the chance instead and gives the first appropriate
+     * response in authored order (every decision has one; {@link LessonDecision} requires it).
+     * Shown only: the class is already settled as quiet and the classmate's answer changes
+     * nothing for you.
+     */
+    static LessonDecision.Option classmateAnswer(LessonDecision decision) {
+        return decision.responses().stream().filter(o -> o.outcome() == LessonDecision.Outcome.APPROPRIATE)
+                .findFirst().orElseThrow();
+    }
+
+    /** The name tag of the classmate who answers (no art: the voice comes from the room). */
+    static final String CLASSMATE = "Classmate";
+
     /** Mr. Reward's expression as he puts a question to the class: pointing at you. */
     static final String ASKING = "gotcha";
 

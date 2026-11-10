@@ -79,6 +79,14 @@ final class UiText {
         };
     }
 
+    /** Narration when you stay quiet and a classmate takes the turn instead. */
+    static String classmateTurn(ContentCatalog.Interaction interaction) {
+        return switch (interaction) {
+            case ASK_TEACHER -> "You stay quiet. Another student asks instead.";
+            case RAISE_HAND -> "You keep your hand down. Another student raises theirs.";
+        };
+    }
+
     /** The first-level button that opens a lesson's response menu. */
     static String participation(ContentCatalog.Interaction interaction) {
         return switch (interaction) {

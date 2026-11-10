@@ -225,19 +225,41 @@ final class ClassroomScreen extends Screen {
         hud.show(done.after(), ctx.demoLabel());
         VBox after = new VBox(10);
         String reaction = LessonMenu.reaction(option.outcome());
-        if (option.outcome() == LessonDecision.Outcome.SKIP) {
+        boolean quiet = option.outcome() == LessonDecision.Outcome.SKIP;
+        if (quiet) {
             Label narration = new Label(done.message());
             narration.getStyleClass().add("lesson-narration");
             narration.setWrapText(true);
             after.getChildren().add(narration);
-            scene.speak("reward", reaction);   // he says nothing, but he noticed
         } else {
             // The teacher's reply to your answer or question.
             dialogue.say(LessonMenu.withExpression(reply(done.message()), reaction));
         }
         for (String warning : done.warnings()) after.getChildren().add(Diagnostic.warning("TUTORIAL", warning));
-        notice(notice, after.getChildren().isEmpty() ? null : after);
-        dismissed();
+        Runnable end = () -> {
+            if (quiet) scene.speak("reward", reaction);   // to you he says nothing, but he noticed
+            notice(notice, after.getChildren().isEmpty() ? null : after);
+            dismissed();
+        };
+        if (quiet) classmateTurn(LessonMenu.classmateAnswer(lesson.decision()), end);
+        else end.run();
+    }
+
+    /**
+     * You stayed quiet, so a classmate raises a hand (or asks) and gives the right response, and
+     * Mr. Reward answers them. Only shown: the class is already settled as quiet. The menu
+     * waits until the exchange is over; it can be fast-forwarded and read again in the log.
+     */
+    private void classmateTurn(LessonDecision.Option answer, Runnable then) {
+        prompt.setText("");
+        choices.setChoices(List.of());
+        notice(notice, null);
+        hud.setHints(KeyHints.Hint.of("HOLD ENTER / MOUSE", "FAST"), KeyHints.Hint.of("H", "LOG"), KeyHints.Hint.of("ESC", "MENU"));
+        dialogue.play(List.of(
+                new DialogueScript.Line("Narrator", UiText.classmateTurn(lesson.interaction())),
+                new DialogueScript.Line(LessonMenu.CLASSMATE, answer.label()),
+                LessonMenu.withExpression(reply(answer.feedback()), LessonMenu.reaction(answer.outcome()))), then);
+        root().requestFocus();
     }
 
     private DialogueScript.Line reply(String message) {
