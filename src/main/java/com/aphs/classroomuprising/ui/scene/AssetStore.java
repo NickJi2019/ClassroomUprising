@@ -86,9 +86,16 @@ public final class AssetStore {
         return Optional.of(new FrameSequence(frames, spec.get().frameMillis(), spec.get().swapAt()));
     }
 
-    /** A lecture slide, or a slide-shaped plate naming the file that has not been delivered. */
-    public Image slide(AssetManifest.Slide slide) {
-        return load(slide.file()).orElseGet(() -> Placeholders.slide(slide));
+    /**
+     * The slide a lecture cues by name, or a slide-shaped plate that names what is missing:
+     * the file when it is listed but not delivered, or the name when it is not listed at all.
+     */
+    public Image slide(String name) {
+        Optional<AssetManifest.Slide> slide = manifest.slide(name);
+        if (slide.isEmpty() && missing.add("slide." + name))
+            LOG.log(System.Logger.Level.WARNING, "A lecture cues slide {0}, which the manifest does not list", name);
+        return slide.flatMap(s -> load(s.file()))
+                .orElseGet(() -> Placeholders.slide(name, slide.map(AssetManifest.Slide::file).orElse(null)));
     }
 
     /** The music file for a cue; empty when none is listed or the file is not delivered. */

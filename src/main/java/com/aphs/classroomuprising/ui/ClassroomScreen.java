@@ -18,8 +18,8 @@ import java.util.List;
 
 /**
  * The ICS4U slot. A Lesson shows its content once, then offers its single choice node.
- * While Mr. Reward lectures, the lesson's slides (if the asset manifest lists any for the day)
- * follow along on a projector panel.
+ * While Mr. Reward lectures, the slides his lines cue ({@code [slide:name]}) appear on a
+ * projector panel, and the dialogue box carries what he says about each one.
  * Review days go to the matching core operation; assessment days start a combat
  * ({@link CombatScreen}). When that hits a pending rule the notice says so and the player can
  * return to the title with the save intact.
@@ -44,7 +44,7 @@ final class ClassroomScreen extends Screen {
                 new Backdrop.Glyph("ICS4U", 640, 300, 170, true)));
         dialogue.setOnLine(line -> {
             scene.speak(line.characterId(), line.expression());
-            if (slides != null) slides.showLine(dialogue.lineNumber());
+            if (slides != null && line.slide() != null) slides.show(line.slide());
         });
         root.setOnKeyPressed(e -> {
             if (slides != null && slides.zoomed()) {
@@ -99,18 +99,20 @@ final class ClassroomScreen extends Screen {
             return;
         }
         ContentCatalog.Lesson lesson = fetch.value();
-        projector(ctx.session().view().day());
-        dialogue.play(ctx.script(lesson.text()), () -> offer(lesson));
+        List<DialogueScript.Line> script = ctx.script(lesson.text());
+        projector(SlideProjector.cues(script));
+        dialogue.play(script, () -> offer(lesson));
         root().requestFocus();
     }
 
     /**
-     * Puts the day's slides on top of the classroom and HUD, if the manifest lists any (on top,
-     * so the HUD's shading never dims them and the large view can cover the whole screen).
+     * Puts a projector for the lecture's slides on top of the classroom and HUD, if the lecture
+     * cues any (on top, so the HUD's shading never dims them and the large view can cover the
+     * whole screen).
      */
-    private void projector(int day) {
-        if (ctx.assets() == null || ctx.assets().manifest().slides(day).isEmpty()) return;
-        slides = new SlideProjector(ctx.assets(), ctx.assets().manifest().slides(day));
+    private void projector(List<String> cued) {
+        if (ctx.assets() == null || cued.isEmpty()) return;
+        slides = new SlideProjector(ctx.assets(), cued);
         ((StackPane) root()).getChildren().add(slides);
         hud.setHint("Z  SLIDE     ESC  MENU");
     }

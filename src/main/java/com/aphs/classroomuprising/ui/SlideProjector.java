@@ -1,6 +1,5 @@
 package com.aphs.classroomuprising.ui;
 
-import com.aphs.classroomuprising.ui.scene.AssetManifest;
 import com.aphs.classroomuprising.ui.scene.AssetStore;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
@@ -25,9 +24,10 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * The lecture slides: a projector panel beside the teacher that follows the lecture. Each
- * slide is listed in the asset manifest with the lecture line it starts on; lines without
- * their own slide keep the one before. Z or a click opens the slide large over the whole
+ * The lecture slides: a projector panel beside the teacher that follows the lecture. A line of
+ * the lecture that starts with a cue ({@code [slide:name]}, see {@link DialogueScript}) turns to
+ * that slide; lines without a cue keep the slide that is up. The images come from the asset
+ * manifest ({@code slide.name}). Z or a click opens the slide large over the whole
  * screen to read it; while it is open the lecture waits, and Z, Enter, Space, Backspace, Esc or a
  * click closes it. It only presents the lesson the core returned; it changes nothing.
  */
@@ -38,7 +38,8 @@ final class SlideProjector extends Pane {
     private static final double ZOOM = 1.75, ZOOM_CX = 640, ZOOM_CY = 346;
 
     private final AssetStore assets;
-    private final List<AssetManifest.Slide> slides;
+    /** The lesson's slide names, in the order the lecture first cues them. */
+    private final List<String> slides;
     private final Pane rig = new Pane();
     private final StackPane screen = new StackPane();
     private final Polygon frame = parallelogram(-PAD, -PAD, SW + PAD, SH + PAD);
@@ -52,7 +53,7 @@ final class SlideProjector extends Pane {
     private boolean zoomed;
     private Animation moving;
 
-    SlideProjector(AssetStore assets, List<AssetManifest.Slide> slides) {
+    SlideProjector(AssetStore assets, List<String> slides) {
         this.assets = assets;
         this.slides = List.copyOf(slides);
         setPickOnBounds(false);
@@ -110,24 +111,19 @@ final class SlideProjector extends Pane {
     /** Whether a slide is on screen. */
     boolean showing() { return rig.isVisible() && shown >= 0; }
 
-    /**
-     * The slide index for a 1-based lecture line: the last slide starting at or before that
-     * line, or -1 before the first slide.
-     */
-    static int indexFor(List<AssetManifest.Slide> slides, int line) {
-        int index = -1;
-        for (int i = 0; i < slides.size(); i++) if (slides.get(i).fromLine() <= line) index = i;
-        return index;
+    /** The slides a lecture cues, each once, in the order it first turns to them. */
+    static List<String> cues(List<DialogueScript.Line> script) {
+        return script.stream().map(DialogueScript.Line::slide).filter(java.util.Objects::nonNull).distinct().toList();
     }
 
-    /** Follows the lecture to a line (1-based): brings in or turns to the slide for it. */
-    void showLine(int line) {
-        int next = indexFor(slides, line);
+    /** Follows the lecture to a cued slide: brings the panel in, or turns the page. */
+    void show(String name) {
+        int next = slides.indexOf(name);
         if (next < 0 || next == shown) return;
         boolean first = shown < 0;
         shown = next;
         String label = String.format(Locale.ROOT, "%02d / %02d", next + 1, slides.size());
-        Image image = assets.slide(slides.get(next));
+        Image image = assets.slide(name);
         if (first) enter(image, label);
         else turn(image, label);
     }

@@ -12,33 +12,59 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/** Lecture slides follow the lecture; every interface sound and music cue is listed; volume settings persist. */
+/** Lectures cue their slides; every cued slide, interface sound and music cue is listed; volume settings persist. */
 class SlidesAndSoundTest {
     /** The cues the screens ask for (keep in sync with each Screen#music()). */
     private static final List<String> CUES = List.of("title", "opening", "school", "after-school", "night", "combat");
 
-    @Test void aSlideStaysUpUntilTheNextOneStarts() {
-        var slides = List.of(new AssetManifest.Slide(1, 2, "a.png"), new AssetManifest.Slide(1, 5, "b.png"),
-                new AssetManifest.Slide(1, 9, "c.png"));
-        assertEquals(-1, SlideProjector.indexFor(slides, 1), "no slide before the first one starts");
-        assertEquals(0, SlideProjector.indexFor(slides, 2));
-        assertEquals(0, SlideProjector.indexFor(slides, 4));
-        assertEquals(1, SlideProjector.indexFor(slides, 5));
-        assertEquals(2, SlideProjector.indexFor(slides, 9));
-        assertEquals(2, SlideProjector.indexFor(slides, 40), "the last slide stays to the end");
-        assertEquals(-1, SlideProjector.indexFor(List.of(), 3));
+    @Test void aSlideCueAtTheStartOfALineIsTakenOutOfTheText() {
+        var lines = DialogueScript.parse("""
+                Mr. Reward: [slide:file-structure] Start with the file.
+                Mr. Reward: Its name must match the class.
+                Mr. Reward[smile]: [slide:example-java]   Here is Example.java.
+                Mr. Reward: Inside is main(String[] args), not a [slide:cue].
+                """, "Mr. Reward");
+        assertEquals("file-structure", lines.get(0).slide());
+        assertEquals("Start with the file.", lines.get(0).text(), "the cue is never shown");
+        assertNull(lines.get(1).slide(), "a line without a cue keeps the slide that is up");
+        assertEquals("example-java", lines.get(2).slide());
+        assertEquals("smile", lines.get(2).expression());
+        assertEquals("Here is Example.java.", lines.get(2).text());
+        assertNull(lines.get(3).slide(), "a cue counts only at the start of the text");
+        assertEquals("Inside is main(String[] args), not a [slide:cue].", lines.get(3).text());
     }
 
-    @Test void bundledSlidesFitTheirLectures() throws IOException {
+    @Test void theProjectorCountsEachCuedSlideOnceInLectureOrder() {
+        var lines = DialogueScript.parse("""
+                Mr. Reward: [slide:loops] One.
+                Mr. Reward: Two.
+                Mr. Reward: [slide:methods] Three.
+                Mr. Reward: [slide:loops] Back to loops.
+                """, "Mr. Reward");
+        assertEquals(List.of("loops", "methods"), SlideProjector.cues(lines));
+        assertTrue(SlideProjector.cues(DialogueScript.parse("Mr. Reward: No slides today.", "Mr. Reward")).isEmpty());
+    }
+
+    @Test void everySlideTheLecturesCueIsListedAndDelivered() throws IOException {
         AssetManifest manifest = AssetManifest.bundled();
         DemoProfile profile = DemoProfile.load();
-        assertEquals(List.of(1, 2), manifest.slideDays(), "the Grade 11 review lectures have slides");
-        for (int day : manifest.slideDays()) {
-            int lines = DialogueScript.parse(profile.content().lesson(day).text(), "Mr. Reward").size();
-            List<AssetManifest.Slide> slides = manifest.slides(day);
-            assertEquals(1, slides.get(0).fromLine(), "day " + day + " shows a slide from its first line");
-            for (AssetManifest.Slide slide : slides)
-                assertTrue(slide.fromLine() <= lines, "day " + day + " has no line " + slide.fromLine() + " (it has " + lines + ")");
+        for (int day = 1; day <= 4; day++) {
+            for (DialogueScript.Line line : DialogueScript.parse(profile.content().lesson(day).text(), "Mr. Reward")) {
+                assertFalse(line.text().contains("[slide:"), "day " + day + ": a cue must start its line: " + line.text());
+                if (line.slide() == null) continue;
+                String file = manifest.slide(line.slide()).orElseThrow(
+                        () -> new AssertionError("day lecture cues slide." + line.slide() + ", which is not listed")).file();
+                assertNotNull(getClass().getResource("/com/aphs/classroomuprising/assets/" + file), file);
+            }
+        }
+    }
+
+    @Test void everyListedSlideIsDelivered() throws IOException {
+        AssetManifest manifest = AssetManifest.bundled();
+        assertFalse(manifest.slideNames().isEmpty());
+        for (String name : manifest.slideNames()) {
+            String file = manifest.slide(name).orElseThrow().file();
+            assertNotNull(getClass().getResource("/com/aphs/classroomuprising/assets/" + file), file);
         }
     }
 
