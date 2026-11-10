@@ -78,9 +78,9 @@ final class Placeholders {
         });
     }
 
-    /** A 16:9 slide plate: which lesson and line it belongs to, and the file to deliver. */
-    static Image slide(AssetManifest.Slide slide) {
-        return CACHE.computeIfAbsent("slide|" + slide.file(), k -> {
+    /** A 16:9 slide plate: the slide's name and the file to deliver (null when the name is not listed). */
+    static Image slide(String name, String file) {
+        return CACHE.computeIfAbsent("slide|" + name + "|" + file, k -> {
             Canvas canvas = new Canvas(1280, 720);
             GraphicsContext g = canvas.getGraphicsContext2D();
             g.setFill(Color.web("#E9ECF7"));
@@ -94,9 +94,9 @@ final class Placeholders {
             g.strokeRect(30, 30, 1220, 660);
             g.setLineDashes();
             g.setTextAlign(TextAlignment.CENTER);
-            ink(g, "SLIDE  ·  DAY " + slide.day() + "  ·  FROM LINE " + slide.fromLine(), 640, 300, 44, FontWeight.BOLD);
-            ink(g, "MISSING SLIDE", 640, 380, 30, FontWeight.BOLD);
-            ink(g, "assets/" + slide.file(), 640, 430, 28, FontWeight.NORMAL);
+            ink(g, "SLIDE  ·  " + name, 640, 300, 44, FontWeight.BOLD);
+            ink(g, file == null ? "NOT LISTED IN THE MANIFEST" : "MISSING SLIDE", 640, 380, 30, FontWeight.BOLD);
+            ink(g, file == null ? "add slide." + name + " = <file>" : "assets/" + file, 640, 430, 28, FontWeight.NORMAL);
             return snapshot(canvas, Color.web("#E9ECF7"));
         });
     }

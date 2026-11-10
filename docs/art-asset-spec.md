@@ -88,30 +88,32 @@ Frames should cover the whole canvas around the swap frame, so the change undern
 
 ## Lecture slides
 
-While Mr. Reward lectures, the lesson's slides appear on a projector panel beside him and change as the lecture goes on.
+While Mr. Reward lectures, slides appear on a projector panel beside him, and the dialogue box shows what he says about each one.
 
-- One line per slide: `slide.<day>.<line> = slides/day-01/02-variables-and-types.png`. The slide appears when the lecture reaches line `<line>` of that day's lesson and stays until the next listed slide. Lines count from 1, one per dialogue page, in the order of the lesson text in `demo/demo.properties`. The first slide should start at line 1.
-- **16:9**, delivered at **1600×900** or larger (the panel shows 608×342; the enlarged view shows about 1064×598, so small code must stay readable at that size). PNG for text and code, JPEG only for photos.
-- Keep text large: at most about 6 lines of code or 4 bullet points per slide. Use the game's colours if you like, but a plain light background reads best on the dark interface.
-- A missing slide shows a light **"MISSING SLIDE"** plate with the day, line and file.
-- If the lecture text is reordered or lines are split or merged, update the line numbers here too; a test fails if a listed line does not exist.
+- The lecture text decides when a slide appears: a line that starts with `[slide:<name>]` turns to that slide, and it stays up until another cue. The cue itself is not shown. Example: `Mr. Reward: [slide:file-structure] Start with the file...`
+- The manifest only says which image a name is: `slide.<name> = slides/gr11-review/07-file-structure.png`.
+- Show only slides worth talking about. Title pages, jokes, section dividers and pages nobody explains are better left out than flashed past.
+- **16:9**, delivered at **1600×900** or larger (the panel shows 608×342; the enlarged view about 1064×598, so small code must stay readable there). PNG for text and code.
+- A slide that is cued but not delivered shows a light **"MISSING SLIDE"** plate with its name and file; a cue with no manifest line shows **"NOT LISTED IN THE MANIFEST"**. A test fails in both cases for the bundled lectures.
 
-Days 1–2 (the Grade 11 review) currently request six slides each:
+The Grade 11 review (Days 1–2) uses 12 of the 18 pages of the class deck *Review Overview*, rendered from its PDF at 1600×900. Left out: 1 (title), 3 (quote about self-direction), 4–6 (jokes and the "Basic Java" divider) and 17 (asking-for-help policy, covered in one spoken line).
 
-| Day | Line | File | Topic |
-| --- | --- | --- | --- |
-| 1 | 1 | `slides/day-01/01-review-plan.png` | Plan: values, expressions, decisions |
-| 1 | 2 | `slides/day-01/02-variables-and-types.png` | `int`, `double`, `String`, `boolean`; assignment |
-| 1 | 5 | `slides/day-01/03-integer-division.png` | `7 / 2` versus `7 / 2.0` |
-| 1 | 8 | `slides/day-01/04-operator-order.png` | `2 + 3 * 4` versus `(2 + 3) * 4` |
-| 1 | 9 | `slides/day-01/05-conditions-and-if.png` | `&&`, if/else, `=` versus `==`, `.equals`, println |
-| 1 | 13 | `slides/day-01/06-trace-it.png` | Trace values, evaluate, follow the branch |
-| 2 | 1 | `slides/day-02/01-review-plan.png` | Plan: repetition, arrays, methods |
-| 2 | 2 | `slides/day-02/02-for-loops.png` | for loop parts; printing 012; accumulator |
-| 2 | 5 | `slides/day-02/03-while-loops.png` | while loop; loops that never stop |
-| 2 | 7 | `slides/day-02/04-arrays.png` | `int[] values = {4, 7, 2}`; indices; length; sum |
-| 2 | 10 | `slides/day-02/05-methods.png` | `doubleValue`; parameters, return, call |
-| 2 | 13 | `slides/day-02/06-test-and-explain.png` | Normal and boundary cases; summary |
+| Name | Deck page | Lecture |
+| --- | --- | --- |
+| `review-purpose` | 2 | Day 1: why we review |
+| `file-structure` | 7 | Day 1 |
+| `example-java` | 8 | Day 1 |
+| `data-types` | 9 | Day 1 |
+| `variables` | 10 | Day 1 |
+| `math-and-symbols` | 11 | Day 1 |
+| `decisions` | 12 | Day 1 |
+| `loops` | 13 | Day 2 |
+| `methods` | 14 | Day 2 |
+| `method-example` | 15 | Day 2 |
+| `the-rest` | 16 | Day 2: self-directed topics |
+| `automated-testing` | 18 | Day 2: what comes next |
+
+Page 9 carries a small photo of a TV character (a pun on "Data"); replace or remove it if the game is ever shared outside the class.
 
 ## Music
 
@@ -150,7 +152,7 @@ Lower-case letters, digits, `-` and `_` only; images `.png`, `.jpg` or `.jpeg`, 
 | `characters/student/neutral.png`, `worried.png` | missing |
 | `textures/grain.png`, `textures/motes.png` | generated placeholders |
 | `ui/clock-face.png`, `ui/clock-hour-hand.png`, `ui/clock-minute-hand.png` | optional, missing (drawn by the game) |
-| `slides/day-01/*.png`, `slides/day-02/*.png` (12 slides, see Lecture slides) | missing |
+| `slides/gr11-review/*.png` (12 slides, see Lecture slides) | delivered (from the class deck) |
 | `audio/bgm/title.mp3`, `opening.mp3`, `school-day.mp3`, `after-school.mp3`, `night.mp3`, `combat.mp3` | missing (no music plays) |
 | `audio/sfx/*.wav` (11 sounds, see Interface sounds) | synthesized placeholders |
 
