@@ -24,6 +24,8 @@ final class Diagnostic {
 
     static Node warning(String head, String sub) { return card(head, sub, "diag-warning"); }
 
+    static Node error(String head, String sub) { return card(head, sub, "diag-error"); }
+
     private static Node card(String head, String sub, String tone) {
         Label headLabel = new Label(head);
         headLabel.getStyleClass().addAll("mono", "diag-head");

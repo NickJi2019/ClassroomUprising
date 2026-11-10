@@ -26,6 +26,7 @@ public class Hud extends AnchorPane {
     private final Label san = new Label();
     private final Label vibe = new Label();
     private final Label demo = new Label();
+    private final Label hint = new Label("ESC  MENU");
 
     public Hud() {
         getStyleClass().add("hud");
@@ -62,13 +63,15 @@ public class Hud extends AnchorPane {
         AnchorPane.setLeftAnchor(demo, 24.0);
         AnchorPane.setBottomAnchor(demo, 8.0);
 
-        Label hint = new Label("ESC  MENU");
         hint.getStyleClass().addAll("display", "hud-hint");
         AnchorPane.setRightAnchor(hint, 28.0);
         AnchorPane.setBottomAnchor(hint, 8.0);
 
         getChildren().addAll(date, stats, demo, hint);
     }
+
+    /** The key hint in the bottom-right corner (e.g. when the Esc menu is not available). */
+    public void setHint(String text) { hint.setText(text); }
 
     public void show(GameState state, String demoLabel) {
         day.setText("DAY %02d".formatted(state.day()));

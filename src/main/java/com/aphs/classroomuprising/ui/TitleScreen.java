@@ -95,13 +95,13 @@ final class TitleScreen extends Screen {
             nameField.requestFocus();
             return;
         }
-        ctx.begin(GameSession.newGame(ctx.profile(), name, RandomGenerator.getDefault(), ctx.savePath()));
+        ctx.begin(GameSession.newGame(ctx.profile(), name, RandomGenerator.getDefault(), ctx.savePath(), ctx.combatRules()));
         ctx.router().show(new OpeningScreen(ctx), null);
     }
 
     private void continueGame() {
         try {
-            ctx.begin(GameSession.load(ctx.profile(), ctx.savePath(), RandomGenerator.getDefault()));
+            ctx.begin(GameSession.load(ctx.profile(), ctx.savePath(), RandomGenerator.getDefault(), ctx.combatRules()));
             ctx.advance();
         } catch (IOException e) {
             notice(notice, Diagnostic.of(new Outcome.Rejected("Your save can't be loaded: " + e.getMessage())));

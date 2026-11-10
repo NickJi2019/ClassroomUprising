@@ -1,7 +1,9 @@
 package com.aphs.classroomuprising.ui;
 
+import com.aphs.classroomuprising.CombatRules;
 import com.aphs.classroomuprising.DayPeriod;
 import com.aphs.classroomuprising.DemoProfile;
+import com.aphs.classroomuprising.GameController;
 import com.aphs.classroomuprising.GameState;
 import com.aphs.classroomuprising.ui.scene.AssetManifest;
 import com.aphs.classroomuprising.ui.scene.AssetStore;
@@ -20,18 +22,38 @@ final class AppContext {
     private final Path savePath;
     private final Router router;
     private final AssetStore assets;
+    private final CombatRules combatRules;
+    private final CombatEvaluator combatEvaluator;
     private GameSession session;
     private GameState dayStart;
     /** What the window last showed; used only to choose the transition animation. */
     private DayPeriod shownPeriod;
     private int shownDay;
 
+    /**
+     * The game as shipped: combat policy and the answer evaluator have not been supplied by the
+     * backend yet, so combat reports their rule IDs (T01/T06/T07/T09) instead of guessing.
+     */
     AppContext(DemoProfile profile, Path savePath, Router router, AssetStore assets) {
+        this(profile, savePath, router, assets, CombatRules.pending(), null);
+    }
+
+    /** @param combatEvaluator the trusted answer evaluator, or null when none is configured */
+    AppContext(DemoProfile profile, Path savePath, Router router, AssetStore assets,
+               CombatRules combatRules, CombatEvaluator combatEvaluator) {
         this.profile = profile;
         this.savePath = savePath;
         this.router = router;
         this.assets = assets;
+        this.combatRules = combatRules;
+        this.combatEvaluator = combatEvaluator;
     }
+
+    /** The combat policy every new or loaded game is created with. */
+    CombatRules combatRules() { return combatRules; }
+
+    /** The trusted combat answer evaluator, or null when none is configured. */
+    CombatEvaluator combatEvaluator() { return combatEvaluator; }
 
     DemoProfile profile() { return profile; }
 
@@ -86,6 +108,14 @@ final class AppContext {
         router.show(new DayIntroScreen(this, done, previousDay), null);
     }
 
+    /** Opens the combat the core has just started for today's assessment. */
+    void openCombat(GameController.AssessmentView assessment) {
+        GameState view = session().view();
+        shownPeriod = view.period();
+        shownDay = view.day();
+        router.show(new CombatScreen(this, assessment), "COMBAT");
+    }
+
     void toTitle() {
         session = null;
         dayStart = null;
@@ -124,7 +154,7 @@ final class AppContext {
                     "Midterm/Final decisions are not connected. Your last day-end save is kept."));
         return switch (view.period()) {
             case MORNING_BONUS, AFTER_SCHOOL, EVENING, LATE_NIGHT -> new HubScreen(this);
-            case ICS_CLASS -> new ClassroomScreen(this);
+            case ICS_CLASS -> view.hasActiveCombat() ? new CombatScreen(this, null) : new ClassroomScreen(this);
             case OTHER_CLASSES -> new OtherClassesScreen(this);
             case DAY_END -> new DayEndScreen(this);
         };
