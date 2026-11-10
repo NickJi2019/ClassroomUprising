@@ -48,6 +48,28 @@ classDiagram
     class DayEndScreen
     class BlockedScreen
     class PauseMenu
+    class CombatScreen {
+        -AssessmentView assessment
+        -CombatEvaluations evaluations
+        -AnswerTicket submitted
+        -Work submittedWork
+        -RewardTicket reward
+    }
+    class CombatEvaluator {
+        <<interface>>
+        +evaluate(Work work) Evaluation
+        +pendingRule(CourseType type) String$
+    }
+    class CombatEvaluations {
+        -long generation
+        -boolean busy
+        +dispatch(AnswerTicket ticket, Work work, Consumer onResult) boolean
+        +abandon() void
+        +close() void
+    }
+    class CombatText
+    class CutIn
+    class TimeGauge
     class LabScreen {
         -LabTask task
         -LabRunService runs
@@ -57,8 +79,8 @@ classDiagram
         -DemoProfile profile
         -GameController game
         -Path savePath
-        +newGame(DemoProfile profile, String name, RandomGenerator random, Path savePath) GameSession$
-        +load(DemoProfile profile, Path savePath, RandomGenerator random) GameSession$
+        +newGame(DemoProfile profile, String name, RandomGenerator random, Path savePath, CombatRules rules) GameSession$
+        +load(DemoProfile profile, Path savePath, RandomGenerator random, CombatRules rules) GameSession$
         +view() GameState
         +completeOpening() Outcome
         +openLesson() Fetch
@@ -69,7 +91,15 @@ classDiagram
         +sleepAfterSchool() Outcome
         +sleepNormally() Outcome
         +beginNextDay() Outcome
-        +startAssessment() Fetch
+        +startCombatAssessment() Fetch
+        +combatView() Fetch
+        +startCombatQuestion(String id) Outcome
+        +submitCombatAnswer() Fetch
+        +recordCombatEvaluation(AnswerTicket ticket, double fraction, String evidence) Outcome
+        +beginRewardDelay(RewardKind kind) Fetch
+        +finishRewardDelay(RewardTicket ticket) Outcome
+        +combatSummary() Fetch
+        +finishCombatAssessment() Outcome
         +saveDayEnd() Outcome
     }
     class Outcome {
@@ -503,6 +533,17 @@ classDiagram
     Screen <|-- BlockedScreen
     Screen <|-- PauseMenu
     Screen <|-- LabScreen
+    Screen <|-- CombatScreen
+    ClassroomScreen ..> CombatScreen : assessment day starts a combat
+    AppContext --> CombatRules : policy for new and loaded games
+    AppContext --> CombatEvaluator : optional, none shipped
+    CombatScreen --> CombatEvaluations
+    CombatEvaluations --> CombatEvaluator : background thread
+    CombatScreen --> TimeGauge
+    CombatScreen ..> CutIn : call-out banners
+    CombatScreen ..> CombatText : display strings
+    CombatScreen --> ChoiceList : targets and commands
+    GameSession ..> CombatSession : views, tickets, summary
     ClassroomScreen --> DialogueBox
     ClassroomScreen --> ChoiceList
     ClassroomScreen --> Hud
@@ -552,6 +593,8 @@ classDiagram
 
     note for Main "Opens the JavaFX game window only.<br/>Arguments are ignored: no CLI routes, modes or day jumps.<br/>FXGL and libGDX are prepared by Gradle, not started."
     note for GameSession "Frontend controller: never edits GameState.<br/>Refusals become Pending/Rejected with nothing changed.<br/>showLesson() is called once per class."
+    note for CombatEvaluations "One evaluation at a time; results return on the UI thread.<br/>Leaving the combat drops late results.<br/>A failed or refused result keeps the ticket and work for a retry."
+    note for CombatScreen "Displays the backend view only: no UI timing, weights, HP or marks.<br/>No pause while a question's clock runs.<br/>No evaluator shipped: submission reports T06 (Lab) or T07."
     note for LabRunService "One run at a time; results return on the UI thread.<br/>Edits make older results stale.<br/>Evidence-to-mark is T06; Lab problems not supplied yet."
 
     GameController --> CombatRules : explicit decisions

@@ -66,7 +66,7 @@
             <TimeGauge fx:id="gauge"/>
             <Label fx:id="prompt" styleClass="combat-prompt" wrapText="true"/>
             <StackPane fx:id="answerBox">
-                <TextArea fx:id="answer" styleClass="combat-answer" prefHeight="150.0" wrapText="true"/>
+                <TextArea fx:id="answer" styleClass="combat-answer" prefHeight="130.0" wrapText="true"/>
                 <VBox fx:id="busy" styleClass="combat-busy" alignment="CENTER" spacing="4" visible="false">
                     <Label fx:id="busyTitle" styleClass="display, busy-title"/>
                     <Label fx:id="busySub" styleClass="mono, busy-sub"/>
@@ -86,13 +86,19 @@
             <Label fx:id="resultNote" styleClass="mono, combat-keys" wrapText="true"/>
         </VBox>
 
-        <VBox fx:id="notice" maxWidth="400.0" prefWidth="400.0"
-              AnchorPane.leftAnchor="500.0" AnchorPane.bottomAnchor="34.0"/>
+        <VBox spacing="10" prefWidth="420.0" maxWidth="420.0"
+              AnchorPane.leftAnchor="40.0" AnchorPane.bottomAnchor="80.0">
+            <VBox fx:id="notice"/>
+            <ChoiceList fx:id="exit"/>
+        </VBox>
 
         <ChoiceList fx:id="commands" alignment="TOP_RIGHT" stagger="16.0"
                     AnchorPane.rightAnchor="40.0" AnchorPane.bottomAnchor="30.0"/>
+        <!-- Inside the anchor pane: the router fades a screen's direct children in to full opacity. -->
+        <Region fx:id="hitFlash" styleClass="hit-flash" mouseTransparent="true" opacity="0.0"
+                AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0"
+                AnchorPane.topAnchor="0.0" AnchorPane.bottomAnchor="0.0"/>
     </AnchorPane>
-    <Region fx:id="hitFlash" styleClass="hit-flash" mouseTransparent="true" opacity="0.0"/>
     <Hud fx:id="hud"/>
     <Pane fx:id="cutins" mouseTransparent="true"/>
 </StackPane>
