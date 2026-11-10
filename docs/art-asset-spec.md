@@ -140,14 +140,13 @@ Lower-case letters, digits, `-` and `_` only; images `.png`, `.jpg` or `.jpeg`, 
 | --- | --- |
 | `backgrounds/title.png` | missing |
 | `backgrounds/opening-exam-hall.png` | missing |
-| `backgrounds/classroom.png` | missing |
+| `backgrounds/computer-lab.jpg` (listed for both `classroom` and `computer-lab`) | delivered: the team's photo of the school computer lab, 1920×1080 |
 | `backgrounds/classroom-desks.png` (foreground) | missing |
-| `backgrounds/hallway.png` | missing |
+| `backgrounds/hallway.jpg` | delivered: the team's photo of a school hallway, 1920×1080 |
 | `backgrounds/student-hub.png` | missing |
 | `backgrounds/student-hub-evening.png` | missing |
 | `backgrounds/dorm-room.png` | missing |
 | `backgrounds/dorm-room-night.png` | missing |
-| `backgrounds/computer-lab.png` | missing |
 | `characters/reward/neutral.png`, `smile.png`, `stern.png` | missing |
 | `characters/student/neutral.png`, `worried.png` | missing |
 | `textures/grain.png`, `textures/motes.png` | generated placeholders |
@@ -155,5 +154,7 @@ Lower-case letters, digits, `-` and `_` only; images `.png`, `.jpg` or `.jpeg`, 
 | `slides/gr11-review/*.png` (12 slides, see Lecture slides) | delivered (from the class deck) |
 | `audio/bgm/title.mp3`, `opening.mp3`, `school-day.mp3`, `after-school.mp3`, `night.mp3`, `combat.mp3` | missing (no music plays) |
 | `audio/sfx/*.wav` (11 sounds, see Interface sounds) | synthesized placeholders |
+
+The two photos were taken at school by the team, cropped from 4:3 to 16:9 and saved without their camera metadata. They are 1920×1080, below the 2560×1440 asked for above, because the originals are 2000 pixels wide; they look slightly soft on high-density screens. Students appear in the lab photo; the team confirmed on 2026-11-10 that they agreed to be shown in the game.
 
 The manifest is the authoritative list; this table is a snapshot from 2026-11-10.
