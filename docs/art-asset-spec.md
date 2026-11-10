@@ -161,8 +161,8 @@ Lower-case letters, digits, `-` and `_` only; images `.png`, `.jpg` or `.jpeg`, 
 | `backgrounds/computer-lab.jpg` (listed for both `classroom` and `computer-lab`) | delivered: the team's photo of the school computer lab, 1920×1080 |
 | `backgrounds/classroom-desks.png` (foreground) | missing |
 | `backgrounds/hallway.jpg` | delivered: the team's photo of a school hallway, 1920×1080 |
-| `backgrounds/student-hub.png` | missing |
-| `backgrounds/student-hub-evening.png` | missing |
+| `backgrounds/student-hub.jpg` | delivered: the team's photo of the Student Hub, 1920×1080, used for every Hub period (the evening grade darkens it) |
+| `backgrounds/student-hub-evening.jpg` | optional, not listed: a dedicated evening photo can be added as `background.hub.evening` |
 | `backgrounds/dorm-room.png` | missing |
 | `backgrounds/dorm-room-night.png` | missing |
 | `characters/reward/*.png` (7 expressions, see Mr. Reward) | delivered: the team's photos of the teacher |
@@ -174,6 +174,6 @@ Lower-case letters, digits, `-` and `_` only; images `.png`, `.jpg` or `.jpeg`, 
 | `audio/bgm/title.mp3`, `opening.mp3`, `school-day.mp3`, `after-school.mp3`, `night.mp3`, `combat.mp3` | missing (no music plays) |
 | `audio/sfx/*.wav` (11 sounds, see Interface sounds) | synthesized placeholders |
 
-The two photos were taken at school by the team, cropped from 4:3 to 16:9 and saved without their camera metadata. They are 1920×1080, below the 2560×1440 asked for above, because the originals are 2000 pixels wide; they look slightly soft on high-density screens. Students appear in the lab photo; the team confirmed on 2026-11-10 that they agreed to be shown in the game.
+The photos were taken at school by the team, cropped to 16:9 and saved without their camera metadata (the originals carry GPS positions). The Student Hub photo is an iPhone HEIC whose pixels are stored sideways with no rotation flag; it was turned upright, converted from Display P3 to sRGB, and a 16:9 band was cut from the portrait frame (seasonal decorations, fireplace screen, shelves, sofa and games table). They are 1920×1080, below the 2560×1440 asked for above, because the originals are 2000 pixels wide; they look slightly soft on high-density screens. Students appear in the lab photo; the team confirmed on 2026-11-10 that they agreed to be shown in the game.
 
 The manifest is the authoritative list; this table is a snapshot from 2026-11-10.
