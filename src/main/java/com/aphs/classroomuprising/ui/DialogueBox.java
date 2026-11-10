@@ -27,6 +27,8 @@ public class DialogueBox extends StackPane {
     private Runnable onFinished = () -> {};
     private java.util.function.Consumer<DialogueScript.Line> onLine = line -> {};
     private boolean finished = true;
+    /** The full text of the line on screen, used to size the box before and while it types. */
+    private String current = "";
 
     public DialogueBox() {
         getStyleClass().add("dialogue-box");
@@ -53,6 +55,7 @@ public class DialogueBox extends StackPane {
 
         getChildren().addAll(text, tag, more);
         setOnMouseClicked(e -> advance());
+        widthProperty().addListener((obs, a, b) -> fit());
     }
 
     /** Plays the lines in order and runs {@code whenDone} once after the last line is dismissed. */
@@ -102,6 +105,8 @@ public class DialogueBox extends StackPane {
 
     private void type(String full) {
         more.setVisible(false);
+        current = full;
+        fit();
         text.setText("");
         typing = new Transition() {
             {
@@ -115,5 +120,21 @@ public class DialogueBox extends StackPane {
         };
         typing.setOnFinished(e -> more.setVisible(true));
         typing.play();
+    }
+
+    /**
+     * Grows the box upwards when the whole current line needs more rows than its layout height
+     * gives (long authored lines, other fonts); it never shrinks below that height. Measured on
+     * the full line, so the box does not jump while the text types.
+     */
+    private void fit() {
+        double width = getWidth() - snappedLeftInset() - snappedRightInset();
+        if (width <= 0) return;
+        String shown = text.getText();
+        text.setText(current);
+        text.applyCss();
+        double needed = text.prefHeight(width) + snappedTopInset() + snappedBottomInset();
+        text.setText(shown);
+        setMinHeight(Math.max(getPrefHeight(), Math.ceil(needed)));
     }
 }
