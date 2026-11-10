@@ -1,0 +1,398 @@
+/*
+ * Classroom Uprising theme.
+ * Motif: the "//" slant (about 14 degrees), code glyphs, a blinking caret.
+ * Palette: ink-indigo base, caret-yellow focus, cyan for code/information,
+ * green for HP/pass, violet for SAN, red for failure and late-night risk.
+ * Fonts are chosen at runtime by Theme.java (.display / .mono / body).
+ */
+
+.root {
+    -cu-ink: #0B0F2A;
+    -cu-panel: #141A3D;
+    -cu-deep: #0E1330;
+    -cu-line: #2A3366;
+    -cu-dim: #5A6499;
+    -cu-soft: #AEB6E0;
+    -cu-text: #F4F6FF;
+    -cu-caret: #FFD23F;
+    -cu-cyan: #5CE1E6;
+    -cu-green: #3DDC97;
+    -cu-red: #FF4D6D;
+    -cu-violet: #B48CFF;
+    -cu-glyph: #151C47;
+    -cu-figure: #1C2452;
+    -fx-font-size: 15px;
+}
+
+.window { -fx-background-color: #05071A; }
+.canvas, .screen { -fx-background-color: -cu-ink; }
+.label { -fx-text-fill: -cu-text; }
+
+/* ---------- shared shapes ---------- */
+.slant-bg { -fx-fill: transparent; }
+.tag-caret > .slant-bg { -fx-fill: -cu-caret; }
+.tag-caret .label { -fx-text-fill: -cu-ink; }
+.tag-light > .slant-bg { -fx-fill: -cu-text; }
+.tag-light .label { -fx-text-fill: -cu-ink; }
+.tag-danger > .slant-bg { -fx-fill: -cu-red; }
+.tag-danger .label { -fx-text-fill: -cu-ink; }
+.tag-caret, .tag-light, .tag-danger { -fx-padding: 2 22 2 20; }
+.tag-label { -fx-font-size: 22px; }
+
+/* Big background typography now sits over art, so it is a faint light wash, not a dark fill. */
+.glyph { -fx-fill: rgba(244, 246, 255, 0.07); }
+
+/* ---------- scene art layers ---------- */
+.scene-dim { -fx-fill: -cu-ink; }
+.scrim-top { -fx-background-color: linear-gradient(to bottom, rgba(11, 15, 42, 0.82) 0%, rgba(11, 15, 42, 0.35) 60%, transparent 100%); }
+.scrim-bottom { -fx-background-color: linear-gradient(to top, rgba(11, 15, 42, 0.9) 0%, rgba(11, 15, 42, 0.5) 50%, transparent 100%); }
+.scrim-left { -fx-background-color: linear-gradient(to right, rgba(11, 15, 42, 0.85) 0%, rgba(11, 15, 42, 0.45) 60%, transparent 100%); }
+.scrim-right { -fx-background-color: linear-gradient(to left, rgba(11, 15, 42, 0.85) 0%, rgba(11, 15, 42, 0.45) 60%, transparent 100%); }
+
+/* ---------- choices ---------- */
+.choice-list { -fx-background-color: transparent; }
+.choice { -fx-padding: 5 38 5 30; -fx-cursor: hand; }
+.choice > .slant-bg { -fx-fill: -cu-panel; -fx-stroke: -cu-line; -fx-stroke-width: 1.5; }
+.choice-label { -fx-font-size: 22px; -fx-text-fill: -cu-soft; }
+.choice-hint { -fx-font-size: 12px; -fx-text-fill: -cu-dim; }
+.choice.tone-cyan .choice-label { -fx-text-fill: -cu-cyan; }
+.choice.tone-danger .choice-label { -fx-text-fill: -cu-red; }
+.choice:unavailable { -fx-opacity: 0.38; -fx-cursor: default; }
+/* Big menus float as type over the art; only the cursor gives them a shape. */
+.choice-list.large .choice { -fx-padding: 2 46 4 36; }
+.choice-list.large .choice > .slant-bg { -fx-fill: transparent; -fx-stroke: transparent; }
+.choice-list.large .choice-label { -fx-font-size: 38px; -fx-effect: dropshadow(gaussian, rgba(11, 15, 42, 0.6), 12, 0.2, 0, 2); }
+.choice-list.large .choice-hint { -fx-font-size: 13px; }
+
+/* The selection cursor: a slab, a trailing accent shard and dark text where the slab covers it. */
+.cursor-slab { -fx-fill: -cu-caret; }
+.cursor-slab.tone-cyan { -fx-fill: -cu-cyan; }
+.cursor-slab.tone-danger { -fx-fill: -cu-red; }
+.cursor-slab.flash { -fx-fill: #FFFFFF; }
+.cursor-shard { -fx-fill: -cu-cyan; -fx-opacity: 0.85; }
+.cursor-shard.tone-cyan { -fx-fill: -cu-caret; }
+.cursor-shard.tone-danger { -fx-fill: -cu-caret; }
+.cursor-echo { -fx-fill: transparent; -fx-stroke: -cu-caret; -fx-stroke-width: 2; }
+.cursor-echo.tone-cyan { -fx-stroke: -cu-cyan; }
+.cursor-echo.tone-danger { -fx-stroke: -cu-red; }
+.choice-ghost .choice-label,
+.choice-list.large .choice-ghost .choice-label { -fx-text-fill: -cu-ink; -fx-effect: null; }
+.choice-ghost .choice-hint { -fx-text-fill: #2B2A12; }
+
+/* ---------- dialogue ---------- */
+.dialogue-box {
+    -fx-background-color: -cu-panel;
+    -fx-border-color: -cu-caret;
+    -fx-border-width: 0 0 0 5;
+    -fx-padding: 30 34 20 30;
+    -fx-cursor: hand;
+}
+.dialogue-text { -fx-font-size: 20px; -fx-line-spacing: 4px; -fx-text-fill: -cu-text; }
+.name-tag { -fx-padding: 2 22 2 20; }
+.name-tag > .slant-bg { -fx-fill: -cu-text; }
+.name-tag-label { -fx-font-size: 20px; -fx-text-fill: -cu-ink; }
+.dialogue-more { -fx-text-fill: -cu-caret; -fx-font-size: 14px; }
+.side-prompt { -fx-font-size: 24px; -fx-text-fill: -cu-cyan; }
+
+/* ---------- HUD ---------- */
+.hud-day { -fx-padding: 0 22 0 18; }
+.hud-day-label { -fx-font-size: 40px; }
+.hud-course { -fx-font-size: 14px; -fx-text-fill: -cu-cyan; }
+.hud-period { -fx-font-size: 14px; -fx-text-fill: -cu-caret; }
+.pip { -fx-min-width: 26; -fx-pref-width: 26; -fx-max-width: 26; -fx-min-height: 8; -fx-pref-height: 8; -fx-max-height: 8; }
+.pip.pip-half { -fx-min-width: 13; -fx-pref-width: 13; -fx-max-width: 13; }
+.pip > .slant-bg { -fx-fill: -cu-line; }
+.pip-done > .slant-bg { -fx-fill: -cu-dim; }
+.pip-now > .slant-bg { -fx-fill: -cu-caret; }
+.pip-risk > .slant-bg { -fx-fill: transparent; -fx-stroke: -cu-red; -fx-stroke-width: 1.5; }
+.stat-chip { -fx-padding: 3 20 3 18; }
+.stat-chip > .slant-bg { -fx-fill: rgba(11, 15, 42, 0.75); -fx-stroke: -cu-text; -fx-stroke-width: 1.5; }
+.stat-name { -fx-font-size: 13px; }
+.stat-value { -fx-font-size: 24px; }
+.stat-hp { -fx-text-fill: -cu-green; }
+.stat-san { -fx-text-fill: -cu-violet; }
+.stat-vibe { -fx-text-fill: -cu-cyan; }
+.stat-plain { -fx-text-fill: -cu-soft; }
+.demo-label { -fx-font-size: 11px; -fx-text-fill: -cu-dim; }
+.hud-hint { -fx-font-size: 13px; -fx-text-fill: -cu-dim; }
+
+/* ---------- notices ---------- */
+.diag { -fx-padding: 10 14 10 14; -fx-spacing: 4; -fx-border-width: 1.5; -fx-background-color: rgba(11, 15, 42, 0.88); }
+.diag-head { -fx-font-size: 13px; }
+.diag-sub { -fx-font-size: 12px; -fx-text-fill: -cu-soft; }
+.diag-warning { -fx-border-color: -cu-caret; }
+.diag-warning .diag-head { -fx-text-fill: -cu-caret; }
+.diag-error { -fx-border-color: -cu-red; }
+.diag-error .diag-head { -fx-text-fill: -cu-red; }
+.diag-info { -fx-border-color: -cu-cyan; }
+.diag-info .diag-head { -fx-text-fill: -cu-cyan; }
+
+.toast { -fx-padding: 3 22 3 20; }
+.toast > .slant-bg { -fx-fill: -cu-panel; -fx-stroke: -cu-line; -fx-stroke-width: 1.5; }
+.toast-label { -fx-font-size: 18px; }
+.toast-up .toast-label { -fx-text-fill: -cu-green; }
+.toast-down .toast-label { -fx-text-fill: -cu-red; }
+.toast-warn > .slant-bg { -fx-stroke: -cu-caret; }
+.toast-warn .toast-label { -fx-text-fill: -cu-caret; -fx-font-size: 12px; }
+
+.wipe-band { -fx-fill: -cu-caret; }
+.wipe-trail { -fx-fill: -cu-cyan; }
+.wipe-caption { -fx-font-size: 72px; -fx-text-fill: -cu-ink; }
+
+/* ---------- title ---------- */
+.title-word { -fx-font-size: 104px; }
+.title-tag { -fx-padding: 0 34 0 26; }
+.title-sub { -fx-font-size: 16px; -fx-text-fill: -cu-cyan; -fx-padding: 8 0 0 4; }
+.panel-title { -fx-font-size: 26px; -fx-text-fill: -cu-caret; }
+.name-field {
+    -fx-background-color: -cu-deep;
+    -fx-background-radius: 0;
+    -fx-border-color: -cu-caret;
+    -fx-border-width: 0 0 2 0;
+    -fx-text-fill: -cu-text;
+    -fx-prompt-text-fill: -cu-dim;
+    -fx-highlight-fill: -cu-line;
+    -fx-font-size: 22px;
+    -fx-padding: 8 12 8 12;
+}
+.field-error { -fx-text-fill: -cu-red; -fx-font-size: 13px; }
+
+/* ---------- opening / day cards ---------- */
+.opening-sub { -fx-font-size: 18px; -fx-text-fill: -cu-red; }
+/* Right padding exceeds the slant offset (height x 0.25) so the flip faces never cut the edge. */
+.intro-tag { -fx-padding: 0 72 0 34; }
+.intro-day-word { -fx-font-size: 54px; -fx-padding: 0 0 34 0; }
+.flip-digits { -fx-font-size: 190px; -fx-text-fill: -cu-ink; -fx-background-color: -cu-caret; }
+.flip-digits.flip-moving { -fx-background-color: #E9BE35; }
+.cal-ghost { -fx-opacity: 0.25; }
+.flip-hinge { -fx-fill: rgba(11, 15, 42, 0.28); }
+.calendar-strip .cal-cell { -fx-min-height: 58; }
+
+.flip-shadow { -fx-fill: linear-gradient(to bottom, rgba(11, 15, 42, 0.9) 0%, rgba(11, 15, 42, 0) 100%); }
+.intro-next { -fx-font-size: 14px; -fx-text-fill: -cu-soft; }
+.cal-strike { -fx-stroke: -cu-caret; -fx-stroke-width: 3.5; -fx-stroke-line-cap: round; }
+.cal-today-marker { -fx-fill: -cu-caret; }
+
+/* ---------- time-of-day clock transition ---------- */
+/* The dim stays translucent during the sweep so the world can be seen changing colour behind. */
+.clock-dim { -fx-fill: -cu-ink; }
+.clock-band { -fx-fill: rgba(20, 26, 61, 0.88); }
+.clock-band-edge { -fx-stroke: -cu-caret; -fx-stroke-width: 4; }
+.clock-face { -fx-fill: -cu-deep; -fx-stroke: -cu-line; -fx-stroke-width: 3; }
+.clock-tick { -fx-fill: -cu-dim; }
+.clock-tick-minor { -fx-fill: -cu-line; }
+.clock-tick-major { -fx-fill: -cu-caret; }
+.clock-hand-smear { -fx-fill: -cu-cyan; }
+.clock-period-line { -fx-font-size: 13px; -fx-text-fill: -cu-dim; }
+.clock-ring-track { -fx-fill: transparent; -fx-stroke: rgba(42, 51, 102, 0.6); -fx-stroke-width: 8; }
+.clock-ring { -fx-fill: transparent; -fx-stroke-width: 8; -fx-opacity: 0.55; }
+.clock-ring.ring-target { -fx-stroke-width: 14; -fx-opacity: 1; }
+.ring-morning_bonus { -fx-stroke: #FFE7C2; }
+.ring-ics_class { -fx-stroke: -cu-caret; }
+.ring-other_classes { -fx-stroke: -cu-soft; }
+.ring-after_school { -fx-stroke: #FF9B54; }
+.ring-evening { -fx-stroke: -cu-violet; }
+.ring-late_night { -fx-stroke: -cu-red; }
+.clock-ring-marker { -fx-fill: -cu-text; -fx-stroke: -cu-ink; -fx-stroke-width: 2; }
+.clock-hand-hour { -fx-fill: -cu-caret; }
+.clock-hand-minute { -fx-fill: -cu-cyan; }
+.clock-hub { -fx-fill: -cu-text; }
+.clock-from { -fx-font-size: 28px; -fx-text-fill: -cu-soft; }
+.clock-to { -fx-font-size: 96px; -fx-text-fill: -cu-text; }
+.clock-time { -fx-font-size: 44px; -fx-text-fill: -cu-cyan; }
+.intro-total { -fx-font-size: 54px; -fx-text-fill: -cu-dim; }
+.intro-course { -fx-font-size: 34px; -fx-text-fill: -cu-cyan; }
+.intro-tutorial { -fx-font-size: 14px; -fx-text-fill: -cu-caret; }
+
+/* ---------- places (other classes, hub, day end) ---------- */
+.place-title { -fx-font-size: 64px; }
+.place-kicker { -fx-font-size: 22px; -fx-text-fill: -cu-cyan; }
+.place-sub { -fx-font-size: 16px; -fx-text-fill: -cu-soft; }
+.section-label { -fx-font-size: 16px; -fx-text-fill: -cu-dim; }
+.detail-card {
+    -fx-background-color: -cu-panel;
+    -fx-border-color: -cu-caret transparent transparent transparent;
+    -fx-border-width: 4 0 0 0;
+    -fx-padding: 18 24 22 24;
+}
+.detail-title { -fx-font-size: 32px; }
+.detail-cost { -fx-font-size: 14px; -fx-text-fill: -cu-soft; }
+.detail-caution { -fx-font-size: 12px; -fx-text-fill: -cu-caret; }
+.effect-chip { -fx-font-size: 18px; -fx-padding: 2 10 2 10; -fx-border-width: 1.5; }
+.effect-up { -fx-text-fill: -cu-green; -fx-border-color: -cu-green; }
+.effect-down { -fx-text-fill: -cu-red; -fx-border-color: -cu-red; }
+.save-status { -fx-font-size: 12px; }
+.save-ok { -fx-text-fill: -cu-green; }
+.save-failed { -fx-text-fill: -cu-red; }
+
+/* ---------- ESC menu ---------- */
+.pause-dim { -fx-background-color: -cu-ink; }
+.menu-backdrop-wash { -fx-fill: linear-gradient(to right, #3A48A8 0%, #6474D2 55%, #A3B0F2 100%); }
+.menu-backdrop-glow { -fx-fill: linear-gradient(to bottom, rgba(92, 225, 230, 0.10) 0%, transparent 60%); }
+
+/* ---------- screen reveal ---------- */
+.reveal-edge { -fx-fill: transparent; -fx-stroke: -cu-caret; -fx-stroke-width: 4; }
+.reveal-echo-tint { -fx-fill: #5CC8E6; }
+.reveal-caption { -fx-padding: 4 40 4 34; }
+.reveal-caption-label { -fx-font-size: 56px; }
+.pause-title { -fx-font-size: 72px; -fx-text-fill: -cu-caret; }
+.pause-content {
+    -fx-background-color: -cu-panel;
+    -fx-border-color: -cu-caret transparent transparent transparent;
+    -fx-border-width: 4 0 0 0;
+    -fx-padding: 26 30 26 30;
+}
+.panel-muted { -fx-font-size: 12px; -fx-text-fill: -cu-dim; }
+.panel-line { -fx-font-size: 13px; -fx-text-fill: -cu-soft; }
+.panel-stat-name { -fx-font-size: 18px; }
+.panel-stat-value { -fx-font-size: 22px; }
+.unit-cell { -fx-background-color: -cu-deep; -fx-padding: 6 14 6 14; -fx-min-width: 64; }
+.unit-name { -fx-font-size: 13px; -fx-text-fill: -cu-dim; }
+.unit-value { -fx-font-size: 24px; -fx-text-fill: -cu-cyan; }
+.cal-cell { -fx-background-color: -cu-deep; -fx-padding: 4 8 4 8; -fx-min-width: 70; -fx-pref-width: 70; -fx-border-width: 0 0 3 0; -fx-border-color: -cu-line; }
+.cal-day { -fx-font-size: 20px; }
+.cal-type { -fx-font-size: 10px; -fx-text-fill: -cu-soft; }
+.cal-lab { -fx-border-color: -cu-cyan; }
+.cal-unit_test { -fx-border-color: -cu-violet; }
+.cal-review { -fx-border-color: -cu-dim; }
+.cal-midterm, .cal-final { -fx-border-color: -cu-red; }
+.cal-past { -fx-opacity: 0.4; }
+.cal-today { -fx-background-color: -cu-caret; }
+.cal-today .label { -fx-text-fill: -cu-ink; }
+
+/* ---------- Java Lab ---------- */
+.lab-title { -fx-font-size: 15px; -fx-text-fill: -cu-cyan; }
+.lab-statement { -fx-font-size: 15px; -fx-text-fill: -cu-soft; }
+.editor { -fx-border-color: -cu-line; -fx-border-width: 1; -fx-background-color: -cu-deep; }
+.gutter { -fx-background-color: -cu-deep; -fx-border-color: transparent -cu-line transparent transparent; -fx-border-width: 0 1 0 0; }
+.gutter-text { -fx-font-size: 14px; -fx-text-fill: -cu-dim; -fx-padding: 5 8 0 0; -fx-line-spacing: -0.2px; -fx-alignment: top-right; -fx-min-width: 44; -fx-pref-width: 44; -fx-text-alignment: right; }
+.text-area { -fx-background-color: -cu-deep; -fx-background-radius: 0; -fx-background-insets: 0; -fx-focus-color: transparent; -fx-faint-focus-color: transparent; }
+.text-area .content { -fx-background-color: -cu-deep; -fx-background-radius: 0; }
+.code-area { -fx-font-size: 14px; -fx-text-fill: -cu-text; -fx-highlight-fill: #2C3A7A; -fx-highlight-text-fill: -cu-text; }
+.console { -fx-font-size: 12px; -fx-text-fill: -cu-soft; -fx-border-color: -cu-line; -fx-border-width: 1; }
+.text-area .scroll-bar { -fx-background-color: -cu-deep; }
+.text-area .scroll-bar .thumb { -fx-background-color: -cu-line; -fx-background-radius: 0; }
+.text-area .scroll-bar .increment-button, .text-area .scroll-bar .decrement-button { -fx-padding: 0; -fx-background-color: transparent; }
+.text-area .scroll-bar .increment-arrow, .text-area .scroll-bar .decrement-arrow { -fx-shape: ""; -fx-padding: 0; }
+.text-area .corner { -fx-background-color: -cu-deep; }
+.stale-banner { -fx-font-size: 12px; -fx-text-fill: -cu-caret; -fx-border-color: -cu-caret; -fx-border-style: segments(4, 3); -fx-padding: 4 8 4 8; }
+.result-row { -fx-background-color: -cu-panel; -fx-padding: 6 10 6 10; }
+.result-name { -fx-font-size: 13px; }
+.result-status { -fx-font-size: 13px; }
+.result-pass { -fx-text-fill: -cu-green; }
+.result-fail { -fx-text-fill: -cu-red; }
+.result-idle { -fx-text-fill: -cu-dim; }
+.result-list:stale { -fx-opacity: 0.45; }
+
+/* ---------- assessment combat ---------- */
+.choice.tone-caret .choice-label { -fx-text-fill: -cu-caret; }
+.cursor-shard.tone-caret { -fx-fill: -cu-red; }
+.cursor-echo.tone-caret { -fx-stroke: -cu-caret; }
+.combat-title { -fx-font-size: 28px; }
+.combat-flags { -fx-font-size: 12px; -fx-text-fill: -cu-red; }
+.combat-panel, .combat-results {
+    -fx-background-color: rgba(11, 15, 42, 0.80);
+    -fx-border-color: -cu-caret transparent transparent transparent;
+    -fx-border-width: 3 0 0 0;
+    -fx-padding: 14 20 16 20;
+}
+.combat-weight { -fx-font-size: 26px; -fx-text-fill: -cu-cyan; }
+.combat-weight.struck { -fx-text-fill: -cu-dim; }
+.combat-weight.struck .text { -fx-strikethrough: true; }
+.combat-weight-note { -fx-font-size: 12px; -fx-text-fill: -cu-red; }
+.combat-time { -fx-font-size: 34px; -fx-text-fill: -cu-text; }
+.combat-time.overtime { -fx-text-fill: -cu-red; }
+.combat-limit { -fx-font-size: 14px; -fx-text-fill: -cu-dim; }
+.combat-prompt { -fx-font-size: 18px; -fx-text-fill: -cu-text; -fx-line-spacing: 3px; }
+.combat-answer { -fx-font-size: 16px; -fx-text-fill: -cu-text; -fx-prompt-text-fill: -cu-dim; -fx-highlight-fill: #2C3A7A; -fx-border-color: -cu-line; -fx-border-width: 1; }
+.combat-answer.code-area { -fx-font-size: 14px; }
+.combat-answer:focused { -fx-border-color: -cu-cyan; }
+.combat-answer.locked { -fx-opacity: 0.4; }
+.combat-busy { -fx-background-color: rgba(11, 15, 42, 0.74); }
+.busy-title { -fx-font-size: 40px; -fx-text-fill: -cu-cyan; }
+.busy-sub { -fx-font-size: 13px; -fx-text-fill: -cu-soft; }
+.combat-busy.busy-stuck .busy-title { -fx-text-fill: -cu-red; }
+.combat-keys { -fx-font-size: 12px; -fx-text-fill: -cu-dim; }
+.combat-chip { -fx-padding: 3 20 3 18; }
+.combat-chip > .slant-bg { -fx-fill: rgba(11, 15, 42, 0.82); -fx-stroke: -cu-line; -fx-stroke-width: 1.5; }
+.chip-text { -fx-font-size: 15px; -fx-text-fill: -cu-soft; }
+.combat-chip.chip-lit > .slant-bg { -fx-fill: -cu-caret; -fx-stroke: -cu-caret; }
+.combat-chip.chip-lit .chip-text { -fx-text-fill: -cu-ink; }
+.combat-chip.chip-lost > .slant-bg { -fx-stroke: -cu-red; }
+.combat-chip.chip-lost .chip-text { -fx-text-fill: -cu-red; }
+.time-gauge .gauge-track { -fx-fill: -cu-deep; -fx-stroke: -cu-line; -fx-stroke-width: 1; }
+.time-gauge .gauge-fill { -fx-fill: -cu-cyan; }
+.time-gauge:late .gauge-fill { -fx-fill: -cu-caret; }
+.time-gauge:overtime .gauge-fill { -fx-fill: -cu-red; }
+.time-gauge .gauge-tick { -fx-stroke: rgba(11, 15, 42, 0.8); -fx-stroke-width: 2; }
+.overtime-glow { -fx-background-color: radial-gradient(center 50% 50%, radius 80%, transparent 55%, rgba(255, 77, 109, 0.6) 100%); }
+.hit-flash { -fx-background-color: rgba(255, 77, 109, 0.5); }
+.cutin-band { -fx-fill: -cu-caret; }
+.cutin-band.tone-danger { -fx-fill: -cu-red; }
+.cutin-band.tone-cyan { -fx-fill: -cu-cyan; }
+.cutin-shard { -fx-fill: -cu-cyan; }
+.cutin-shard.tone-danger { -fx-fill: -cu-ink; }
+.cutin-word { -fx-font-size: 78px; -fx-text-fill: -cu-ink; }
+.cutin-sub { -fx-font-size: 18px; -fx-text-fill: -cu-ink; }
+.results-title { -fx-font-size: 54px; -fx-text-fill: -cu-caret; }
+.results-credits { -fx-font-size: 24px; -fx-text-fill: -cu-cyan; }
+.results-combo { -fx-font-size: 22px; -fx-text-fill: -cu-caret; }
+.results-combo.combo-lost { -fx-text-fill: -cu-red; }
+.result-head { -fx-font-size: 11px; -fx-text-fill: -cu-dim; }
+.result-index, .result-q { -fx-font-size: 16px; -fx-text-fill: -cu-soft; }
+.result-cell { -fx-font-size: 16px; -fx-text-fill: -cu-text; }
+.result-late { -fx-font-size: 16px; -fx-text-fill: -cu-red; }
+.result-credit { -fx-font-size: 16px; -fx-text-fill: -cu-cyan; }
+.result-hp { -fx-font-size: 16px; -fx-text-fill: -cu-red; }
+.result-tag-late, .result-tag-dasher { -fx-font-size: 10px; -fx-text-fill: -cu-ink; -fx-padding: 1 6 1 6; }
+.result-tag-late { -fx-background-color: -cu-red; }
+.result-tag-dasher { -fx-background-color: -cu-caret; }
+
+/* ---------- tutorial tip card (a game notice, not dialogue) ---------- */
+.tip-card {
+    -fx-background-color: rgba(11, 15, 42, 0.92);
+    -fx-border-color: transparent transparent -cu-cyan transparent;
+    -fx-border-width: 0 0 3 0;
+    -fx-padding: 10 18 10 12;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(5, 7, 26, 0.6), 18, 0.2, 0, 4);
+}
+.tip-badge { -fx-padding: 2 18 4 16; -fx-min-width: 64; }
+.tip-badge > .slant-bg { -fx-fill: -cu-cyan; }
+.tip-mark { -fx-font-size: 34px; -fx-text-fill: -cu-ink; }
+.tip-kind { -fx-font-size: 13px; -fx-text-fill: -cu-ink; }
+.tip-title { -fx-font-size: 18px; -fx-text-fill: -cu-cyan; }
+.tip-body { -fx-font-size: 14px; -fx-text-fill: -cu-text; -fx-line-spacing: 2px; }
+.tip-close { -fx-font-size: 10px; -fx-text-fill: -cu-dim; }
+
+/* ---------- lecture slides (projector panel beside the teacher) ---------- */
+.slide-frame { -fx-fill: rgba(11, 15, 42, 0.94); -fx-stroke: -cu-line; -fx-stroke-width: 2; }
+.slide-shard { -fx-fill: -cu-cyan; -fx-opacity: 0.85; }
+.slide-screen { -fx-background-color: #05071A; }
+.slide-edge { -fx-fill: linear-gradient(to right, rgba(92, 225, 230, 0), #FFFFFF 55%, #5CE1E6); }
+.slide-tag { -fx-padding: 3 22 3 18; }
+.slide-tag > .slant-bg { -fx-fill: -cu-caret; }
+.slide-kind { -fx-font-size: 13px; -fx-text-fill: -cu-ink; }
+.slide-number { -fx-font-size: 20px; -fx-text-fill: -cu-ink; }
+.slide-scrim { -fx-background-color: rgba(5, 7, 26, 0.80); }
+
+/* ---------- sound volume rows (Esc menu and title) ---------- */
+.sound-panel { -fx-padding: 8 0 0 0; }
+.sound-row { -fx-padding: 8 16 8 14; -fx-background-color: transparent; -fx-cursor: hand; }
+.sound-row:active {
+    -fx-background-color: rgba(255, 210, 63, 0.12);
+    -fx-border-color: transparent transparent transparent -cu-caret;
+    -fx-border-width: 0 0 0 4;
+}
+.sound-name { -fx-font-size: 22px; -fx-text-fill: -cu-soft; -fx-min-width: 132; -fx-pref-width: 132; }
+.sound-row:active .sound-name { -fx-text-fill: -cu-caret; }
+.sound-cell {
+    -fx-min-width: 16; -fx-min-height: 26; -fx-max-width: 16; -fx-max-height: 26;
+    -fx-background-color: -cu-line;
+    -fx-shape: "M 5 0 L 16 0 L 11 26 L 0 26 Z";
+}
+.sound-cell:on { -fx-background-color: -cu-cyan; }
+.sound-row:active .sound-cell:on { -fx-background-color: -cu-caret; }
+.sound-value { -fx-font-size: 22px; -fx-text-fill: -cu-text; -fx-min-width: 44; }
+.sound-keys { -fx-font-size: 11px; -fx-text-fill: -cu-dim; -fx-padding: 6 0 0 14; }
+.slide-zoom-hint { -fx-font-size: 14px; -fx-text-fill: -cu-soft; }

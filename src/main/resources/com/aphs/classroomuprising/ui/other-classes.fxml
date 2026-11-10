@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import com.aphs.classroomuprising.ui.ChoiceList?>
+<?import com.aphs.classroomuprising.ui.Hud?>
+<?import com.aphs.classroomuprising.ui.scene.SceneView?>
+
+<StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" styleClass="screen, other-classes">
+    <SceneView fx:id="scene"/>
+    <AnchorPane pickOnBounds="false">
+        <Region styleClass="scrim-left" mouseTransparent="true" prefWidth="700.0"
+                AnchorPane.leftAnchor="0.0" AnchorPane.topAnchor="0.0" AnchorPane.bottomAnchor="0.0"/>
+        <VBox spacing="6" AnchorPane.leftAnchor="80.0" AnchorPane.topAnchor="170.0">
+            <Label text="OTHER CLASSES" styleClass="display, place-title"/>
+            <Label text="Not ICS4U. How do you spend the period?" styleClass="place-sub"/>
+        </VBox>
+        <ChoiceList fx:id="choices" styleClass="large" AnchorPane.leftAnchor="80.0" AnchorPane.topAnchor="290.0"/>
+        <VBox fx:id="notice" maxWidth="520.0" AnchorPane.rightAnchor="60.0" AnchorPane.bottomAnchor="60.0"/>
+    </AnchorPane>
+    <Hud fx:id="hud"/>
+</StackPane>

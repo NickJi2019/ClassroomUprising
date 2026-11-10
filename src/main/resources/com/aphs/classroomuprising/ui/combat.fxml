@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import com.aphs.classroomuprising.ui.ChoiceList?>
+<?import com.aphs.classroomuprising.ui.Hud?>
+<?import com.aphs.classroomuprising.ui.Slant?>
+<?import com.aphs.classroomuprising.ui.TimeGauge?>
+<?import com.aphs.classroomuprising.ui.scene.SceneView?>
+
+<StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" styleClass="screen, combat">
+    <SceneView fx:id="scene"/>
+    <AnchorPane pickOnBounds="false">
+        <Region styleClass="scrim-left" mouseTransparent="true" prefWidth="620.0"
+                AnchorPane.leftAnchor="0.0" AnchorPane.topAnchor="0.0" AnchorPane.bottomAnchor="0.0"/>
+        <Region styleClass="scrim-bottom" mouseTransparent="true" prefHeight="240.0"
+                AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.bottomAnchor="0.0"/>
+        <Region fx:id="overtimeGlow" styleClass="overtime-glow" mouseTransparent="true" opacity="0.0"
+                AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0"
+                AnchorPane.topAnchor="0.0" AnchorPane.bottomAnchor="0.0"/>
+
+        <HBox spacing="14" alignment="CENTER_LEFT" AnchorPane.leftAnchor="40.0" AnchorPane.topAnchor="134.0">
+            <Slant styleClass="tag-danger">
+                <Label text="COMBAT" styleClass="display, tag-label"/>
+            </Slant>
+            <Label fx:id="title" styleClass="display, combat-title"/>
+            <Label fx:id="flags" styleClass="mono, combat-flags"/>
+        </HBox>
+
+        <VBox spacing="10" prefWidth="420.0" AnchorPane.leftAnchor="40.0" AnchorPane.topAnchor="190.0">
+            <Label text="TARGETS · ANY ORDER" styleClass="display, section-label"/>
+            <ChoiceList fx:id="targets" stagger="14.0"/>
+        </VBox>
+
+        <HBox spacing="10" alignment="CENTER_LEFT" AnchorPane.leftAnchor="40.0" AnchorPane.bottomAnchor="34.0">
+            <Slant styleClass="combat-chip">
+                <Label fx:id="cleared" styleClass="display, chip-text"/>
+            </Slant>
+            <Slant fx:id="dasherChip" styleClass="combat-chip">
+                <Label text="DASHER" styleClass="display, chip-text"/>
+            </Slant>
+            <Slant fx:id="comboChip" styleClass="combat-chip">
+                <Label fx:id="combo" styleClass="display, chip-text"/>
+            </Slant>
+        </HBox>
+
+        <VBox fx:id="panel" spacing="10" styleClass="combat-panel"
+              AnchorPane.leftAnchor="500.0" AnchorPane.rightAnchor="40.0" AnchorPane.topAnchor="176.0">
+            <HBox spacing="14" alignment="BASELINE_LEFT">
+                <Slant styleClass="tag-caret">
+                    <Label fx:id="questionTag" styleClass="display, tag-label"/>
+                </Slant>
+                <Label fx:id="weight" styleClass="display, combat-weight"/>
+                <Label fx:id="weightNote" styleClass="mono, combat-weight-note"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Label fx:id="time" styleClass="mono, combat-time"/>
+                <Label fx:id="limit" text="/ 30.0s" styleClass="mono, combat-limit"/>
+            </HBox>
+            <TimeGauge fx:id="gauge"/>
+            <Label fx:id="prompt" styleClass="combat-prompt" wrapText="true"/>
+            <StackPane fx:id="answerBox">
+                <TextArea fx:id="answer" styleClass="combat-answer" prefHeight="130.0" wrapText="true"/>
+                <VBox fx:id="busy" styleClass="combat-busy" alignment="CENTER" spacing="4" visible="false">
+                    <Label fx:id="busyTitle" styleClass="display, busy-title"/>
+                    <Label fx:id="busySub" styleClass="mono, busy-sub"/>
+                </VBox>
+            </StackPane>
+            <Label fx:id="keys" styleClass="mono, combat-keys"/>
+        </VBox>
+
+        <VBox fx:id="results" spacing="10" styleClass="combat-results" visible="false" managed="false"
+              AnchorPane.leftAnchor="500.0" AnchorPane.rightAnchor="40.0" AnchorPane.topAnchor="168.0">
+            <HBox spacing="18" alignment="BASELINE_LEFT">
+                <Label text="RESULTS" styleClass="display, results-title"/>
+                <Label fx:id="creditsLine" styleClass="display, results-credits"/>
+            </HBox>
+            <GridPane fx:id="resultRows" hgap="16" vgap="4" styleClass="result-grid"/>
+            <Label fx:id="comboLine" styleClass="display, results-combo"/>
+            <Label fx:id="resultNote" styleClass="mono, combat-keys" wrapText="true"/>
+        </VBox>
+
+        <VBox spacing="10" prefWidth="420.0" maxWidth="420.0"
+              AnchorPane.leftAnchor="40.0" AnchorPane.bottomAnchor="80.0">
+            <VBox fx:id="notice"/>
+            <ChoiceList fx:id="exit"/>
+        </VBox>
+
+        <ChoiceList fx:id="commands" alignment="TOP_RIGHT" stagger="16.0"
+                    AnchorPane.rightAnchor="40.0" AnchorPane.bottomAnchor="30.0"/>
+        <!-- Inside the anchor pane: the router fades a screen's direct children in to full opacity. -->
+        <Region fx:id="hitFlash" styleClass="hit-flash" mouseTransparent="true" opacity="0.0"
+                AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0"
+                AnchorPane.topAnchor="0.0" AnchorPane.bottomAnchor="0.0"/>
+    </AnchorPane>
+    <Hud fx:id="hud"/>
+    <Pane fx:id="cutins" mouseTransparent="true"/>
+</StackPane>

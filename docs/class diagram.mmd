@@ -1,147 +1,672 @@
 classDiagram
-    class MainMenuController {
-        +newGame(String name) void
-        +continueGame() boolean
-        +showInstructions() void
-        +exitGame() void
+    direction TB
+    %% Implemented classes, 2026-11-09: rule core plus the JavaFX frontend (package ui).
+    %% FXGL and libGDX are build dependencies only. See implementation-status.md and Sprint1.md.
+    class Main {
+        +main(String[] args) void
     }
+
+    %% ---------- JavaFX frontend (com.aphs.classroomuprising.ui) ----------
+    class ClassroomApp {
+        +start(Stage stage) void
+    }
+    class Router {
+        -Screen current
+        -PauseMenu pause
+        -boolean transitioning
+        +show(Screen next, String caption) void
+        +closePause() void
+        +toasts() Toasts
+    }
+    class AppContext {
+        -DemoProfile profile
+        -Path savePath
+        -GameSession session
+        -GameState dayStart
+        +begin(GameSession session) void
+        +advance() void
+        +startDay(Outcome outcome) void
+        +toTitle() void
+        +audio() AudioDirector
+        -screenFor(GameState view) Screen
+    }
+    class Screen {
+        <<abstract>>
+        #AppContext ctx
+        +root() Parent
+        #build() Parent*
+        #onShown() void
+        #onHidden() void
+        #focus() void
+        #music() String
+        #allowsPause() boolean
+    }
+    class TitleScreen
+    class OpeningScreen
+    class DayIntroScreen
+    class ClassroomScreen
+    class OtherClassesScreen
+    class HubScreen
+    class DayEndScreen
+    class BlockedScreen
+    class PauseMenu
+    class CombatScreen {
+        -AssessmentView assessment
+        -CombatEvaluations evaluations
+        -AnswerTicket submitted
+        -Work submittedWork
+        -RewardTicket reward
+    }
+    class CombatEvaluator {
+        <<interface>>
+        +evaluate(Work work) Evaluation
+        +pendingRule(CourseType type) String$
+    }
+    class CombatEvaluations {
+        -long generation
+        -boolean busy
+        +dispatch(AnswerTicket ticket, Work work, Consumer onResult) boolean
+        +abandon() void
+        +close() void
+    }
+    class CombatText
+    class TutorialTips {
+        +at(Moment moment, GameState view) Optional~Tip~$
+    }
+    class TipLayer {
+        +show(Tip tip) void
+        +clear() void
+    }
+    class SlideProjector {
+        +indexFor(List~Slide~ slides, int line)$ int
+        +showLine(int line) void
+        +close() void
+        +toggleZoom() void
+    }
+    class AudioDirector {
+        -AudioSettings settings
+        -String cue
+        +music(String cue) void
+        +play(Sfx sound) void
+        +setMusic(int level) void
+        +setEffects(int level) void
+    }
+    class AudioSettings {
+        <<record>>
+        +int music
+        +int effects
+        +gain(int level)$ double
+        +load(Path file)$ AudioSettings
+        +save(Path file) void
+    }
+    class Sfx {
+        <<enumeration>>
+        CURSOR
+        CONFIRM
+        MENU_OPEN
+        MENU_CLOSE
+        DIALOGUE
+        SLIDE
+        TIP
+        TRANSITION
+        CLOCK
+        CUTIN
+        HIT
+        +play(Node from) void
+    }
+    class SoundPanel
+    class CutIn
+    class TimeGauge
+    class LabScreen {
+        -LabTask task
+        -LabRunService runs
+        -RunResult last
+    }
+    class GameSession {
+        -DemoProfile profile
+        -GameController game
+        -Path savePath
+        +newGame(DemoProfile profile, String name, RandomGenerator random, Path savePath, CombatRules rules) GameSession$
+        +load(DemoProfile profile, Path savePath, RandomGenerator random, CombatRules rules) GameSession$
+        +view() GameState
+        +completeOpening() Outcome
+        +openLesson() Fetch
+        +lessonChoice(String id) Outcome
+        +completeReview() Outcome
+        +otherClasses(boolean reviseIcs) Outcome
+        +hubActivity(String id) Outcome
+        +sleepAfterSchool() Outcome
+        +sleepNormally() Outcome
+        +beginNextDay() Outcome
+        +startCombatAssessment() Fetch
+        +combatView() Fetch
+        +startCombatQuestion(String id) Outcome
+        +submitCombatAnswer() Fetch
+        +recordCombatEvaluation(AnswerTicket ticket, double fraction, String evidence) Outcome
+        +beginRewardDelay(RewardKind kind) Fetch
+        +finishRewardDelay(RewardTicket ticket) Outcome
+        +combatSummary() Fetch
+        +finishCombatAssessment() Outcome
+        +saveDayEnd() Outcome
+    }
+    class Outcome {
+        <<sealed interface>>
+        +ok() boolean
+    }
+    class Done {
+        <<record>>
+        +String message
+        +List~String~ warnings
+        +GameState before
+        +GameState after
+    }
+    class Pending {
+        <<record>>
+        +String ruleId
+        +String detail
+    }
+    class Rejected {
+        <<record>>
+        +String reason
+    }
+    class Fetch~T~ {
+        <<record>>
+        +T value
+        +Outcome failure
+        +ok() boolean
+    }
+    class LabRunService {
+        -Evaluator evaluator
+        -long revision
+        -boolean running
+        +start(String className, String source, List tests, List rubric, Consumer onResult) boolean
+        +sourceEdited() void
+        +isCurrent(RunResult result) boolean
+        +close() void
+    }
+    class ChoiceList {
+        -boolean locked
+        -int selected
+        +setChoices(List choices) void
+        +hasChoices() boolean
+        +unlock() void
+        -move(Pose to) void
+        -spawn(Pose at) void
+        -makeRoom() void
+    }
+    class RevealMask {
+        +polygon(double ox, double oy, double progress, double turn) double[]$
+        +reach(double ox, double oy) double$
+    }
+    class RevealOriginEvent
+    class MenuBackdrop
+    class FrameSequence {
+        +play(ImageView view, double width, double height, Runnable onSwap) Animation
+    }
+    class CursorGeometry {
+        +corners(Pose pose, double slope) double[]$
+        +travel(Pose from, Pose to) List~Step~$
+        +spawn(Pose at) List~Step~$
+    }
+    class MotionTokens {
+        +Duration SNAP$
+        +Duration QUICK$
+        +Duration BASE$
+        +Interpolator OUT$
+        +int STEP_RATE$
+    }
+    class DialogueBox {
+        +play(List lines, Runnable whenDone) void
+        +advance() void
+    }
+    class Hud {
+        +show(GameState state, String demoLabel) void
+    }
+    class ClockShift {
+        -ParallelTransition animation
+        +animation() Animation
+    }
+    class ClockTimes {
+        +minutes(DayPeriod period, DayPeriod from) int$
+        +elapsed(int from, int to) int$
+        +animates(DayPeriod shown, int shownDay, GameState view) boolean$
+        +daySegments() List~Segment~$
+        +dayRingAngle(double minutes) double$
+        +tickPlan(int start, int end) TickPlan$
+    }
+    class FlipNumber {
+        +setText(String value) void
+        +flipTo(String next) Animation
+    }
+    class CalendarStrip {
+        +focus(int day) void
+        +advance(int fromDay, int toDay) Animation
+    }
+
+    %% ---------- Scene art (com.aphs.classroomuprising.ui.scene) ----------
+    class SceneView {
+        -AssetStore assets
+        -Map cast
+        +setAssets(AssetStore store) void
+        +show(String place, String variant, String grade) void
+        +regrade(String grade, Duration duration) Animation
+        +setDim(double amount) void
+        +enter(String characterId, double slotX, String expression, Duration delay) boolean
+        +speak(String characterId, String expression) void
+    }
+    class AssetManifest {
+        -Map files
+        -Map characters
+        -Map grades
+        +bundled()$ AssetManifest
+        +read(Reader reader)$ AssetManifest
+        +background(String place, String variant) Optional
+        +characterNamed(String name) Optional
+        +slides(int day) List~Slide~
+        +bgm(String cue) Optional
+        +sfx(String name) Optional
+    }
+    class AssetStore {
+        -AssetManifest manifest
+        -Map cache
+        +background(String place, String variant) Image
+        +character(CharacterSpec spec, String expression) Image
+        +texture(String name) Optional
+        +slide(Slide slide) Image
+        +bgm(String cue) Optional~URL~
+        +sfx(String name) Optional~URL~
+        +missingFiles() Set
+    }
+    class Grade {
+        <<record>>
+        +Color tint
+        +BlendMode mode
+        +double tintOpacity
+        +double saturation
+        +double brightness
+    }
+    class BackgroundLayer
+    class CharacterView
+    class AmbientLayer
+    class Placeholders
     class GameController {
         -GameState state
-        +newGame(String name) void
-        +loadGame() boolean
-        +beginDay() void
-        +routeCurrentPeriod() void
-        +endPeriod() boolean
-        +finishAssessment(AssessmentResult result) void
-        +saveGame() boolean
+        -RuleValues rules
+        -ContentCatalog content
+        +snapshot() GameState
+        +completeOpening() Result
+        +showLesson() Lesson
+        +lessonChoice(String choice) Result
+        +completeReview() Result
+        +otherClasses(boolean reviseIcs) Result
+        +hubActivity(String id) Result
+        +sleepImmediatelyAfterSchool() Result
+        +sleepNormally() Result
+        +beginNextDay() Result
+        +skipClass(boolean excused) Result
+        +scheduleMakeup(int missedDay, int lessonDay) Result
+        +startAssessment() AssessmentView
+        +startCombatAssessment() AssessmentView
+        +combatSnapshot() CombatView
+        +startCombatQuestion(String id) Result
+        +submitCombatAnswer() AnswerTicket
+        +recordCombatEvaluation(AnswerTicket ticket, double fraction, String evidence) Result
+        +beginCombatRewardDelay(RewardKind kind) RewardTicket
+        +finishCombatRewardDelay(RewardTicket ticket) Result
+        +combatSummary() CombatSummary
+        +finishCombatAssessment() Result
+        +recordEvaluatedSubmission(double mark, String evidence) Result
+        +recordSelfEstimate(double mark, double cost, double delta) Result
+        +caughtCheating(boolean serious) Result
+        +applyOfficialFeedback(String id, StatChange effect) Result
+        +resolveMidterm(String choice) Result
     }
-    class GameUI {
-        +showMainMenu() void
-        +showInstructions() void
-        +showPeriod(GameState state) void
-        +showStory(StoryEvent event, int sceneIndex) void
-        +showAssessment(AssessmentSession session) void
-        +showFeedback(String message) void
-        +showResult(AssessmentResult result) void
+    class CombatRules {
+        <<record>>
+        +Double weightStep
+        +TimeoutDasher timeoutDasher
+        +AnswerTiming answerTiming
+        +Boolean rewardTimeCounts
+        +Duration riskyRewardDuration
+        +HpCost hpCost
+        +ScoreConverter scoreConverter
+        +pending() CombatRules
+    }
+    class CombatSession {
+        -UUID id
+        -List answers
+        -String current
+        -AnswerTicket submitted
+        -RewardTicket reward
+        ~view(long now, CombatRules rules) View
+        ~summary() Summary
     }
     class GameState {
+        -String name
+        -int day
+        -DayPeriod period
         -StudentState student
-        -SchoolCalendar calendar
-        -ActionBudget actionBudget
-        -ContentProgress contentProgress
-        -ArrayList~AssessmentResult~ assessmentHistory
-        +recordAssessment(AssessmentResult result) boolean
+        -GradeBook grades
+        -RunProgress run
+        -Status status
+        -boolean openingCompleted
+        -boolean lessonShown
+        -boolean nextMorningBonus
+        -double nextMorningSanBonus
+        -List~TimedEffect~ effects
+        -Map makeups
+        -Set missedAssessments
+        -Set seriousCheating
+        -Set feedbackApplied
+        -Map estimates
+        -Set rewards
+        -Map relationships
+        -ActiveAssessment active
+        +lessonShown() boolean
+        +hasActiveAssessment() boolean
+        +hasActiveCombat() boolean
+        +currentCourse() DayPlan
+        +effectiveSan() double
+        +xpMultiplier() double
+        +canSave() boolean
     }
     class StudentState {
-        -String name
-        -int mentalState
-        -int icsKnowledge
-        -int otherKnowledge
-        -int gradeHp
-        +apply(StatChange change) void
-        +isGradeDepleted() boolean
+        <<record>>
+        +double hp
+        +double san
+        +double codingVibe
+        +List~Double~ unitKnowledge
+    }
+    class StatChange {
+        <<record>>
+        +double hp
+        +double san
+        +double codingVibe
+        +List~Double~ unitKnowledge
+        +none() StatChange
+        +learning(int unit, double vibe, double knowledge, double san) StatChange
+    }
+    class TimedEffect {
+        <<record>>
+        +String id
+        +int firstDay
+        +int lastDay
+        +double sanDelta
+        +double xpMultiplier
+        +activeOn(int day) boolean
+    }
+    class RuleValues {
+        <<record>>
+        +Double lateNightSanReduction
+        +Double lateNightXpMultiplier
+        +Double earlySleepSanBonus
+        +Double makeupSanReduction
+        +Double caughtCheatingSanReduction
+        +TutorialAbsences tutorialAbsences
+        +Double normalSleepSanRecovery
+        +pending() RuleValues
+    }
+    class DemoProfile {
+        <<record>>
+        +String label
+        +StudentState initialStudent
+        +RuleValues rules
+        +ContentCatalog content
+        +load() DemoProfile
+        +read(Reader reader) DemoProfile
+        +newGame(String name, RandomGenerator random) GameController
     }
     class SchoolCalendar {
-        -int currentDay
-        -DayPeriod currentPeriod
-        -ArrayList~ScheduledAssessment~ schedule
-        +advancePeriod() void
-        +advanceDay() void
-        +assessmentDue() ScheduledAssessment
+        +days() List~DayPlan~
+        +day(int number) DayPlan
+        +makeupCandidates(int missedDay) List~Integer~
+    }
+    class DayPlan {
+        <<record>>
+        +int day
+        +CourseType course
+        +int unit
+        +boolean tutorial
+        +assessmentId() String
     }
     class DayPeriod {
         <<enumeration>>
+        MORNING_BONUS
         ICS_CLASS
         OTHER_CLASSES
-        STUDENT_HUB
+        AFTER_SCHOOL
+        EVENING
+        LATE_NIGHT
+        DAY_END
+        +activityUnits() double
+        +next() DayPeriod
     }
-    class ActionBudget {
-        -int initializedDay
-        -int[] remainingByPeriod
-        +initializeDay(int day) void
-        +canSpend(DayPeriod period, int cost) boolean
-        +spend(DayPeriod period, int cost) void
-        +closePeriod(DayPeriod period) void
-        +remaining(DayPeriod period) int
-    }
-    class ContentProgress {
-        -boolean introductionCompleted
-        -ArrayList~String~ unlockedTopicIds
-        -ArrayList~String~ availableStoryIds
-        -ArrayList~String~ completedStoryIds
-        -ArrayList~String~ resolvedAssessmentIds
-        +isTopicUnlocked(String id) boolean
-        +isStoryCompleted(String id) boolean
-        +isAssessmentResolved(String id) boolean
-    }
-    class StoryController {
-        -StoryEvent activeEvent
-        -int sceneIndex
-        +refreshUnlocks(GameState state) void
-        +playIntroduction(GameState state) void
-        +playDueStories(GameState state) void
-        +advanceScene(GameState state) void
-        +hasPendingRequiredStory(GameState state) boolean
-    }
-    class StoryEvent {
-        -String id
-        -int unlockDay
-        -DayPeriod triggerPeriod
-        -boolean required
-        -ArrayList~String~ prerequisiteIds
-        -ArrayList~String~ scenes
-        -StatChange completionEffect
-        +isEligible(GameState state) boolean
-    }
-    class KnowledgeTopic {
-        -String id
-        -String subject
-        -int unlockDay
-        -ArrayList~String~ prerequisiteIds
-        +isEligible(GameState state) boolean
+    class CourseType {
+        <<enumeration>>
+        LESSON
+        LAB
+        UNIT_TEST
+        REVIEW
+        MIDTERM
+        FINAL
+        +isAssessment() boolean
+        +isMajor() boolean
+        +isTermAssessment() boolean
     }
     class ContentCatalog {
-        -ArrayList~StoryEvent~ stories
-        -ArrayList~KnowledgeTopic~ topics
-        -ArrayList~Question~ questions
-        -ArrayList~Activity~ activities
-        +findActivity(String id) Activity
-        +selectQuestion(String topicId) Question
+        -Map lessons
+        -Map hub
+        -Map reviews
+        -Map banks
+        -Map sampleCounts
+        -StatChange otherClassRevision
+        +pending() ContentCatalog
+        +lesson(int day) Lesson
+        +hubActivityIds() List~String~
+        +hub(String id) StatChange
+        +review(int day) StatChange
+        +otherRevision() StatChange
+        +questions(DayPlan original, RandomGenerator random) List~Question~
+    }
+    class Lesson {
+        <<nested record>>
+        +String text
+        +Interaction interaction
+        +Map choices
+    }
+    class Question {
+        <<nested record>>
+        +String id
+        +String prompt
+        +Integer difficultyRank
+    }
+    class GradeBook {
+        -Map records
+        -int unexcusedAbsences
+        +records() List~AssessmentRecord~
+        +record(String id) AssessmentRecord
+        +absenceDeductionPoints() int
+        +finalPercentage(double midtermWeight, double participationPercent) double
+    }
+    class AssessmentRecord {
+        -String id
+        -CourseType type
+        -int submittedDay
+        -int returnDay
+        -List~String~ questionIds
+        -boolean makeup
+        -double score
+        -boolean released
+        -String evidence
+        +officialScore() OptionalDouble
+    }
+    class ActiveAssessment {
+        <<nested record>>
+        +DayPlan original
+        +List~Question~ questions
+        +boolean makeup
+    }
+    class RunProgress {
+        <<record>>
+        +int retakesUsed
+        +remainingRetakes() int
+        +consumeRetake() RunProgress
+        +rewardsForNewPlaythrough(Set owned, Set selected) Set
     }
     class SaveManager {
-        -String savePath
-        +save(GameState state) boolean
-        +load() GameState
-        -validate(GameState state) boolean
+        +saveAtDayEnd(GameState state, Path destination) void
+        +load(Path path) GameState
+    }
+    class JavaAssessmentRunner {
+        -Path jdk
+        -Limits limits
+        +evaluate(String className, String source, List tests, List rubric) Report
+    }
+    class StyleRule {
+        <<interface>>
+        +id() String
+        +inspect(String source) Finding
+    }
+    class LineLength {
+        <<nested record>>
+        +String id
+        +int maximum
+        +inspect(String source) Finding
+    }
+    class PendingRuleException {
+        +ruleId() String
     }
 
-    MainMenuController --> GameController : starts or restores session
-    MainMenuController --> GameUI : menu and instructions
-    GameController --> GameUI : presents state
-    GameController "1" --> "0..1" GameState : active session
-    GameController --> StoryController : story gates and unlocks
-    GameController --> ActivityController : daily activities
-    GameController --> StudentHubController : Hub navigation
-    GameController --> AssessmentController : scheduled encounter
-    GameController --> SaveManager : persistence
-    GameState "1" *-- "1" StudentState
-    GameState "1" *-- "1" SchoolCalendar
-    GameState "1" *-- "1" ActionBudget
-    GameState "1" *-- "1" ContentProgress
-    GameState "1" *-- "0..*" AssessmentResult : history
-    SchoolCalendar --> DayPeriod
-    SchoolCalendar "1" --> "0..*" ScheduledAssessment : preset schedule
-    ActionBudget --> DayPeriod : indexed allowance
-    StoryController --> ContentCatalog : story and topic definitions
-    StoryController --> GameState : updates content flags
-    StoryController --> GameUI : scenes
-    ContentCatalog "1" *-- "1..*" StoryEvent
-    ContentCatalog "1" *-- "1..*" KnowledgeTopic
-    ContentCatalog "1" *-- "1..*" Question
-    ContentCatalog "1" *-- "1..*" Activity
-    StoryEvent --> DayPeriod : trigger point
-    StoryEvent --> StatChange : one-time effect
-    SaveManager ..> GameState : saves and restores
-%% graph:positions {"MainMenuController":{"x":330,"y":-50},"GameController":{"x":782,"y":-84},"GameUI":{"x":252,"y":238},"GameState":{"x":762,"y":432},"StudentState":{"x":120,"y":693},"SchoolCalendar":{"x":796,"y":710},"DayPeriod":{"x":754,"y":1039},"ActionBudget":{"x":412,"y":701},"ContentProgress":{"x":1164,"y":693},"StoryController":{"x":1704,"y":238},"StoryEvent":{"x":1503,"y":854},"KnowledgeTopic":{"x":1872,"y":868},"ContentCatalog":{"x":1734,"y":636},"SaveManager":{"x":1548,"y":-50},"ActivityController":{"x":696,"y":238},"StudentHubController":{"x":1093,"y":178},"AssessmentController":{"x":984,"y":270},"AssessmentResult":{"x":1238,"y":636},"ScheduledAssessment":{"x":984,"y":919},"Question":{"x":2184,"y":710},"Activity":{"x":2184,"y":661},"StatChange":{"x":1548,"y":1110}}
-%% graph:waypoints {"GameState>StudentState":[[369,520]],"SaveManager>GameState":[[1445,37]]}
-%% graph:edges {"SaveManager>GameState":{"label":[-1,-192]}}
+    DemoProfile --> StudentState : configured initial values
+    DemoProfile --> RuleValues : explicit Demo policy
+    DemoProfile --> ContentCatalog : Days 1-4 only
+    DemoProfile ..> GameController : creates independent run
+    GameController --> GameState : copies then commits atomically
+    GameController --> RuleValues : explicit policy inputs
+    GameController --> ContentCatalog : supplied content
+    GameController ..> PendingRuleException : missing decision
+    GameState *-- StudentState
+    GameState *-- GradeBook
+    GameState *-- RunProgress
+    GameState *-- TimedEffect
+    GameState --> DayPeriod
+    GameState --> SchoolCalendar : static day lookup
+    GameState --> ActiveAssessment
+    SchoolCalendar "1" *-- "40" DayPlan
+    DayPlan --> CourseType
+    ContentCatalog *-- Lesson
+    ContentCatalog *-- Question
+    ContentCatalog --> StatChange
+    Lesson --> StatChange : configured choices
+    GameController --> StatChange
+    GradeBook *-- AssessmentRecord
+    AssessmentRecord --> CourseType
+    ActiveAssessment --> DayPlan
+    ActiveAssessment --> Question
+    SaveManager ..> GameState : versioned day-end snapshot
+    JavaAssessmentRunner --> StyleRule : independent rubric evidence
+    StyleRule <|.. LineLength
+
+    Main ..> ClassroomApp : Application.launch, no arguments
+    ClassroomApp --> Router
+    ClassroomApp --> AppContext
+    AppContext --> Router
+    AppContext --> GameSession : current playthrough
+    AppContext ..> Screen : picks screen from snapshot period
+    Router --> Screen : current
+    Router --> PauseMenu : Esc overlay
+    Screen --> AppContext
+    Screen <|-- TitleScreen
+    Screen <|-- OpeningScreen
+    Screen <|-- DayIntroScreen
+    Screen <|-- ClassroomScreen
+    Screen <|-- OtherClassesScreen
+    Screen <|-- HubScreen
+    Screen <|-- DayEndScreen
+    Screen <|-- BlockedScreen
+    Screen <|-- PauseMenu
+    Screen <|-- LabScreen
+    Screen <|-- CombatScreen
+    Router --> TipLayer : tutorial tips, cleared on screen change
+    AppContext ..> TutorialTips : once per playthrough, tutorial only
+    AppContext --> AudioDirector
+    Router ..> AudioDirector : screen's music cue, Sfx requests
+    AudioDirector --> AudioSettings : kept beside the save, not in it
+    AudioDirector ..> AssetStore : music and sound files
+    ChoiceList ..> Sfx : cursor, confirm
+    DialogueBox ..> Sfx : next line
+    TitleScreen --> SoundPanel
+    PauseMenu --> SoundPanel
+    SoundPanel ..> AudioDirector : volume levels
+    ClassroomScreen --> SlideProjector : lesson slides
+    SlideProjector ..> AssetStore : slide images
+    ClassroomScreen ..> CombatScreen : assessment day starts a combat
+    AppContext --> CombatRules : policy for new and loaded games
+    AppContext --> CombatEvaluator : optional, none shipped
+    CombatScreen --> CombatEvaluations
+    CombatEvaluations --> CombatEvaluator : background thread
+    CombatScreen --> TimeGauge
+    CombatScreen ..> CutIn : call-out banners
+    CombatScreen ..> CombatText : display strings
+    CombatScreen --> ChoiceList : targets and commands
+    GameSession ..> CombatSession : views, tickets, summary
+    ClassroomScreen --> DialogueBox
+    ClassroomScreen --> ChoiceList
+    ClassroomScreen --> Hud
+    HubScreen --> ChoiceList
+    ChoiceList ..> CursorGeometry : cursor shape and paths
+    ChoiceList ..> RevealOriginEvent : where the player chose
+    Router ..> RevealMask : screen reveal
+    Router ..> FrameSequence : artist frames when delivered
+    PauseMenu *-- MenuBackdrop : captured paused screen
+    AssetStore ..> FrameSequence : loads complete sequences
+    ChoiceList ..> MotionTokens : timing
+    Router ..> ClockShift : time change within a day
+    ClockShift ..> ClockTimes : display clock only
+    ClockShift ..> SceneView : re-grades the world behind
+    ClockShift ..> AssetStore : optional face and hand art
+    AppContext ..> ClockTimes : clock or wipe
+    DayIntroScreen --> FlipNumber : date flip
+    DayIntroScreen --> CalendarStrip : scrolls to new day
+    Screen --> SceneView : art behind each screen
+    AppContext --> AssetStore
+    AssetStore --> AssetManifest : keys to files
+    AssetStore ..> Placeholders : missing art
+    AssetManifest --> Grade
+    SceneView *-- BackgroundLayer
+    SceneView *-- CharacterView
+    SceneView *-- AmbientLayer
+    LabScreen --> LabRunService
+    LabRunService --> JavaAssessmentRunner : background thread
+    GameSession --> GameController : one call per player action
+    GameSession --> DemoProfile : rules and content
+    GameSession --> SaveManager : day-end slot
+    GameSession ..> Outcome : returns
+    GameSession ..> Fetch : returns
+    Outcome <|.. Done
+    Outcome <|.. Pending
+    Outcome <|.. Rejected
+    Pending ..> PendingRuleException : shown, never swallowed
+
+    note for GameController "Opening is acknowledgement, not rendered combat.<br/>Midterm Continue/Retake explicitly report T10.<br/>Combat backend exists with explicit policy.<br/>Opening/Final battle presentation and endings remain pending."
+    note for GameState "HP is separate from marks and energy.<br/>Returned snapshots are defensive copies.<br/>Relationships/rewards are persisted data, not playable systems yet."
+    note for RuleValues "Null is TBD, never zero.<br/>No production balancing defaults.<br/>Separate opt-in Demo supplies provisional values."
+    note for ContentCatalog "One Lesson node: ask OR raise hand.<br/>Fixed ordinary questions, supplied major sample size.<br/>Demo supplies four lessons and two Hub activities.<br/>Assessment banks and later content remain pending."
+    note for GradeBook "65 Term / 10 Participation / 25 Final.<br/>Midterm belongs to Term; its weight is supplied explicitly.<br/>First two absences free, then minus one overall percentage point."
+    note for AssessmentRecord "Ordinary including makeup: three-day delay.<br/>Midterm and Final: immediate result, no skip.<br/>Evaluator supplies mark; no HP or automatic rubric conversion."
+    note for SaveManager "Only active DAY_END snapshots.<br/>Load does not advance or regrant effects.<br/>Ending/Retake autosave boundaries remain T12."
+    note for JavaAssessmentRunner "Actual compiler and test processes with time/output limits.<br/>Trusted local code only, not an OS security sandbox.<br/>No automatic course-score rubric."
+
+    note for Main "Opens the JavaFX game window only.<br/>Arguments are ignored: no CLI routes, modes or day jumps.<br/>FXGL and libGDX are prepared by Gradle, not started."
+    note for GameSession "Frontend controller: never edits GameState.<br/>Refusals become Pending/Rejected with nothing changed.<br/>showLesson() is called once per class."
+    note for CombatEvaluations "One evaluation at a time; results return on the UI thread.<br/>Leaving the combat drops late results.<br/>A failed or refused result keeps the ticket and work for a retry."
+    note for CombatScreen "Displays the backend view only: no UI timing, weights, HP or marks.<br/>No pause while a question's clock runs.<br/>No evaluator shipped: submission reports T06 (Lab) or T07."
+    note for SlideProjector "Slides start at a lecture line listed in the manifest.<br/>Presentation only: never calls the core.<br/>Large view pauses the lecture until closed."
+    note for AudioDirector "Same cue keeps playing across screens; a new cue cross-fades.<br/>Missing or unplayable files are silent and listed.<br/>Sound never changes game state."
+    note for LabRunService "One run at a time; results return on the UI thread.<br/>Edits make older results stale.<br/>Evidence-to-mark is T06; Lab problems not supplied yet."
+
+    GameController --> CombatRules : explicit decisions
+    GameState *-- CombatSession : copied transient assessment state
+    CombatSession --> Question : difficulty-ranked content
+    note for CombatRules "30s soft threshold and Combo +5 are confirmed.<br/>HP formula, score conversion and ambiguous composition require explicit policy."
+    note for CombatSession "Backend monotonic clock and stale-result tickets.<br/>Final completed answer gets Dasher.<br/>Reward delays are not inventory/effect operations.<br/>No mid-combat save."

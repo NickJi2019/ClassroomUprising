@@ -1,0 +1,180 @@
+package com.aphs.classroomuprising.ui;
+
+import com.aphs.classroomuprising.CombatRules;
+import com.aphs.classroomuprising.DayPeriod;
+import com.aphs.classroomuprising.DemoProfile;
+import com.aphs.classroomuprising.GameController;
+import com.aphs.classroomuprising.GameState;
+import com.aphs.classroomuprising.ui.scene.AssetManifest;
+import com.aphs.classroomuprising.ui.scene.AssetStore;
+import com.aphs.classroomuprising.ui.scene.SceneView;
+
+import java.nio.file.Path;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+/**
+ * What every screen shares: the Demo profile, the save location, the router and the
+ * current {@link GameSession}. It also decides which screen fits the current game state,
+ * so the period in the core's snapshot is the only thing that drives navigation.
+ */
+final class AppContext {
+    private final DemoProfile profile;
+    private final Path savePath;
+    private final Router router;
+    private final AssetStore assets;
+    private final CombatRules combatRules;
+    private final CombatEvaluator combatEvaluator;
+    private final AudioDirector audio;
+    private GameSession session;
+    private GameState dayStart;
+    /** Tutorial tips already shown in this playthrough (window state only, not saved). */
+    private final Set<String> shownTips = new HashSet<>();
+    /** What the window last showed; used only to choose the transition animation. */
+    private DayPeriod shownPeriod;
+    private int shownDay;
+
+    /**
+     * The game as shipped: combat policy and the answer evaluator have not been supplied by the
+     * backend yet, so combat reports their rule IDs (T01/T06/T07/T09) instead of guessing.
+     */
+    AppContext(DemoProfile profile, Path savePath, Router router, AssetStore assets) {
+        this(profile, savePath, router, assets, CombatRules.pending(), null);
+    }
+
+    /** @param combatEvaluator the trusted answer evaluator, or null when none is configured */
+    AppContext(DemoProfile profile, Path savePath, Router router, AssetStore assets,
+               CombatRules combatRules, CombatEvaluator combatEvaluator) {
+        this.profile = profile;
+        this.savePath = savePath;
+        this.router = router;
+        this.assets = assets;
+        this.combatRules = combatRules;
+        this.combatEvaluator = combatEvaluator;
+        this.audio = new AudioDirector(assets, savePath == null ? null : AudioSettings.fileFor(savePath));
+    }
+
+    /** The window's music and interface sounds. */
+    AudioDirector audio() { return audio; }
+
+    /** The combat policy every new or loaded game is created with. */
+    CombatRules combatRules() { return combatRules; }
+
+    /** The trusted combat answer evaluator, or null when none is configured. */
+    CombatEvaluator combatEvaluator() { return combatEvaluator; }
+
+    DemoProfile profile() { return profile; }
+
+    /** The art store, or null when the asset manifest could not be read. */
+    AssetStore assets() { return assets; }
+
+    Path savePath() { return savePath; }
+
+    Router router() { return router; }
+
+    Toasts toasts() { return router.toasts(); }
+
+    boolean hasSession() { return session != null; }
+
+    GameSession session() {
+        if (session == null) throw new IllegalStateException("No game in progress.");
+        return session;
+    }
+
+    /** The snapshot taken when today started in this window, or null after loading a save. */
+    GameState dayStart() { return dayStart; }
+
+    void begin(GameSession newSession) {
+        session = newSession;
+        dayStart = null;
+        shownPeriod = null;
+        shownTips.clear();
+    }
+
+    /** Shows the tutorial tip for this moment the first time it comes up, while the tutorial lasts. */
+    void tip(TutorialTips.Moment moment) {
+        if (session == null) return;
+        TutorialTips.at(moment, session.view())
+                .filter(tip -> shownTips.add(tip.id()))
+                .ifPresent(router::tip);
+    }
+
+    /**
+     * Opens the screen that matches the current period. A time change within the day the
+     * window was showing plays the clock; anything else (new day, load) uses the wipe.
+     */
+    void advance() {
+        GameState view = session().view();
+        Screen next = screenFor(view);
+        if (ClockTimes.animates(shownPeriod, shownDay, view)) {
+            router.showTimeChange(next, shownPeriod, view.period());
+        } else {
+            router.show(next, view.openingCompleted() ? UiText.period(view.period()) : null);
+        }
+        shownPeriod = view.period();
+        shownDay = view.day();
+    }
+
+    /** Shows the day card after the opening or after {@code beginNextDay()}. */
+    void startDay(Outcome outcome) {
+        GameState view = session().view();
+        dayStart = view;
+        Outcome.Done done = outcome instanceof Outcome.Done d ? d : null;
+        int previousDay = done != null && done.before().day() < view.day() ? done.before().day() : view.day() - 1;
+        shownPeriod = null;
+        router.show(new DayIntroScreen(this, done, previousDay), null);
+    }
+
+    /** Opens the combat the core has just started for today's assessment. */
+    void openCombat(GameController.AssessmentView assessment) {
+        GameState view = session().view();
+        shownPeriod = view.period();
+        shownDay = view.day();
+        router.show(new CombatScreen(this, assessment), "COMBAT");
+    }
+
+    void toTitle() {
+        session = null;
+        dayStart = null;
+        shownPeriod = null;
+        router.show(new TitleScreen(this), null);
+    }
+
+    String demoLabel() { return profile.label(); }
+
+    /**
+     * Splits authored text into dialogue lines, attaches each speaker's art id from the asset
+     * manifest, and shows "You" as the player's name.
+     */
+    List<DialogueScript.Line> script(String raw) {
+        String name = session().view().name();
+        return DialogueScript.parse(raw, "Mr. Reward").stream().map(line -> {
+            String id = assets == null ? null : assets.manifest().characterNamed(line.speaker())
+                    .map(AssetManifest.CharacterSpec::id).orElse(null);
+            String shown = line.speaker().equals("You") ? name : line.speaker();
+            return new DialogueScript.Line(shown, line.expression(), line.text(), id);
+        }).toList();
+    }
+
+    /** Points a scene at the art store and shows a place; does nothing without a manifest. */
+    void stage(SceneView scene, String place, String variant, String grade) {
+        if (assets == null) return;
+        scene.setAssets(assets);
+        scene.show(place, variant, grade);
+    }
+
+    private Screen screenFor(GameState view) {
+        if (!view.openingCompleted()) return new OpeningScreen(this);
+        if (view.status() != GameState.Status.ACTIVE)
+            return new BlockedScreen(this, "CHECKPOINT", Diagnostic.warning(
+                    "warning[T10]: " + view.status() + " has no decision screen yet",
+                    "Midterm/Final decisions are not connected. Your last day-end save is kept."));
+        return switch (view.period()) {
+            case MORNING_BONUS, AFTER_SCHOOL, EVENING, LATE_NIGHT -> new HubScreen(this);
+            case ICS_CLASS -> view.hasActiveCombat() ? new CombatScreen(this, null) : new ClassroomScreen(this);
+            case OTHER_CLASSES -> new OtherClassesScreen(this);
+            case DAY_END -> new DayEndScreen(this);
+        };
+    }
+}

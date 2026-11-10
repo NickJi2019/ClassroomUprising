@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import com.aphs.classroomuprising.ui.ChoiceList?>
+<?import com.aphs.classroomuprising.ui.Slant?>
+<?import com.aphs.classroomuprising.ui.scene.SceneView?>
+
+<StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" styleClass="screen, lab">
+    <SceneView fx:id="scene"/>
+    <AnchorPane>
+        <HBox spacing="14" alignment="CENTER_LEFT" AnchorPane.leftAnchor="40.0" AnchorPane.topAnchor="26.0">
+            <Slant styleClass="tag-caret">
+                <Label fx:id="labTag" styleClass="display, tag-label"/>
+            </Slant>
+            <Label fx:id="labTitle" styleClass="mono, lab-title"/>
+        </HBox>
+        <Label fx:id="statement" styleClass="lab-statement" wrapText="true"
+               AnchorPane.leftAnchor="40.0" AnchorPane.rightAnchor="450.0" AnchorPane.topAnchor="76.0"/>
+
+        <HBox fx:id="editorBox" styleClass="editor"
+              AnchorPane.leftAnchor="40.0" AnchorPane.rightAnchor="450.0"
+              AnchorPane.topAnchor="132.0" AnchorPane.bottomAnchor="170.0">
+            <Pane fx:id="gutterClip" styleClass="gutter" minWidth="46.0" prefWidth="46.0">
+                <Label fx:id="gutter" styleClass="mono, gutter-text"/>
+            </Pane>
+            <TextArea fx:id="editor" styleClass="mono, code-area" wrapText="false"/>
+        </HBox>
+
+        <TextArea fx:id="console" styleClass="mono, console" editable="false" wrapText="true"
+                  AnchorPane.leftAnchor="40.0" AnchorPane.rightAnchor="450.0"
+                  AnchorPane.bottomAnchor="30.0" prefHeight="124.0"/>
+
+        <VBox spacing="8" prefWidth="380.0" AnchorPane.rightAnchor="40.0" AnchorPane.topAnchor="132.0">
+            <Label text="TESTS" styleClass="display, section-label"/>
+            <Label fx:id="staleBanner" text="stale: source edited after this run" styleClass="mono, stale-banner"
+                   visible="false" managed="false" maxWidth="Infinity"/>
+            <VBox fx:id="testRows" styleClass="result-list" spacing="6"/>
+            <Label text="STYLE" styleClass="display, section-label"/>
+            <VBox fx:id="styleRows" styleClass="result-list" spacing="6"/>
+            <VBox fx:id="notice"/>
+        </VBox>
+
+        <ChoiceList fx:id="actions" alignment="TOP_RIGHT" AnchorPane.rightAnchor="40.0" AnchorPane.bottomAnchor="30.0"/>
+    </AnchorPane>
+</StackPane>
