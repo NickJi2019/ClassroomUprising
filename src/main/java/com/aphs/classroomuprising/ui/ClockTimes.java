@@ -39,6 +39,47 @@ final class ClockTimes {
         return "%02d:%02d".formatted(value / 60, value % 60);
     }
 
+    /** One period's span on the 24-hour schedule ring (end may wrap past midnight). */
+    record Segment(DayPeriod period, int startMinutes, int endMinutes) {
+        int length() { return elapsed(startMinutes, endMinutes); }
+    }
+
+    /**
+     * The school day as display segments, in order: bonus morning, ICS4U, other classes,
+     * after school, evening, late night (until the after-midnight lights-out time).
+     */
+    static java.util.List<Segment> daySegments() {
+        DayPeriod[] order = {DayPeriod.MORNING_BONUS, DayPeriod.ICS_CLASS, DayPeriod.OTHER_CLASSES,
+                DayPeriod.AFTER_SCHOOL, DayPeriod.EVENING, DayPeriod.LATE_NIGHT};
+        var segments = new java.util.ArrayList<Segment>();
+        for (int i = 0; i < order.length; i++) {
+            int start = minutes(order[i], order[i]);
+            int end = i + 1 < order.length ? minutes(order[i + 1], order[i + 1])
+                    : minutes(DayPeriod.DAY_END, DayPeriod.LATE_NIGHT);
+            segments.add(new Segment(order[i], start, end));
+        }
+        return java.util.List.copyOf(segments);
+    }
+
+    /** Position on the 24-hour ring, in degrees clockwise from the top (midnight). */
+    static double dayRingAngle(double minutes) {
+        return Math.floorMod((long) Math.floor(minutes * 1000), DAY_MINUTES * 1000L) / 1000.0 / DAY_MINUTES * 360;
+    }
+
+    /**
+     * How the minute hand travels: a smooth sweep to three minutes short, then three discrete
+     * one-minute ticks. Short changes (under four minutes) just sweep.
+     *
+     * @param sweepTo the minutes value the smooth sweep ends on
+     * @param ticks   minute values shown one after another after the sweep
+     */
+    record TickPlan(int sweepTo, java.util.List<Integer> ticks) {}
+
+    static TickPlan tickPlan(int startMinutes, int endMinutes) {
+        if (endMinutes - startMinutes < 4) return new TickPlan(endMinutes, java.util.List.of());
+        return new TickPlan(endMinutes - 3, java.util.List.of(endMinutes - 2, endMinutes - 1, endMinutes));
+    }
+
     static String caption(DayPeriod period) {
         return period == DayPeriod.DAY_END ? "LIGHTS OUT" : UiText.period(period);
     }

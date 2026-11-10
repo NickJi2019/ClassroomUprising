@@ -59,6 +59,15 @@ The current two files are generated placeholders and can be replaced.
 
 Each time of day has a grade line in the manifest: `grade.<name> = #tint, BLEND_MODE, tintOpacity, saturation, brightness`. The tint is a full-screen colour blended over the background (`MULTIPLY` darkens, `SCREEN` lightens, `OVERLAY`/`SOFT_LIGHT` shift contrast and hue); saturation and brightness run from -1 to 1. Artists can tune these without code changes. Characters are not graded, so they stay readable in any light.
 
+## Interface artwork (optional)
+
+Some interface parts can use artwork; until it is delivered the game draws them itself.
+
+| Key | Rule |
+| --- | --- |
+| `ui.clock-face` | Square transparent PNG (e.g. 640×640). Shown 320×320 on the canvas. The 24-hour schedule ring is drawn around it by the game |
+| `ui.clock-hour-hand`, `ui.clock-minute-hand` | Same square size as the face, transparent, the hand drawn pointing to **12 o'clock**; the game rotates each image about its centre |
+
 ## Transition frame sequences (optional)
 
 Hand-drawn frames can replace the built-in transitions. Each sequence is a numbered run of **1280×720 transparent PNGs** (deliver at 2560×1440 for sharpness) played at a fixed frame time with no in-betweening:
@@ -98,5 +107,6 @@ Lower-case letters, digits, `-` and `_` only; `.png`, `.jpg` or `.jpeg`; paths r
 | `characters/reward/neutral.png`, `smile.png`, `stern.png` | missing |
 | `characters/student/neutral.png`, `worried.png` | missing |
 | `textures/grain.png`, `textures/motes.png` | generated placeholders |
+| `ui/clock-face.png`, `ui/clock-hour-hand.png`, `ui/clock-minute-hand.png` | optional, missing (drawn by the game) |
 
 The manifest is the authoritative list; this table is a snapshot from 2026-11-09.

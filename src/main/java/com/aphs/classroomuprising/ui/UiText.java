@@ -38,6 +38,22 @@ final class UiText {
         };
     }
 
+    /** The first assessment strictly after {@code day} on the fixed calendar, if any. */
+    static java.util.Optional<DayPlan> nextAssessment(int day) {
+        return com.aphs.classroomuprising.SchoolCalendar.days().stream()
+                .filter(p -> p.day() > day && p.course().isAssessment())
+                .findFirst();
+    }
+
+    /** "NEXT  LAB · DAY 05 · IN 2 DAYS", or empty after the last assessment. */
+    static String nextAssessmentLine(int day) {
+        return nextAssessment(day).map(p -> {
+            int wait = p.day() - day;
+            return "NEXT  " + course(p.course()) + " · DAY %02d · ".formatted(p.day())
+                    + (wait == 1 ? "TOMORROW" : "IN " + wait + " DAYS");
+        }).orElse("");
+    }
+
     static String courseLine(DayPlan plan) {
         String suffix = plan.tutorial() ? " · TUTORIAL" : plan.unit() > 0 ? " · UNIT " + plan.unit() : "";
         return course(plan.course()) + suffix;

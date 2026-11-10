@@ -96,7 +96,7 @@ public final class AssetManifest {
                 String value = p.getProperty(key).strip();
                 String[] part = key.split("\\.");
                 switch (part[0]) {
-                    case "background", "foreground", "texture" -> {
+                    case "background", "foreground", "texture", "ui" -> {
                         if (part.length < 2 || part.length > 3 || (part.length == 3 && !part[0].equals("background")))
                             throw new IllegalArgumentException("Unexpected key " + key);
                         for (int i = 1; i < part.length; i++) name(part[i], key);
@@ -156,6 +156,9 @@ public final class AssetManifest {
     public Optional<String> foreground(String place) { return Optional.ofNullable(files.get("foreground." + place)); }
 
     public Optional<String> texture(String name) { return Optional.ofNullable(files.get("texture." + name)); }
+
+    /** Optional artwork for an interface part (e.g. "clock-face"); code draws a fallback when absent. */
+    public Optional<String> ui(String name) { return Optional.ofNullable(files.get("ui." + name)); }
 
     public Optional<Grade> grade(String name) { return Optional.ofNullable(grades.get(name)); }
 

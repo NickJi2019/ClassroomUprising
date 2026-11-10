@@ -44,6 +44,40 @@ class ClockTimesTest {
         assertEquals("23:30", ClockTimes.format(from));
     }
 
+    @Test void daySegmentsChainWithoutGapsAndEndAfterMidnight() {
+        var segments = ClockTimes.daySegments();
+        for (int i = 1; i < segments.size(); i++)
+            assertEquals(segments.get(i - 1).endMinutes(), segments.get(i).startMinutes(), "gap before " + segments.get(i).period());
+        var late = segments.get(segments.size() - 1);
+        assertEquals(DayPeriod.LATE_NIGHT, late.period());
+        assertEquals(120, late.length(), "late night runs 23:30 to 01:30");
+        assertTrue(segments.stream().allMatch(s -> s.length() > 0));
+    }
+
+    @Test void ringAnglesWrapAtMidnight() {
+        assertEquals(0, ClockTimes.dayRingAngle(0), 1e-9);
+        assertEquals(180, ClockTimes.dayRingAngle(12 * 60), 1e-9);
+        assertEquals(15, ClockTimes.dayRingAngle(25 * 60), 1e-9);
+    }
+
+    @Test void longChangesEndWithThreeOneMinuteTicks() {
+        var plan = ClockTimes.tickPlan(8 * 60 + 45, 11 * 60 + 10);
+        assertEquals(11 * 60 + 7, plan.sweepTo());
+        assertEquals(List.of(668, 669, 670), plan.ticks());
+        var tiny = ClockTimes.tickPlan(100, 102);
+        assertEquals(102, tiny.sweepTo());
+        assertTrue(tiny.ticks().isEmpty());
+    }
+
+    @Test void nextAssessmentReadsTheFixedCalendar() {
+        assertEquals(5, UiText.nextAssessment(3).orElseThrow().day());
+        assertEquals("NEXT  LAB · DAY 05 · IN 2 DAYS", UiText.nextAssessmentLine(3));
+        assertEquals("NEXT  LAB · DAY 05 · TOMORROW", UiText.nextAssessmentLine(4));
+        assertEquals(20, UiText.nextAssessment(19).orElseThrow().day());
+        assertTrue(UiText.nextAssessment(40).isEmpty());
+        assertEquals("", UiText.nextAssessmentLine(40));
+    }
+
     @Test void dayEndCaptionIsLightsOut() {
         assertEquals("LIGHTS OUT", ClockTimes.caption(DayPeriod.DAY_END));
         assertEquals("EVENING", ClockTimes.caption(DayPeriod.EVENING));

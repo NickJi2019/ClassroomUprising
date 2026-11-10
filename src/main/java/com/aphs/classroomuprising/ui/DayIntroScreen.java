@@ -31,6 +31,7 @@ final class DayIntroScreen extends Screen {
     @FXML private FlipNumber dayNumber;
     @FXML private CalendarStrip strip;
     @FXML private Label course;
+    @FXML private Label nextLine;
     @FXML private Label tutorial;
     @FXML private VBox notes;
     @FXML private Label hint;
@@ -50,7 +51,8 @@ final class DayIntroScreen extends Screen {
         StackPane root = Views.load("day-intro.fxml", this);
         GameState view = ctx.session().view();
         boolean morningInDorm = view.period() == DayPeriod.MORNING_BONUS;
-        ctx.stage(scene, morningInDorm ? "dorm" : "classroom", null, view.period().name().toLowerCase(java.util.Locale.ROOT));
+        // The world starts in night colours and brightens to the new day's grade during the flip.
+        ctx.stage(scene, morningInDorm ? "dorm" : "classroom", null, "day_end");
         scene.setDim(0.6);
         root.getChildren().add(1, new Backdrop(
                 new Backdrop.Glyph("day++;", 760, 90, 110, false),
@@ -69,6 +71,13 @@ final class DayIntroScreen extends Screen {
     protected void onShown() {
         GameState view = ctx.session().view();
         course.setText(UiText.courseLine(view.currentCourse()));
+        nextLine.setText(UiText.nextAssessmentLine(view.day()));
+        if (ctx.assets() != null) {
+            javafx.animation.Animation sunrise = scene.regrade(view.period().name().toLowerCase(java.util.Locale.ROOT),
+                    Duration.millis(1100));
+            sunrise.setDelay(Duration.millis(200));
+            sunrise.play();
+        }
         tutorial.setVisible(view.isTutorial());
         tutorial.setManaged(view.isTutorial());
         fillNotes(view);
@@ -116,7 +125,7 @@ final class DayIntroScreen extends Screen {
         }
     }
 
-    private Node[] details() { return new Node[] {course, tutorial, notes, hint}; }
+    private Node[] details() { return new Node[] {course, nextLine, tutorial, notes, hint}; }
 
     private void leave() {
         if (leaving) return;
