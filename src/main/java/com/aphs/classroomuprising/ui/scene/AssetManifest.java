@@ -28,6 +28,7 @@ import java.util.regex.Pattern;
  * character.&lt;id&gt;.height             = 640        (display height on the 1280x720 canvas)
  * character.&lt;id&gt;.anchor             = 0.5, 1.0   (point in the image that stands on the slot, 0..1)
  * character.&lt;id&gt;.expression.&lt;name&gt;  = characters/reward/neutral.png
+ * character.&lt;id&gt;.faces              = right      (optional: the way the art faces; it is mirrored to face the centre)
  * texture.&lt;name&gt;                    = textures/grain.png
  * grade.&lt;name&gt;                      = #3B4FB8, MULTIPLY, 0.45, -0.25, -0.10
  * slide.&lt;name&gt;                      = slides/gr11-review/07-file-structure.png  (a lecture cues it by name)
@@ -36,11 +37,19 @@ import java.util.regex.Pattern;
  * </pre>
  */
 public final class AssetManifest {
-    /** One character's display settings and its expressions (name to file). */
+    /**
+     * One character's display settings and its expressions (name to file). {@code faces} is the
+     * way the art looks ("left" or "right"), or null when it faces the viewer and is never mirrored.
+     */
     public record CharacterSpec(String id, String name, double height, double anchorX, double anchorY,
-                                Map<String, String> expressions) {
+                                Map<String, String> expressions, String faces) {
         public CharacterSpec {
             expressions = Map.copyOf(expressions);
+        }
+
+        public CharacterSpec(String id, String name, double height, double anchorX, double anchorY,
+                             Map<String, String> expressions) {
+            this(id, name, height, anchorX, anchorY, expressions, null);
         }
     }
 
@@ -103,6 +112,7 @@ public final class AssetManifest {
         var names = new LinkedHashMap<String, String>();
         var heights = new LinkedHashMap<String, Double>();
         var anchors = new LinkedHashMap<String, double[]>();
+        var facings = new LinkedHashMap<String, String>();
         var expressions = new LinkedHashMap<String, Map<String, String>>();
         var sequenceFields = new LinkedHashMap<String, Map<String, String>>();
         var audio = new LinkedHashMap<String, String>();
@@ -143,6 +153,11 @@ public final class AssetManifest {
                         switch (part[2]) {
                             case "name" -> names.put(id, value);
                             case "height" -> heights.put(id, positive(value, key));
+                            case "faces" -> {
+                                if (!value.equals("left") && !value.equals("right"))
+                                    throw new IllegalArgumentException(key + " must be left or right");
+                                facings.put(id, value);
+                            }
                             case "anchor" -> anchors.put(id, anchor(value, key));
                             case "expression" -> {
                                 if (part.length != 4) throw new IllegalArgumentException("Unexpected key " + key);
@@ -162,7 +177,8 @@ public final class AssetManifest {
                         || !expressions.getOrDefault(id, Map.of()).containsKey("neutral"))
                     throw new IllegalArgumentException("Character " + id + " needs name, height, anchor and a neutral expression.");
                 double[] a = anchors.get(id);
-                characters.put(id, new CharacterSpec(id, names.get(id), heights.get(id), a[0], a[1], expressions.get(id)));
+                characters.put(id, new CharacterSpec(id, names.get(id), heights.get(id), a[0], a[1], expressions.get(id),
+                        facings.get(id)));
             }
             var sequences = new LinkedHashMap<String, SequenceSpec>();
             sequenceFields.forEach((name, fields) -> sequences.put(name, sequence(name, fields)));

@@ -39,10 +39,28 @@ Avoid strong detail behind the left and right edges where menus sit; the game ad
 | Display height | `character.<id>.height` in canvas pixels (720 = full screen height) |
 | Expressions | `character.<id>.expression.<name>`. `neutral` is required; others use short lower-case names (`smile`, `stern`, `worried`, …). A missing expression falls back to `neutral` |
 | Dialogue name | `character.<id>.name` must match the speaker name used in dialogue text (e.g. `Mr. Reward`); `You` is the player |
+| Facing (optional) | `character.<id>.faces = right` (or `left`): the way the art looks. On the other side of the screen the figure is mirrored about its anchor, so characters face the middle. Leave it out for art that faces the viewer |
+| Photos | Cut-out photos work. HDR photos (iPhone: 16-bit PNG with a BT.2100 PQ profile) must be converted to SDR sRGB first; read as ordinary sRGB they look grey and flat. Stripping the profile does not convert them |
 
 In dialogue text, a line can ask for an expression: `Mr. Reward[smile]: Good question.` The tag is not shown to the player. *This text format needs agreement with the content authors before they rely on it.*
 
 The game animates the art itself (gentle breathing and sway, stepping back and dimming when another character speaks), so poses should be relaxed and centred on the anchor.
+
+### Mr. Reward (delivered)
+
+Seven cut-out photos of the teacher, delivered by the team on 2026-11-10, placed on one shared 1217×837 canvas (1.25× the 669 px display height). Each was scaled so the head is 128 px wide on screen and the face sits at the same point: face boxes from macOS Vision, head width measured across the eyes (steadier than the face box for the turned and tilted heads). The canvas runs from just above the highest head to the slot line, so the body always reaches the bottom of the screen; the anchor (0.3202, 1.0) is the face's x. Six photos were HDR and were tone-mapped to SDR with the system decoder first; one was already SDR. The photos face right; on the right of the screen (the opening) he is mirrored.
+
+| Expression | File | Original photo | Used for |
+| --- | --- | --- | --- |
+| `neutral`, `speechless` | `neutral.png` | speechless | Lectures and anything without a tag |
+| `smile` | `smile.png` | smiling, eyes closed | Available to dialogue tags |
+| `stern`, `tough` | `stern.png` | finger to lips, squinting | Available to dialogue tags |
+| `gotcha` | `gotcha.png` | pointing, full figure | Asking the class a question; the opening's first line |
+| `ridicule` | `ridicule.png` | laughing and pointing | Reply to an inappropriate response; the opening's "see you this summer" |
+| `staring` | `staring.png` | wide-eyed stare | After the player stays quiet |
+| `thumbs-up` | `thumbs-up.png` | thumbs up | Reply to an appropriate response |
+
+`ui/reward-logo.png` is the team's hand-drawn "Mr. Reward" title, shown on a red band as he steps into the opening.
 
 ## Textures
 
@@ -147,7 +165,8 @@ Lower-case letters, digits, `-` and `_` only; images `.png`, `.jpg` or `.jpeg`, 
 | `backgrounds/student-hub-evening.png` | missing |
 | `backgrounds/dorm-room.png` | missing |
 | `backgrounds/dorm-room-night.png` | missing |
-| `characters/reward/neutral.png`, `smile.png`, `stern.png` | missing |
+| `characters/reward/*.png` (7 expressions, see Mr. Reward) | delivered: the team's photos of the teacher |
+| `ui/reward-logo.png` | delivered: the team's hand-drawn title |
 | `characters/student/neutral.png`, `worried.png` | missing |
 | `textures/grain.png`, `textures/motes.png` | generated placeholders |
 | `ui/clock-face.png`, `ui/clock-hour-hand.png`, `ui/clock-minute-hand.png` | optional, missing (drawn by the game) |

@@ -99,12 +99,29 @@ class AssetManifestTest {
             "bgm.title = audio/bgm/title.ogg",                      // JavaFX cannot play Ogg
             "sfx.confirm = audio/sfx/confirm.png",                  // not a sound
             "bgm.title.loop = audio/bgm/title.mp3",                 // too many parts
+            "character.x.name = X\ncharacter.x.height = 600\ncharacter.x.anchor = 0.5, 1.0\ncharacter.x.expression.neutral = c/x.png\ncharacter.x.faces = up",
             "slide.loops.2 = slides/review/13-loops.png",            // too many parts
             "slide.Loops = slides/review/13-loops.png",             // name not lower-case
             "slide.loops = slides/review/13-loops.mp3",             // not an image
     })
     void malformedEntriesAreRejected(String text) {
         assertThrows(IOException.class, () -> read(text));
+    }
+
+    @Test void aCharacterMayNameTheWayItsArtFaces() throws IOException {
+        AssetManifest manifest = read("""
+                character.x.name = X
+                character.x.height = 600
+                character.x.anchor = 0.5, 1.0
+                character.x.expression.neutral = c/x.png
+                character.x.faces = right
+                character.y.name = Y
+                character.y.height = 600
+                character.y.anchor = 0.5, 1.0
+                character.y.expression.neutral = c/y.png
+                """);
+        assertEquals("right", manifest.character("x").orElseThrow().faces());
+        assertNull(manifest.character("y").orElseThrow().faces(), "art without a facing is never mirrored");
     }
 
     @Test void slidesAreListedByTheNameLecturesCue() throws IOException {

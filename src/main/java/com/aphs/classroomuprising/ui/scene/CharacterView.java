@@ -80,6 +80,15 @@ final class CharacterView extends Group {
         fade.play();
     }
 
+    /**
+     * Turns the figure to look {@code towardsRight} (or left), mirroring art that faces the other
+     * way, about the anchor so it stays on its slot. Art without a facing is left as it is.
+     */
+    void face(boolean towardsRight) {
+        if (spec.faces() == null || spec.faces().equals("right") == towardsRight) return;
+        figure.getTransforms().add(new Scale(-1, 1, 0, 0));
+    }
+
     /** Speaking characters stand forward at full colour; others step back and dim. */
     void setSpeaking(boolean focused) {
         new Timeline(new KeyFrame(Duration.millis(240),

@@ -41,6 +41,28 @@ final class LessonMenu {
                 .map(line -> line.speaker() != null).orElse(false);
     }
 
+    /** Mr. Reward's expression as he puts a question to the class: pointing at you. */
+    static final String ASKING = "gotcha";
+
+    /**
+     * Mr. Reward's reaction once the class is settled: approval for an appropriate response,
+     * mockery for an inappropriate one, a stare for staying quiet. Only the outcome the core
+     * settled chooses it; it changes nothing.
+     */
+    static String reaction(LessonDecision.Outcome outcome) {
+        return switch (outcome) {
+            case APPROPRIATE -> "thumbs-up";
+            case INAPPROPRIATE -> "ridicule";
+            case SKIP -> "staring";
+        };
+    }
+
+    /** The line with this expression, unless the line already names its own. */
+    static DialogueScript.Line withExpression(DialogueScript.Line line, String expression) {
+        if (line.expression() != null) return line;
+        return new DialogueScript.Line(line.speaker(), expression, line.text(), line.characterId(), line.slide());
+    }
+
     /** The side prompt over the responses. */
     static String responsePrompt(ContentCatalog.Lesson lesson) {
         return spoken(lesson.decision()) ? UiText.responsePrompt(lesson.interaction()) : lesson.decision().prompt();

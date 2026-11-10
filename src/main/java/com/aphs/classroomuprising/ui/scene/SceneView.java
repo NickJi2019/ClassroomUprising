@@ -99,6 +99,7 @@ public class SceneView extends StackPane {
         // The view's origin is the character's anchor, so layout puts the anchor on the slot.
         view.setLayoutX(W * slotX);
         view.setLayoutY(H + 6);
+        view.face(slotX < 0.5);   // characters look towards the middle of the screen
         characters.getChildren().add(view);
         cast.put(characterId, view);
         track(view.animations());

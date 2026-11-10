@@ -148,7 +148,8 @@ final class ClassroomScreen extends Screen {
         if (lesson.decision() == null) flatChoices();
         else {
             // A question the teacher asks the class is his line: it stays in the dialogue box.
-            if (LessonMenu.spoken(lesson.decision())) dialogue.say(ctx.script(lesson.decision().prompt()).get(0));
+            if (LessonMenu.spoken(lesson.decision()))
+                dialogue.say(LessonMenu.withExpression(ctx.script(lesson.decision().prompt()).get(0), LessonMenu.ASKING));
             participation();
         }
     }
@@ -201,14 +202,16 @@ final class ClassroomScreen extends Screen {
         ctx.toasts().deltas(done);
         hud.show(done.after(), ctx.demoLabel());
         VBox after = new VBox(10);
+        String reaction = LessonMenu.reaction(option.outcome());
         if (option.outcome() == LessonDecision.Outcome.SKIP) {
             Label narration = new Label(done.message());
             narration.getStyleClass().add("lesson-narration");
             narration.setWrapText(true);
             after.getChildren().add(narration);
+            scene.speak("reward", reaction);   // he says nothing, but he noticed
         } else {
             // The teacher's reply to your answer or question.
-            dialogue.say(reply(done.message()));
+            dialogue.say(LessonMenu.withExpression(reply(done.message()), reaction));
         }
         for (String warning : done.warnings()) after.getChildren().add(Diagnostic.warning("TUTORIAL", warning));
         notice(notice, after.getChildren().isEmpty() ? null : after);

@@ -9,6 +9,7 @@ import javafx.animation.PauseTransition;
 import javafx.animation.SequentialTransition;
 import javafx.animation.Timeline;
 import javafx.scene.Group;
+import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
@@ -31,12 +32,6 @@ final class CutIn {
 
     /** Plays one banner centred at {@code y} on {@code layer}; tone is "caret", "cyan" or "danger". */
     static Animation play(Pane layer, double y, String text, String sub, String tone) {
-        Polygon band = band(-120, W + 240, BAND_H);
-        band.getStyleClass().addAll("cutin-band", "tone-" + tone);
-        Polygon shard = band(-120, W + 240, BAND_H * 0.42);
-        shard.getStyleClass().addAll("cutin-shard", "tone-" + tone);
-        shard.setTranslateY(BAND_H * 0.62);
-
         Label word = new Label(text);
         word.getStyleClass().addAll("display", "cutin-word", "tone-" + tone);
         VBox words = new VBox(-6, word);
@@ -45,12 +40,27 @@ final class CutIn {
             subLabel.getStyleClass().addAll("display", "cutin-sub", "tone-" + tone);
             words.getChildren().add(subLabel);
         }
+        return play(layer, y, words, tone, BAND_H, Duration.millis(620));
+    }
+
+    /**
+     * Plays a banner carrying any content (for example a character's title art) on a band
+     * {@code bandHeight} tall, held for {@code hold} before it is thrown off.
+     */
+    static Animation play(Pane layer, double y, Node content, String tone, double bandHeight, Duration hold) {
+        Polygon band = band(-120, W + 240, bandHeight);
+        band.getStyleClass().addAll("cutin-band", "tone-" + tone);
+        Polygon shard = band(-120, W + 240, bandHeight * 0.42);
+        shard.getStyleClass().addAll("cutin-shard", "tone-" + tone);
+        shard.setTranslateY(bandHeight * 0.62);
+
+        Node words = content;
         words.setLayoutX(W * 0.30);
         words.setLayoutY(12);
         words.setRotate(-4);
 
         Group banner = new Group(shard, band, words);
-        banner.setLayoutY(y - BAND_H / 2);
+        banner.setLayoutY(y - bandHeight / 2);
         banner.setRotate(-4);
         banner.setMouseTransparent(true);
         layer.getChildren().add(banner);
@@ -83,7 +93,7 @@ final class CutIn {
         FadeTransition fade = new FadeTransition(Duration.millis(200), words);
         fade.setToValue(0);
 
-        SequentialTransition all = new SequentialTransition(in, new PauseTransition(Duration.millis(620)),
+        SequentialTransition all = new SequentialTransition(in, new PauseTransition(hold),
                 new ParallelTransition(out, fade));
         all.setOnFinished(e -> layer.getChildren().remove(banner));
         all.play();

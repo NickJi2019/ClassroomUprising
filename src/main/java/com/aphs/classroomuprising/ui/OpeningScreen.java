@@ -16,10 +16,10 @@ import java.util.List;
  */
 final class OpeningScreen extends Screen {
     /** Placeholder story lines (T11/T14 content is not authored yet); labelled on screen. */
-    private static final String SCRIPT = String.join("\n",
-            "Mr. Reward[stern]: Final exam. Last question. Show me what you learned this semester.",
+    static final String SCRIPT = String.join("\n",
+            "Mr. Reward[gotcha]: Final exam. Last question. Show me what you learned this semester.",
             "You[worried]: I... don't know this one.",
-            "Mr. Reward[smile]: Then I'll see you again this summer.",
+            "Mr. Reward[ridicule]: Then I'll see you again this summer.",
             "Narrator: You failed ICS4U. The retake starts on Day 1.");
 
     @FXML private SceneView scene;
@@ -61,12 +61,34 @@ final class OpeningScreen extends Screen {
     protected void onShown() {
         if (ctx.assets() != null) {
             scene.enter("student", 0.2, "worried", Duration.millis(150));
-            scene.enter("reward", 0.74, "stern", Duration.millis(320));
+            scene.enter("reward", 0.74, "gotcha", Duration.millis(320));
+            titleCard();
         }
         dialogue.play(ctx.script(SCRIPT), () -> {
             actions.setChoices(List.of(ChoiceList.Choice.of("BEGIN THE RETAKE", "Day 1 of 40", this::complete)));
             actions.requestFocus();
         });
+    }
+
+    /** Mr. Reward's hand-drawn title card on a red band as he steps in; skipped when the art is missing. */
+    private void titleCard() {
+        var logo = ctx.assets().ui("reward-logo");
+        if (logo.isEmpty()) return;
+        javafx.scene.image.ImageView mark = new javafx.scene.image.ImageView(logo.get());
+        mark.setPreserveRatio(true);
+        mark.setFitHeight(150);
+        mark.setSmooth(true);
+        javafx.scene.control.Label sub = new javafx.scene.control.Label("ICS4U  //  FINAL EXAM");
+        sub.getStyleClass().addAll("display", "cutin-sub", "tone-danger");
+        VBox card = new VBox(-8, mark, sub);
+        javafx.scene.layout.Pane layer = new javafx.scene.layout.Pane();
+        layer.setMouseTransparent(true);
+        StackPane root = (StackPane) root();
+        root.getChildren().add(root.getChildren().indexOf(log), layer);
+        javafx.animation.PauseTransition wait = new javafx.animation.PauseTransition(Duration.millis(520));
+        wait.setOnFinished(e -> CutIn.play(layer, 390, card, "danger", 200, Duration.millis(1500))
+                .setOnFinished(done -> root.getChildren().remove(layer)));
+        wait.play();
     }
 
     @Override
