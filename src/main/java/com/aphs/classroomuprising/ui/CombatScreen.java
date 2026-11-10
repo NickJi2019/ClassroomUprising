@@ -86,6 +86,8 @@ final class CombatScreen extends Screen {
     @FXML private Label resultNote;
     @FXML private VBox notice;
     @FXML private ChoiceList commands;
+    /** Holds QUIT TO TITLE while a refusal leaves no way forward. */
+    @FXML private ChoiceList exit;
     @FXML private Region overtimeGlow;
     @FXML private Region hitFlash;
     @FXML private Hud hud;
@@ -178,7 +180,8 @@ final class CombatScreen extends Screen {
             ticker.stop();
             notice(notice, Diagnostic.of(fetch.failure()));
             blocked = true;
-            setCommands(List.of(quit()));
+            setCommands(List.of());
+            showExit();
             return;
         }
         CombatSession.View view = fetch.value();
@@ -379,8 +382,13 @@ final class CombatScreen extends Screen {
                 list.add(ChoiceList.Choice.of("RETRY EVALUATION", "Same ticket  ·  same answer", this::retry).tone("cyan"));
             }
         }
-        if (blocked) list.add(quit());
         setCommands(list);
+        showExit();
+    }
+
+    private void showExit() {
+        if (blocked == exit.hasChoices()) return;
+        exit.setChoices(blocked ? List.of(quit()) : List.of());
     }
 
     private void setCommands(List<ChoiceList.Choice> list) {
@@ -490,8 +498,12 @@ final class CombatScreen extends Screen {
         if (done.after().student().hp() < done.before().student().hp()) hit();
         refresh();
         if (last == null) return;
-        if (last.complete()) CutIn.play(cutins, 330, "ALL CLEAR", "EVERY QUESTION EVALUATED", "caret");
-        else if (last.dasherReady() && !wasReady)
+        if (last.complete()) {
+            CutIn.play(cutins, 330, "ALL CLEAR", "EVERY QUESTION EVALUATED", "caret");
+            commands.requestFocus();
+            return;
+        }
+        if (last.dasherReady() && !wasReady)
             CutIn.play(cutins, 330, "DASHER READY", "THE LAST QUESTION YOU ANSWER GETS THE DASHER BONUS", "caret");
         targets.requestFocus();
     }

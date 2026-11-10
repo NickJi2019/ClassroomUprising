@@ -25,7 +25,7 @@ The game is laid out on a **1280×720** canvas (16:9) that scales to the window.
 | Optional time-of-day art | `background.<place>.<time>` where `<time>` is `morning_bonus`, `ics_class`, `other_classes`, `after_school`, `evening`, `late_night` or `day_end`. When it is missing, the base art is used and tinted by the colour grade |
 | Optional foreground | `foreground.<place>`: transparent PNG at the same size, drawn **in front of** characters (desks, a railing). It drifts more than the background, which gives depth |
 
-Places used now: `title`, `opening` (last semester's exam hall), `classroom`, `hallway`, `hub` (Student Hub), `dorm`, `computer-lab`.
+Places used now: `title`, `opening` (last semester's exam hall), `classroom`, `hallway`, `hub` (Student Hub), `dorm`, `computer-lab`. Assessment combats reuse them with the `combat` grade: a Lab in `computer-lab`, a Unit Test in `classroom`, the Midterm and Final in `opening` (the exam hall).
 
 Avoid strong detail behind the left and right edges where menus sit; the game adds dark gradients there for readability.
 
@@ -57,7 +57,7 @@ The current two files are generated placeholders and can be replaced.
 
 ## Colour grades
 
-Each time of day has a grade line in the manifest: `grade.<name> = #tint, BLEND_MODE, tintOpacity, saturation, brightness`. The tint is a full-screen colour blended over the background (`MULTIPLY` darkens, `SCREEN` lightens, `OVERLAY`/`SOFT_LIGHT` shift contrast and hue); saturation and brightness run from -1 to 1. Artists can tune these without code changes. Characters are not graded, so they stay readable in any light.
+Each time of day, plus `combat` for assessment combats, has a grade line in the manifest: `grade.<name> = #tint, BLEND_MODE, tintOpacity, saturation, brightness`. The tint is a full-screen colour blended over the background (`MULTIPLY` darkens, `SCREEN` lightens, `OVERLAY`/`SOFT_LIGHT` shift contrast and hue); saturation and brightness run from -1 to 1. Artists can tune these without code changes. Characters are not graded, so they stay readable in any light.
 
 ## Interface artwork (optional)
 

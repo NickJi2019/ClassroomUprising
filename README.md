@@ -123,7 +123,9 @@ Code is in `com.aphs.classroomuprising.ui`; layouts and the stylesheet are in `s
 | Day change: split-flap date flip with flap shading, cast shadow and landing bounce; the finished day is struck with "//"; the strip overshoots and settles; the scene brightens from night to the new day's grade; the next assessment is shown | `FlipNumber`, `CalendarStrip`, `DayIntroScreen` |
 | Shared context; picks the screen from the core's current period | `AppContext` |
 | Frontend controller: one core call per player action, refusals turned into results, day-end save path | `GameSession`, `Outcome`, `Fetch` |
-| Screens (one per scene; abstract base `Screen`) | `TitleScreen`, `OpeningScreen`, `DayIntroScreen`, `ClassroomScreen`, `OtherClassesScreen`, `HubScreen`, `DayEndScreen`, `LabScreen`, `BlockedScreen` |
+| Screens (one per scene; abstract base `Screen`) | `TitleScreen`, `OpeningScreen`, `DayIntroScreen`, `ClassroomScreen`, `CombatScreen`, `OtherClassesScreen`, `HubScreen`, `DayEndScreen`, `LabScreen`, `BlockedScreen` |
+| Assessment combat: targets in difficulty order with their weights, the backend's question clock against the 30 s soft limit, answer capture and lock, evaluating/reward busy states, Dasher and Combo status, call-out banners (overtime, Dasher ready, all clear), HP hit, results breakdown and settlement. Everything shown comes from `combatView()`; the screen never times, weighs, damages or marks | `CombatScreen`, `TimeGauge`, `CutIn`, `CombatText` |
+| Combat answers go to a trusted evaluator off the UI thread, one at a time; results return with their ticket; results that arrive after leaving the combat are dropped; a failed result keeps the ticket and work for a retry | `CombatEvaluator` (no implementation shipped), `CombatEvaluations` |
 | Menus: one selection cursor that travels between options (overshoot and settle, idle breathing and twitch, a trailing accent shard); only the text under the cursor turns dark; neighbours step aside; unselected options shimmer in steps; one activation then the list locks | `ChoiceList`, `CursorGeometry` (pure shape/path maths) |
 | Shared motion timing (durations, curves, stepped rate) | `MotionTokens`, `Motion` |
 | Reusable controls | `DialogueBox`, `Hud`, `Slant`, `Backdrop` (large background typography), `Toasts`, `Diagnostic` |
@@ -136,9 +138,11 @@ Visual language: one slant angle (about 14°, from the `//` comment mark), ink-i
 
 Backgrounds and characters come only from image files listed in `assets/manifest.properties`; nothing is drawn as stand-in figures in code. Until art is delivered, each listed file appears as a labelled "MISSING ART" plate. Delivery rules (sizes, anchors, expressions, time-of-day variants, colour grades) are in [docs/art-asset-spec.md](docs/art-asset-spec.md).
 
-Connected now: title (new game, continue, quit) → opening scene (text only; the opening battle is not built) → day card → Lesson with its single choice → other classes → Student Hub activities, early or normal sleep, morning bonus slot → day-end save → next day; Esc menu with status, 40-day calendar and grades. Pending rules appear as `warning[Txx]` notices and change nothing. With the Demo profile, Day 5 shows `warning[T07]` and offers a return to the title.
+Connected now: title (new game, continue, quit) → opening scene (text only; the opening battle is not built) → day card → Lesson with its single choice → other classes → Student Hub activities, early or normal sleep, morning bonus slot → day-end save → next day; Esc menu with status, 40-day calendar and grades. Assessment days start a combat through `startCombatAssessment()` and open `CombatScreen`; settling returns to the normal day (or the T10 checkpoint notice after Midterm/Final). Pending rules appear as `warning[Txx]` notices and change nothing. With the shipped Demo, Day 5 still shows `warning[T07]` (no question bank, no combat policy) and offers a return to the title.
 
-Not connected yet: the Lab screen and its runner service are built and tested, but the backend does not supply Lab problems (statement, class name, tests, rubric, limits), and turning evidence into a mark is T06. Chapter tests (no answer options yet), Midterm/Final decisions (T10), absences and makeups, combat, items and endings have no screens.
+The combat screen has been driven end to end only with test fixtures (a fixture bank, fixture `CombatRules` and a fixture evaluator, in tests and a scratch harness). To play it in the game the backend must supply: approved `CombatRules` (T01/T06/T07/T09), a trusted evaluator for answers (`CombatEvaluator`: T06 for Labs, T07 for questions), and assessment banks with difficulty ranks (T07). Until then submission reports that rule ID and creates no ticket. Answers are captured as free text (a code editor for Labs) because questions have no options or answer keys yet; that capture format still needs agreement.
+
+Not connected yet: the standalone Lab screen and its runner service are built and tested, but the backend does not supply Lab problems (statement, class name, tests, rubric, limits). Midterm/Final decisions (T10), absences and makeups, items (inventory, use, effects: T09) and endings have no screens.
 
 ## Combat backend integration
 
@@ -146,7 +150,7 @@ The combat backend is available through `CombatRules`, `CombatSession` views and
 
 It supports authored difficulty ordering, player-selected answer order, a 30-second soft threshold, last-answer Dasher, timely-completion Combo, configured HP costs, backend-clock reward delays, async evaluation tickets and settlement through the existing grade flow. The new path rejects direct legacy score submission. Existing constructors, the Day 1–4 Demo, Main and the current UI remain compatible.
 
-The .01-versus-.1 weight conflict, HP formula, timeout/Dasher priority, evaluation timing, reward-clock inclusion and score conversion are explicit policy inputs. No production defaults or new assessment content were invented. Reward-delay APIs are timing only, not inventory/effect/cheating operations. A combat scene and its frontend adapters still need implementation.
+The .01-versus-.1 weight conflict, HP formula, timeout/Dasher priority, evaluation timing, reward-clock inclusion and score conversion are explicit policy inputs. No production defaults or new assessment content were invented. Reward-delay APIs are timing only, not inventory/effect/cheating operations. The frontend side is `CombatScreen` and the combat methods of `GameSession` (see Frontend above).
 
 ## Verification and remaining work
 

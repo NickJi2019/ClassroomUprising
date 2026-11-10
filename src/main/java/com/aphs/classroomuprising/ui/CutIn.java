@@ -24,7 +24,7 @@ import javafx.util.Duration;
  */
 final class CutIn {
     private static final double W = ClassroomApp.WIDTH;
-    private static final double BAND_H = 112;
+    private static final double BAND_H = 136;
     private static final double SLOPE = 0.35;
 
     private CutIn() {}
@@ -46,7 +46,7 @@ final class CutIn {
             words.getChildren().add(subLabel);
         }
         words.setLayoutX(W * 0.30);
-        words.setLayoutY(10);
+        words.setLayoutY(12);
         words.setRotate(-4);
 
         Group banner = new Group(shard, band, words);
