@@ -72,12 +72,21 @@ public final class GameController {
         return lesson;
     }
     public Result lessonChoice(String choice) {
-        return change("Lesson completed.", s -> {
+        return lessonChoice(state.day, choice);
+    }
+    /** Only final response/skip IDs settle the lesson; menu opening grants nothing. */
+    public Result lessonChoice(int lessonDay, String choice) {
+        phase(state, DayPeriod.ICS_CLASS);
+        if (lessonDay != state.day || !state.lessonShown || state.currentCourse().course() != CourseType.LESSON
+                || state.makeups.containsKey(state.day))
+            throw new IllegalStateException("Show the current scheduled Lesson before its one choice.");
+        if (choice == null || choice.isBlank()) throw new IllegalArgumentException("Classroom option ID required.");
+        var lesson = content.lesson(state.day);
+        var effect = lesson.choices().get(choice);
+        if (effect == null) throw new IllegalArgumentException("Unknown classroom choice.");
+        String feedback = lesson.decision() == null ? "Lesson completed." : lesson.decision().option(choice).feedback();
+        return change(feedback, s -> {
             phase(s, DayPeriod.ICS_CLASS);
-            if (!s.lessonShown || s.currentCourse().course() != CourseType.LESSON)
-                throw new IllegalStateException("Show the scheduled Lesson before its one choice.");
-            var effect = content.lesson(s.day).choices().get(choice);
-            if (effect == null) throw new IllegalArgumentException("Unknown classroom choice.");
             var warnings = apply(s, effect, 1); s.period = DayPeriod.OTHER_CLASSES; return warnings;
         });
     }

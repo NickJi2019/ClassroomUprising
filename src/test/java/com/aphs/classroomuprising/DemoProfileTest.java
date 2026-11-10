@@ -36,8 +36,10 @@ class DemoProfileTest {
         var demo = DemoProfile.load();
         for (int day = 1; day <= 4; day++) {
             var lesson = demo.content().lesson(day);
-            assertEquals(ContentCatalog.Interaction.ASK_TEACHER, lesson.interaction());
-            assertEquals(Set.of("ask", "quiet"), lesson.choices().keySet());
+            assertEquals(day == 1 ? ContentCatalog.Interaction.RAISE_HAND : ContentCatalog.Interaction.ASK_TEACHER, lesson.interaction());
+            assertEquals(3, lesson.decision().responses().size());
+            assertEquals(4, lesson.choices().size());
+            assertFalse(lesson.title().isBlank());
             assertEquals(StatChange.none(), lesson.choices().get("quiet"));
             assertTrue(lesson.text().startsWith("Mr. Reward:"));
         }
@@ -53,8 +55,10 @@ class DemoProfileTest {
                 game.hubActivity("study");
                 assertEquals(before + 4, game.snapshot().student().codingVibe());
             }
-            game.showLesson();
-            var result = game.lessonChoice("ask");
+            var lesson = game.showLesson();
+            String response = lesson.decision().responses().stream()
+                    .filter(o -> o.outcome() == LessonDecision.Outcome.APPROPRIATE).findFirst().orElseThrow().id();
+            var result = game.lessonChoice(day, response);
             assertEquals(day <= 2, !result.warnings().isEmpty());
             game.otherClasses(true);
             if (day == 2) game.sleepImmediatelyAfterSchool();

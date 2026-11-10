@@ -297,6 +297,7 @@ classDiagram
         +completeOpening() Result
         +showLesson() Lesson
         +lessonChoice(String choice) Result
+        +lessonChoice(int lessonDay, String optionId) Result
         +completeReview() Result
         +otherClasses(boolean reviseIcs) Result
         +hubActivity(String id) Result
@@ -462,6 +463,7 @@ classDiagram
         -StatChange otherClassRevision
         +pending() ContentCatalog
         +lesson(int day) Lesson
+        +lessonDays() List~Integer~
         +hubActivityIds() List~String~
         +hub(String id) StatChange
         +review(int day) StatChange
@@ -473,6 +475,31 @@ classDiagram
         +String text
         +Interaction interaction
         +Map choices
+        +String title
+        +LessonDecision decision
+    }
+    class LessonDecision {
+        <<record>>
+        +String prompt
+        +List~LessonOption~ options
+        +responses() List~LessonOption~
+        +skip() LessonOption
+        +option(String id) LessonOption
+        +effects() Map
+    }
+    class LessonOption {
+        <<nested record>>
+        +String id
+        +String label
+        +LessonOutcome outcome
+        +StatChange effect
+        +String feedback
+    }
+    class LessonOutcome {
+        <<enumeration>>
+        APPROPRIATE
+        INAPPROPRIATE
+        SKIP
     }
     class Question {
         <<nested record>>
@@ -554,6 +581,10 @@ classDiagram
     GameState --> ActiveAssessment
     SchoolCalendar "1" *-- "40" DayPlan
     DayPlan --> CourseType
+    Lesson *-- LessonDecision
+    LessonDecision *-- LessonOption
+    LessonOption --> StatChange
+    LessonOption --> LessonOutcome
     ContentCatalog *-- Lesson
     ContentCatalog *-- Question
     ContentCatalog --> StatChange
@@ -652,7 +683,7 @@ classDiagram
     note for GameController "Opening is acknowledgement, not rendered combat.<br/>Midterm Continue/Retake explicitly report T10.<br/>Combat backend exists with explicit policy.<br/>Opening/Final battle presentation and endings remain pending."
     note for GameState "HP is separate from marks and energy.<br/>Returned snapshots are defensive copies.<br/>Relationships/rewards are persisted data, not playable systems yet."
     note for RuleValues "Null is TBD, never zero.<br/>No production balancing defaults.<br/>Separate opt-in Demo supplies provisional values."
-    note for ContentCatalog "One Lesson node: ask OR raise hand.<br/>Fixed ordinary questions, supplied major sample size.<br/>Demo supplies four lessons and two Hub activities.<br/>Assessment banks and later content remain pending."
+    note for ContentCatalog "One settlement: participate then response, OR quiet.<br/>Menu navigation is frontend-only and not yet wired.<br/>Day 1 raises hand; Day 2 asks a chosen question.<br/>Fixed ordinary questions, supplied major sample size.<br/>Demo supplies four lessons and two Hub activities.<br/>Assessment banks and later content remain pending."
     note for GradeBook "65 Term / 10 Participation / 25 Final.<br/>Midterm belongs to Term; its weight is supplied explicitly.<br/>First two absences free, then minus one overall percentage point."
     note for AssessmentRecord "Ordinary including makeup: three-day delay.<br/>Midterm and Final: immediate result, no skip.<br/>Evaluator supplies mark; no HP or automatic rubric conversion."
     note for SaveManager "Only active DAY_END snapshots.<br/>Load does not advance or regrant effects.<br/>Ending/Retake autosave boundaries remain T12."

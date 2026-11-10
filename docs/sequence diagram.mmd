@@ -26,12 +26,18 @@ sequenceDiagram
     alt Lesson slot
         Caller->>Game: showLesson()
         Game->>Content: lesson(day)
-        Content-->>Game: Text, ask OR raise-hand interaction, configured choices
+        Content-->>Game: Title, text/slide cues, interaction and authored decision
         Game->>State: Record content shown
         Game-->>Caller: Lesson content
-        Caller->>Game: lessonChoice(choice)
-        Game->>State: Apply supplied effects, waive tutorial penalties, advance to OTHER_CLASSES
-        Note over Caller,Game: Exactly one choice because the successful operation consumes the class slot.
+        Note over Caller,Game: Frontend menu wiring pending Claude. The following core contract is implemented.
+        Caller->>Caller: Show participation or quiet, participation opens three labelled responses
+        Note over Caller,State: Opening or returning from a menu makes no core call and grants nothing.
+        Caller->>Game: lessonChoice(lessonDay, finalOptionId)
+        Game->>Content: Resolve authored response or neutral skip, reject stale day or unknown ID
+        Game->>State: Apply option once, inappropriate grants no XP, waive all tutorial negatives
+        Game->>State: Advance to OTHER_CLASSES once
+        Game-->>Caller: Authored feedback and tutorial warnings
+        Note over Caller,Game: Only final settlement consumes the class slot. No automatic ask or raise bonus.
     else Combat assessment slot
         Caller->>Game: startCombatAssessment()
         Game->>Content: Load fixed or sampled questions

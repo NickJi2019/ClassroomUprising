@@ -25,9 +25,11 @@ class Grade11ReviewContentTest {
             assertFalse(hints.matcher(line.text()).find(),line.text());
             assertFalse(line.text().contains("\\n"),"Resource escapes must decode into line breaks.");
         }
-        assertEquals(ContentCatalog.Interaction.ASK_TEACHER,lesson.interaction());
-        assertEquals(Set.of("ask","quiet"),lesson.choices().keySet());
-        assertEquals(StatChange.learning(1,4,2,-2),lesson.choices().get("ask"));
+        assertEquals(day==1?ContentCatalog.Interaction.RAISE_HAND:ContentCatalog.Interaction.ASK_TEACHER,lesson.interaction());
+        assertEquals(3,lesson.decision().responses().size());
+        var correct=lesson.decision().responses().stream()
+                .filter(o->o.outcome()==com.aphs.classroomuprising.LessonDecision.Outcome.APPROPRIATE).findFirst().orElseThrow();
+        assertEquals(StatChange.learning(1,4,2,-2),correct.effect());
         assertEquals(StatChange.none(),lesson.choices().get("quiet"));
     }
     @Test void theTwoDaysCoverDifferentReviewTopics() throws Exception {
@@ -108,13 +110,15 @@ class Grade11ReviewContentTest {
         var result=report.tests().getFirst();assertEquals(JavaAssessmentRunner.Status.RUNTIME_ERROR,result.status());
         assertTrue(result.process().stderr().contains("ArrayIndexOutOfBoundsException"));
     }
-    @Test void lecturesStillLeadToOneChoiceWithTheSameTutorialEffects() throws Exception {
+    @Test void lecturesLeadToOneAuthoredResponseWithTheSameCorrectTutorialBonus() throws Exception {
         var game=DemoProfile.load().newGame("Review student",new Random(42));game.completeOpening();
         for(int day=1;day<=2;day++) {
             if(game.snapshot().period()==DayPeriod.MORNING_BONUS) game.hubActivity("rest");
             var before=game.snapshot().student();var lesson=game.showLesson();
             assertTrue(lesson.text().contains("Grade 11"));
-            var result=game.lessonChoice("ask");var after=game.snapshot().student();
+            var correct=lesson.decision().responses().stream()
+                    .filter(o->o.outcome()==com.aphs.classroomuprising.LessonDecision.Outcome.APPROPRIATE).findFirst().orElseThrow();
+            var result=game.lessonChoice(day,correct.id());var after=game.snapshot().student();
             assertEquals(before.hp(),after.hp());assertEquals(before.san(),after.san());
             assertEquals(before.codingVibe()+4,after.codingVibe());
             assertEquals(before.unitKnowledge().getFirst()+2,after.unitKnowledge().getFirst());

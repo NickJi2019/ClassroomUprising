@@ -37,10 +37,16 @@ public record DemoProfile(String label, StudentState initialStudent, RuleValues 
                 if (SchoolCalendar.day(day).course() != CourseType.LESSON)
                     throw new IllegalArgumentException("Demo lesson must occupy a scheduled Lesson: " + day);
                 String key = "lesson." + day + ".";
-                var choices = new LinkedHashMap<String, StatChange>();
-                for (String choice : f.list(key + "choices")) choices.put(choice, f.effect(key + "choice." + choice));
-                var lesson = new ContentCatalog.Lesson(f.text(key + "text"),
-                        ContentCatalog.Interaction.valueOf(f.text(key + "interaction")), choices);
+                var options = new ArrayList<LessonDecision.Option>();
+                for (String id : f.list(key + "options")) {
+                    String option = key + "option." + id + ".";
+                    options.add(new LessonDecision.Option(id, f.text(option + "label"),
+                            LessonDecision.Outcome.valueOf(f.text(option + "outcome")),
+                            f.effect(option + "effect"), f.text(option + "feedback")));
+                }
+                var decision = new LessonDecision(f.text(key + "prompt"), options);
+                var lesson = new ContentCatalog.Lesson(f.text(key + "title"), f.text(key + "text"),
+                        ContentCatalog.Interaction.valueOf(f.text(key + "interaction")), decision);
                 if (lessons.put(day, lesson) != null) throw new IllegalArgumentException("Duplicate lesson day.");
             }
             var hub = new LinkedHashMap<String, StatChange>();

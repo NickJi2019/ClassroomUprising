@@ -8,11 +8,22 @@ import java.util.random.RandomGenerator;
 /** Content supplied by the team; no invented lessons, rewards or question pools are installed. */
 public final class ContentCatalog {
     public enum Interaction { ASK_TEACHER, RAISE_HAND }
-    public record Lesson(String text, Interaction interaction, Map<String, StatChange> choices) {
+    public record Lesson(String text, Interaction interaction, Map<String, StatChange> choices,
+                         String title, LessonDecision decision) {
+        /** Compatibility for explicit legacy/fixture catalogs; the shipped Demo uses authored decisions. */
+        public Lesson(String text, Interaction interaction, Map<String, StatChange> choices) {
+            this(text, interaction, choices, "", null);
+        }
+        public Lesson(String title, String text, Interaction interaction, LessonDecision decision) {
+            this(text, interaction, Objects.requireNonNull(decision).effects(), title, decision);
+        }
         public Lesson {
             Objects.requireNonNull(text); Objects.requireNonNull(interaction);
+            Objects.requireNonNull(title);
             choices = Map.copyOf(choices);
             if (text.isBlank() || choices.isEmpty()) throw new IllegalArgumentException("Lesson content/choices required.");
+            if (decision != null && (title.isBlank() || !choices.equals(decision.effects())))
+                throw new IllegalArgumentException("Authored lessons require a title and the decision's exact effects.");
         }
     }
     public record Question(String id, String prompt, Integer difficultyRank) {
@@ -53,6 +64,8 @@ public final class ContentCatalog {
         if (value == null) throw new PendingRuleException("T14", "Lesson content for day " + day);
         return value;
     }
+    /** Content availability, not a replacement for the authoritative forty-day SchoolCalendar. */
+    public List<Integer> lessonDays() { return lessons.keySet().stream().sorted().toList(); }
     /** Available IDs in stable natural order. This immutable list does not grant activity eligibility. */
     public List<String> hubActivityIds() {
         return hub.keySet().stream().sorted().toList();

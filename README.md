@@ -85,11 +85,13 @@ GameController game = demo.newGame(playerName, java.util.random.RandomGenerator.
 // Only after that playback/acknowledgement:
 game.completeOpening();
 ContentCatalog.Lesson lesson = game.showLesson();
-// Render lesson.text() and its single interaction, then submit a configured choice ID.
-game.lessonChoice("ask"); // or "quiet" for this Demo
+// Render lesson.text(), then show participation/quiet followed by decision.responses().
+// Opening the response menu makes no core call. Submit only the selected final option ID.
+int lessonDay = game.snapshot().day();
+game.lessonChoice(lessonDay, selectedOptionId); // or lesson.decision().skip().id()
 ```
 
-The profile supplies Days 1–4 only, with one ASK_TEACHER node per lesson and zero immediate effects for quiet. Day 3 temporarily uses the ask-teacher variant, not both variants; this is Demo content, not final authoring approval. The calendar stays 40 days/six teaching units. Starting Day 5 Lab still reports T07: there is no supplied assessment bank, Lab rubric or grading policy. Later lesson/review content remains pending. The opening acknowledgement is not a combat implementation.
+The profile supplies Days 1–4 only. Day 1 uses RAISE_HAND (answer Mr. Reward); Day 2 uses ASK_TEACHER (choose a question). Every shipped lesson has three authored response options plus a neutral quiet option. One final response settles the class; opening the response menu grants nothing. Only an appropriate response grants its configured XP bonus. An inappropriate response has no XP bonus and a Demo-only -2 SAN effect, waived with a warning on Days 1–2. Quiet has zero immediate effects. Day 3 temporarily uses the ask-teacher variant, not both variants; this is Demo content, not final authoring approval. The calendar stays 40 days/six teaching units. Starting Day 5 Lab still reports T07: there is no supplied assessment bank, Lab rubric or grading policy. Later lesson/review content remains pending. The opening acknowledgement is not a combat implementation.
 
 Initial Demo values are HP 50, SAN 60, Coding Vibe 0 and six zero Knowledge values. Normal sleep restores 6 SAN, early sleep grants 3 SAN on waking, and using late night schedules -4 effective SAN and 0.5 XP gain for the following day. These are adjustable **Demo values only**. Hub IDs are `rest` and `study`; the resource describes each nine-number effect vector. Do not duplicate these values in UI controllers.
 
@@ -165,3 +167,13 @@ The core tests cover calendar/rules, save round trips and invalid files, and act
 Automated tests do not render the window. Rendering and the Day 1–5 path were checked separately on macOS; full manual play-testing has not been recorded.
 
 [Implementation status](docs/implementation-status.md) records current boundaries. [Sprint1](docs/Sprint1.md) remains the authority for approved rules and T01–T14 pending decisions. The class diagram includes the frontend layer; the sequence diagram traces core operations. Final combat, production grading/SAN formulas, full Retake/reset, endings, activities and authored content remain separate work.
+
+## Authored daily lessons and classroom choices (backend increment, 2026-11-10)
+
+`SchoolCalendar`/`DayPlan` still own the 40-day course schedule. `ContentCatalog.Lesson` now supplies the title, unchanged lecture text/slide cues, one interaction kind, and a `LessonDecision` with its prompt and ordered options. Each option contains a stable ID, display label, outcome, explicit effect and feedback. No generic scripting engine or duplicate calendar is introduced.
+
+Content authors can copy [the populated lesson template](docs/templates/lesson.properties), then update the registered lesson day, IDs, labels and explicit Demo effects. The loader rejects missing/unknown fields, duplicate IDs and contradictory effects. `lessonDays()` lists authored lesson availability, not the full semester.
+
+Use `GameController.lessonChoice(lessonDay, optionId)` to guard stale-day callbacks; it resolves the authored ID transactionally and consumes the ICS slot once. Literal `ask`/`raise` actions no longer earn anything for the shipped Demo. The older method/three-argument Lesson constructor remain for explicit legacy fixture catalogs, not as automatic correct-answer aliases. Day-end save format, Main, CLI policy, combat and the 31 review lecture lines are unchanged.
+
+**Frontend integration remains with Claude, as requested.** Production UI and frontend-owned tests are untouched. The old screen still reads flat `choices()` IDs; it does not yet implement the two-level labels/menu. Existing frontend tests that assume `lessonChoice("ask")` immediately succeeds require migration, not a backend reward bypass. See [the frontend classroom handoff](docs/frontend-classroom-handoff.md) for exact APIs, acceptance checks and a reusable Claude prompt.
