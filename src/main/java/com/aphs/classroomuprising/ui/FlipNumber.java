@@ -8,6 +8,7 @@ import javafx.animation.Timeline;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
+import javafx.scene.effect.ColorAdjust;
 import javafx.scene.layout.Pane;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.transform.Scale;
@@ -53,13 +54,28 @@ public class FlipNumber extends Pane {
         Scale unfold = new Scale(1, 0, 0, middle);
         newBottom.getTransforms().add(unfold);
         newBottom.getStyleClass().add("flip-moving");
-        getChildren().setAll(newTop, oldBottom, oldTop, newBottom, hinge());
+
+        // Light: a flap darkens as it turns away from the viewer, and casts a shadow below the hinge.
+        ColorAdjust foldShade = new ColorAdjust();
+        foldShade.brightnessProperty().bind(fold.yProperty().subtract(1).multiply(0.45));
+        oldTop.setEffect(foldShade);
+        ColorAdjust unfoldShade = new ColorAdjust();
+        unfoldShade.brightnessProperty().bind(unfold.yProperty().subtract(1).multiply(0.45));
+        newBottom.setEffect(unfoldShade);
+        Rectangle shadow = new Rectangle(0, middle, cellWidth, middle);
+        shadow.getStyleClass().add("flip-shadow");
+        shadow.opacityProperty().bind(fold.yProperty().negate().add(1)
+                .multiply(unfold.yProperty().negate().add(1)).multiply(0.55));
+        getChildren().setAll(newTop, oldBottom, shadow, oldTop, newBottom, hinge());
 
         Timeline flip = new Timeline(
                 new KeyFrame(Duration.ZERO, new KeyValue(fold.yProperty(), 1), new KeyValue(unfold.yProperty(), 0)),
                 new KeyFrame(Duration.millis(230), new KeyValue(fold.yProperty(), 0, Interpolator.EASE_IN),
                         new KeyValue(unfold.yProperty(), 0)),
-                new KeyFrame(Duration.millis(470), new KeyValue(unfold.yProperty(), 1, Interpolator.SPLINE(0.2, 0.9, 0.3, 1.0))));
+                new KeyFrame(Duration.millis(450), new KeyValue(unfold.yProperty(), 1, Interpolator.SPLINE(0.3, 0.6, 0.4, 1.0))),
+                // Landing: the flap slaps down and bounces once.
+                new KeyFrame(Duration.millis(510), new KeyValue(unfold.yProperty(), 0.92, Interpolator.EASE_OUT)),
+                new KeyFrame(Duration.millis(590), new KeyValue(unfold.yProperty(), 1, Interpolator.EASE_IN)));
         flip.setOnFinished(e -> setText(next));
         return flip;
     }

@@ -64,6 +64,11 @@ public final class AssetStore {
         return manifest.texture(name).flatMap(this::load);
     }
 
+    /** Interface artwork such as the clock face; empty when not listed or not delivered. */
+    public Optional<Image> ui(String name) {
+        return manifest.ui(name).flatMap(this::load);
+    }
+
     /**
      * A frame sequence, only when it is listed and every frame is delivered;
      * otherwise empty and the caller uses its built-in transition.

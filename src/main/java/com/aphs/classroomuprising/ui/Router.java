@@ -103,7 +103,10 @@ final class Router {
             swap(next);
             return;
         }
-        ClockShift clock = new ClockShift(from, to, () -> swap(next));
+        // The scene behind the clock is re-graded to the new time of day while the hands turn.
+        SceneView world = current.root().lookup(".scene-view") instanceof SceneView scene ? scene : null;
+        ClockShift clock = new ClockShift(from, to, () -> swap(next),
+                context == null ? null : context.assets(), world);
         begin();
         transitionLayer.getChildren().add(clock);
         Animation animation = clock.animation();

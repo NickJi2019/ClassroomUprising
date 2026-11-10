@@ -146,12 +146,16 @@ classDiagram
         +show(GameState state, String demoLabel) void
     }
     class ClockShift {
+        -ParallelTransition animation
         +animation() Animation
     }
     class ClockTimes {
         +minutes(DayPeriod period, DayPeriod from) int$
         +elapsed(int from, int to) int$
         +animates(DayPeriod shown, int shownDay, GameState view) boolean$
+        +daySegments() List~Segment~$
+        +dayRingAngle(double minutes) double$
+        +tickPlan(int start, int end) TickPlan$
     }
     class FlipNumber {
         +setText(String value) void
@@ -481,6 +485,8 @@ classDiagram
     ChoiceList ..> MotionTokens : timing
     Router ..> ClockShift : time change within a day
     ClockShift ..> ClockTimes : display clock only
+    ClockShift ..> SceneView : re-grades the world behind
+    ClockShift ..> AssetStore : optional face and hand art
     AppContext ..> ClockTimes : clock or wipe
     DayIntroScreen --> FlipNumber : date flip
     DayIntroScreen --> CalendarStrip : scrolls to new day

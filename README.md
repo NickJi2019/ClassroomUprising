@@ -119,8 +119,8 @@ Code is in `com.aphs.classroomuprising.ui`; layouts and the stylesheet are in `s
 | Screen changes: the old UI steps out, the new screen opens out of the old one through a growing slanted mask that starts where the player chose, a cool "ghost" of the new screen runs just ahead of the edge, the new UI steps in. Input is blocked while any transition runs | `Router`, `RevealMask` (pure geometry), `RevealOriginEvent` |
 | Artist-drawn transitions: when a `sequence.screen` or `sequence.menu-open` frame sequence is delivered, it plays instead of the built-in one | `FrameSequence`, `AssetStore.sequence` |
 | Esc menu over a captured, blurred, rippling copy of the paused screen; opens and closes through a stepped mask | `PauseMenu`, `MenuBackdrop`, `PausePanels` |
-| Time-of-day change: clock hands sweep from the old period's time to the new one (display times only, not rules) | `ClockShift`, `ClockTimes` |
-| Day change: split-flap date flip and a calendar strip that scrolls to the new day | `FlipNumber`, `CalendarStrip` (on `DayIntroScreen`) |
+| Time-of-day change: translucent clock overlay; hands sweep (minute-hand smear) then tick the last three minutes; a 24-hour ring shows the day's periods with the destination lit; the scene behind is re-graded to the new time of day. Clock times are display only, not rules. Face and hands can be artist images (`ui.clock-*`) | `ClockShift`, `ClockTimes` |
+| Day change: split-flap date flip with flap shading, cast shadow and landing bounce; the finished day is struck with "//"; the strip overshoots and settles; the scene brightens from night to the new day's grade; the next assessment is shown | `FlipNumber`, `CalendarStrip`, `DayIntroScreen` |
 | Shared context; picks the screen from the core's current period | `AppContext` |
 | Frontend controller: one core call per player action, refusals turned into results, day-end save path | `GameSession`, `Outcome`, `Fetch` |
 | Screens (one per scene; abstract base `Screen`) | `TitleScreen`, `OpeningScreen`, `DayIntroScreen`, `ClassroomScreen`, `OtherClassesScreen`, `HubScreen`, `DayEndScreen`, `LabScreen`, `BlockedScreen` |

@@ -168,13 +168,32 @@
 .flip-hinge { -fx-fill: rgba(11, 15, 42, 0.28); }
 .calendar-strip .cal-cell { -fx-min-height: 58; }
 
+.flip-shadow { -fx-fill: linear-gradient(to bottom, rgba(11, 15, 42, 0.9) 0%, rgba(11, 15, 42, 0) 100%); }
+.intro-next { -fx-font-size: 14px; -fx-text-fill: -cu-soft; }
+.cal-strike { -fx-stroke: -cu-caret; -fx-stroke-width: 3.5; -fx-stroke-line-cap: round; }
+.cal-today-marker { -fx-fill: -cu-caret; }
+
 /* ---------- time-of-day clock transition ---------- */
-.clock-dim { -fx-fill: -cu-ink; -fx-opacity: 0.97; }
-.clock-band { -fx-fill: -cu-panel; }
+/* The dim stays translucent during the sweep so the world can be seen changing colour behind. */
+.clock-dim { -fx-fill: -cu-ink; }
+.clock-band { -fx-fill: rgba(20, 26, 61, 0.88); }
 .clock-band-edge { -fx-stroke: -cu-caret; -fx-stroke-width: 4; }
 .clock-face { -fx-fill: -cu-deep; -fx-stroke: -cu-line; -fx-stroke-width: 3; }
 .clock-tick { -fx-fill: -cu-dim; }
+.clock-tick-minor { -fx-fill: -cu-line; }
 .clock-tick-major { -fx-fill: -cu-caret; }
+.clock-hand-smear { -fx-fill: -cu-cyan; }
+.clock-period-line { -fx-font-size: 13px; -fx-text-fill: -cu-dim; }
+.clock-ring-track { -fx-fill: transparent; -fx-stroke: rgba(42, 51, 102, 0.6); -fx-stroke-width: 8; }
+.clock-ring { -fx-fill: transparent; -fx-stroke-width: 8; -fx-opacity: 0.55; }
+.clock-ring.ring-target { -fx-stroke-width: 14; -fx-opacity: 1; }
+.ring-morning_bonus { -fx-stroke: #FFE7C2; }
+.ring-ics_class { -fx-stroke: -cu-caret; }
+.ring-other_classes { -fx-stroke: -cu-soft; }
+.ring-after_school { -fx-stroke: #FF9B54; }
+.ring-evening { -fx-stroke: -cu-violet; }
+.ring-late_night { -fx-stroke: -cu-red; }
+.clock-ring-marker { -fx-fill: -cu-text; -fx-stroke: -cu-ink; -fx-stroke-width: 2; }
 .clock-hand-hour { -fx-fill: -cu-caret; }
 .clock-hand-minute { -fx-fill: -cu-cyan; }
 .clock-hub { -fx-fill: -cu-text; }
