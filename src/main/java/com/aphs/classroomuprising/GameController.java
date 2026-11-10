@@ -17,7 +17,20 @@ public final class GameController {
     private final RuleValues rules;
     private final ContentCatalog content;
     private final RandomGenerator random;
+    private final CombatRules combatRules;
+    private final java.util.function.LongSupplier nanoClock;
     public GameController(GameState initial, RuleValues rules, ContentCatalog content, RandomGenerator random) {
+        this(initial, rules, content, random, CombatRules.pending(), System::nanoTime);
+    }
+    public GameController(GameState initial, RuleValues rules, ContentCatalog content, RandomGenerator random,
+                          CombatRules combatRules) {
+        this(initial, rules, content, random, combatRules, System::nanoTime);
+    }
+    /** Clock is backend-owned. Tests inject a monotonic fake; frontend submits no elapsed times. */
+    public GameController(GameState initial, RuleValues rules, ContentCatalog content, RandomGenerator random,
+                          CombatRules combatRules, java.util.function.LongSupplier nanoClock) {
+        this.combatRules = Objects.requireNonNull(combatRules);
+        this.nanoClock = Objects.requireNonNull(nanoClock);
         this.state = Objects.requireNonNull(initial).copy();
         this.rules = Objects.requireNonNull(rules); this.content = Objects.requireNonNull(content);
         this.random = Objects.requireNonNull(random);
@@ -160,7 +173,9 @@ public final class GameController {
             s.makeups.put(lessonDay, missedDay); return List.of();
         });
     }
-    public AssessmentView startAssessment() {
+    public AssessmentView startAssessment() { return startAssessment(false); }
+    public AssessmentView startCombatAssessment() { return startAssessment(true); }
+    private AssessmentView startAssessment(boolean useCombat) {
         phase(state, DayPeriod.ICS_CLASS);
         if (state.active != null) throw new IllegalStateException("Assessment already active.");
         var original = state.currentCourse();
@@ -171,29 +186,82 @@ public final class GameController {
                 ? RuleValues.require(rules.makeupSanReduction(), "T03", "Makeup SAN reduction") : 0;
         // Validate policy/content before starting the session or applying a penalty.
         var questions = content.questions(original, random);
+        var combat = useCombat ? new CombatSession(questions, combatRules) : null;
         change("Assessment started.", s -> {
+            s.combat = combat;
             s.active = new GameState.ActiveAssessment(original, questions, makeup);
             return apply(s, new StatChange(0, -penalty, 0, Collections.nCopies(6, 0.0)), 1);
         });
         return new AssessmentView(original.assessmentId(), original.course(), questions, makeup, !makeup, makeup);
     }
-    /** Accepts a normalized mark from a configured evaluator, NOT from a player's answer input. */
+    /** Legacy trusted-evaluator entry; combat runs must settle through finishCombatAssessment(). */
     public Result recordEvaluatedSubmission(double mark, String evidence) {
         return change("Evaluated submission recorded.", s -> {
-            phase(s, DayPeriod.ICS_CLASS);
-            if (s.active == null) throw new IllegalStateException("No active assessment.");
-            var a = s.active; var type = a.original().course(); String id = a.original().assessmentId();
-            if (!Double.isFinite(mark) || mark < 0 || mark > 100) throw new IllegalArgumentException("Invalid evaluated percentage.");
-            double actual = s.seriousCheating.contains(id) ? 0 : mark;
-            var r = new AssessmentRecord(id, type, s.day, s.day + (type.isMajor() ? 0 : 3),
-                    a.questions().stream().map(ContentCatalog.Question::id).toList(), a.makeup(), actual, type.isMajor(), evidence);
-            s.grades.submit(r); s.active = null;
-            if (type.isMajor()) {
-                s.estimates.remove(id); s.effects.removeIf(e -> e.id().equals("estimate:" + id));
-                s.status = type == CourseType.MIDTERM ? GameState.Status.MIDTERM_DECISION : GameState.Status.FINAL_DECISION;
-            } else s.period = DayPeriod.OTHER_CLASSES;
-            s.missedAssessments.remove(a.original().day());
-            return type.isMajor() ? List.of("Official result is immediate; T03/T10 feedback and checkpoint policy remain explicit.") : List.of();
+            if (s.combat != null) throw new IllegalStateException("Use finishCombatAssessment for a combat run.");
+            return settleAssessment(s, mark, evidence);
+        });
+    }
+    private static List<String> settleAssessment(GameState s, double mark, String evidence) {
+        phase(s, DayPeriod.ICS_CLASS);
+        if (s.active == null) throw new IllegalStateException("No active assessment.");
+        var a = s.active; var type = a.original().course(); String id = a.original().assessmentId();
+        if (!Double.isFinite(mark) || mark < 0 || mark > 100) throw new IllegalArgumentException("Invalid evaluated percentage.");
+        double actual = s.seriousCheating.contains(id) ? 0 : mark;
+        var r = new AssessmentRecord(id, type, s.day, s.day + (type.isMajor() ? 0 : 3),
+                a.questions().stream().map(ContentCatalog.Question::id).toList(), a.makeup(), actual, type.isMajor(), evidence);
+        s.grades.submit(r); s.active = null; s.combat = null;
+        if (type.isMajor()) {
+            s.estimates.remove(id); s.effects.removeIf(e -> e.id().equals("estimate:" + id));
+            s.status = type == CourseType.MIDTERM ? GameState.Status.MIDTERM_DECISION : GameState.Status.FINAL_DECISION;
+        } else s.period = DayPeriod.OTHER_CLASSES;
+        s.missedAssessments.remove(a.original().day());
+        return type.isMajor() ? List.of("Official result is immediate; T03/T10 feedback and checkpoint policy remain explicit.") : List.of();
+    }
+    private static CombatSession combat(GameState s) {
+        phase(s, DayPeriod.ICS_CLASS);
+        if (s.active == null || s.combat == null) throw new IllegalStateException("No active combat assessment.");
+        return s.combat;
+    }
+    public CombatSession.View combatSnapshot() { return combat(state).view(nanoClock.getAsLong(), combatRules); }
+    public Result startCombatQuestion(String questionId) {
+        return change("Combat question started.", s -> {
+            combat(s).startQuestion(questionId, nanoClock.getAsLong(), combatRules); return List.of();
+        });
+    }
+    /** Lock this submission before dispatching any asynchronous evaluator. Tickets reject stale results. */
+    public CombatSession.AnswerTicket submitCombatAnswer() {
+        change("Combat answer submitted for evaluation.", s -> {
+            combat(s).submit(nanoClock.getAsLong(), combatRules); return List.of();
+        });
+        return state.combat.pendingAnswer();
+    }
+    /** Fraction/evidence come from a trusted configured evaluator, not a UI-selected mark. */
+    public Result recordCombatEvaluation(CombatSession.AnswerTicket ticket, double fraction, String evidence) {
+        return change("Combat answer evaluated.", s -> {
+            var answer = combat(s).evaluate(ticket, fraction, evidence, nanoClock.getAsLong(), combatRules, s);
+            return apply(s, new StatChange(-answer.requestedHpCost(), 0, 0, Collections.nCopies(6, 0.0)), 1);
+        });
+    }
+    /** Timing reservation only. Inventory, item effects and detection remain T09, not inferred here. */
+    public CombatSession.RewardTicket beginCombatRewardDelay(CombatSession.RewardKind kind) {
+        change("Combat reward delay started.", s -> {
+            combat(s).beginReward(kind, nanoClock.getAsLong(), combatRules); return List.of();
+        });
+        return state.combat.pendingReward();
+    }
+    public Result finishCombatRewardDelay(CombatSession.RewardTicket ticket) {
+        return change("Combat reward delay finished.", s -> {
+            combat(s).finishReward(ticket, nanoClock.getAsLong(), combatRules); return List.of();
+        });
+    }
+    public CombatSession.Summary combatSummary() { return combat(state).summary(); }
+    public Result finishCombatAssessment() {
+        return change("Combat assessment settled.", s -> {
+            var summary = combat(s).summary();
+            if (combatRules.scoreConverter() == null)
+                throw new PendingRuleException("T06", "Combat credits, Combo points and percentage conversion are not configured.");
+            double mark = combatRules.scoreConverter().toPercentage(summary);
+            return settleAssessment(s, mark, "Combat evaluation: " + summary);
         });
     }
     /** An estimator supplies its result and effects; this method never invents an accuracy model. */

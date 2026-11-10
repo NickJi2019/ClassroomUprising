@@ -223,11 +223,40 @@ classDiagram
         +skipClass(boolean excused) Result
         +scheduleMakeup(int missedDay, int lessonDay) Result
         +startAssessment() AssessmentView
+        +startCombatAssessment() AssessmentView
+        +combatSnapshot() CombatView
+        +startCombatQuestion(String id) Result
+        +submitCombatAnswer() AnswerTicket
+        +recordCombatEvaluation(AnswerTicket ticket, double fraction, String evidence) Result
+        +beginCombatRewardDelay(RewardKind kind) RewardTicket
+        +finishCombatRewardDelay(RewardTicket ticket) Result
+        +combatSummary() CombatSummary
+        +finishCombatAssessment() Result
         +recordEvaluatedSubmission(double mark, String evidence) Result
         +recordSelfEstimate(double mark, double cost, double delta) Result
         +caughtCheating(boolean serious) Result
         +applyOfficialFeedback(String id, StatChange effect) Result
         +resolveMidterm(String choice) Result
+    }
+    class CombatRules {
+        <<record>>
+        +Double weightStep
+        +TimeoutDasher timeoutDasher
+        +AnswerTiming answerTiming
+        +Boolean rewardTimeCounts
+        +Duration riskyRewardDuration
+        +HpCost hpCost
+        +ScoreConverter scoreConverter
+        +pending() CombatRules
+    }
+    class CombatSession {
+        -UUID id
+        -List answers
+        -String current
+        -AnswerTicket submitted
+        -RewardTicket reward
+        ~view(long now, CombatRules rules) View
+        ~summary() Summary
     }
     class GameState {
         -String name
@@ -252,6 +281,7 @@ classDiagram
         -ActiveAssessment active
         +lessonShown() boolean
         +hasActiveAssessment() boolean
+        +hasActiveCombat() boolean
         +currentCourse() DayPlan
         +effectiveSan() double
         +xpMultiplier() double
@@ -365,6 +395,7 @@ classDiagram
         <<nested record>>
         +String id
         +String prompt
+        +Integer difficultyRank
     }
     class GradeBook {
         -Map records
@@ -510,7 +541,7 @@ classDiagram
     Outcome <|.. Rejected
     Pending ..> PendingRuleException : shown, never swallowed
 
-    note for GameController "Opening is acknowledgement, not rendered combat.<br/>Midterm Continue/Retake explicitly report T10.<br/>Final combat and ending selector are not implemented."
+    note for GameController "Opening is acknowledgement, not rendered combat.<br/>Midterm Continue/Retake explicitly report T10.<br/>Combat backend exists with explicit policy.<br/>Opening/Final battle presentation and endings remain pending."
     note for GameState "HP is separate from marks and energy.<br/>Returned snapshots are defensive copies.<br/>Relationships/rewards are persisted data, not playable systems yet."
     note for RuleValues "Null is TBD, never zero.<br/>No production balancing defaults.<br/>Separate opt-in Demo supplies provisional values."
     note for ContentCatalog "One Lesson node: ask OR raise hand.<br/>Fixed ordinary questions, supplied major sample size.<br/>Demo supplies four lessons and two Hub activities.<br/>Assessment banks and later content remain pending."
@@ -522,3 +553,9 @@ classDiagram
     note for Main "Opens the JavaFX game window only.<br/>Arguments are ignored: no CLI routes, modes or day jumps.<br/>FXGL and libGDX are prepared by Gradle, not started."
     note for GameSession "Frontend controller: never edits GameState.<br/>Refusals become Pending/Rejected with nothing changed.<br/>showLesson() is called once per class."
     note for LabRunService "One run at a time; results return on the UI thread.<br/>Edits make older results stale.<br/>Evidence-to-mark is T06; Lab problems not supplied yet."
+
+    GameController --> CombatRules : explicit decisions
+    GameState *-- CombatSession : copied transient assessment state
+    CombatSession --> Question : difficulty-ranked content
+    note for CombatRules "30s soft threshold and Combo +5 are confirmed.<br/>HP formula, score conversion and ambiguous composition require explicit policy."
+    note for CombatSession "Backend monotonic clock and stale-result tickets.<br/>Final completed answer gets Dasher.<br/>Reward delays are not inventory/effect operations.<br/>No mid-combat save."

@@ -15,10 +15,13 @@ public final class ContentCatalog {
             if (text.isBlank() || choices.isEmpty()) throw new IllegalArgumentException("Lesson content/choices required.");
         }
     }
-    public record Question(String id, String prompt) {
+    public record Question(String id, String prompt, Integer difficultyRank) {
+        public Question(String id, String prompt) { this(id, prompt, null); }
         public Question {
             if (id == null || id.isBlank() || prompt == null || prompt.isBlank())
                 throw new IllegalArgumentException("Question id and prompt required.");
+            if (difficultyRank != null && difficultyRank < 1)
+                throw new IllegalArgumentException("Difficulty rank must be positive.");
         }
     }
     private final Map<Integer, Lesson> lessons;

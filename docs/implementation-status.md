@@ -1,6 +1,6 @@
 # Foundation implementation status
 
-Date: 2026-11-09. Latest action: add the JavaFX frontend for the approved Demo (Days 1–4) and make Main open it, without changing the rule core, save format or build configuration. The previous increment provided the Demo profile, normal sleep and read-only frontend accessors.
+Date: 2026-11-09. Current action: implement the combat backend and frontend integration contract while preserving the existing JavaFX UI, Demo, Main and framework setup.
 
 This record separates implemented behavior from the full design target. No production balancing configuration or missing game rule is approved by this implementation.
 
@@ -10,8 +10,8 @@ This record separates implemented behavior from the full design target. No produ
 | Daily flow | Opening acknowledgement, one Lesson choice, other classes, Hub slots, normal/early sleep, half-slot and closed-day transition | JavaFX screens for Days 1–4 of the Demo; no actual opening battle |
 | Effects | Explicit numeric deltas; tutorial negative effects waived; dated next-day effects | Amounts and composition are not production policy defaults |
 | Attendance | Two free absences, then percentage-point deductions; leave exempt; no major-exam skip | Tutorial accounting must be supplied; skipped-class free activities not implemented |
-| Questions | Fixed ordinary banks; sampled major banks with supplied size/RNG | Test fixtures only; no production bank or timer/answer policy |
-| Assessments | Submitted versus official marks; ordinary/makeup return after three days; majors immediate | Marks come from an evaluator, not an invented answer/HP formula |
+| Questions | Fixed ordinary banks; sampled major banks; optional authored difficulty ranks for combat | Full question content, answer keys and approved timing choices remain explicit |
+| Assessments | Combat state/tickets and configured settlement, plus submitted versus official marks; ordinary/makeup return after three days; majors immediate | Marks come from an evaluator, not an invented answer/HP formula |
 | Estimates | Separate value and source-labelled provisional effect; removal on official return | Accuracy and repeat policy are not invented |
 | Grade feedback | Supplied effect applied exactly once after official return | Automatic average/95 calculation remains T02/T03 |
 | Makeups | Caller selects first/second later Lesson; collisions/no-Lesson rejected; same questions, no Lesson reward, configured SAN cost | Detection is a condition flag, not an invented probability |
@@ -79,3 +79,13 @@ Package `com.aphs.classroomuprising.ui` with FXML layouts and `theme.css` under 
 | Not built | Chapter-test screen, absence/makeup flow, Midterm/Final decisions, combat, items, endings | Need backend content/rules first |
 
 Checks for this increment: 224 JUnit tests pass (`./gradlew test`), including frontend tests for `GameSession` against the real core and Demo, and for `LabRunService` with a real JDK. A scratch frame-rate probe measured about 120 fps (the display rate) in every scenario on the development Mac, worst frame under 17 ms. `installDist` builds; the installed launcher was started on macOS (Apple Silicon) and stayed running without errors, also when given old flags. A separate scratch harness (not in the project) drove the real window from New Game through Day 5 and Continue and captured each screen; it reported no exceptions. Manual play-testing and other operating systems have not been checked.
+
+## Combat backend increment
+
+CombatRules and CombatSession now implement the confirmed mechanics behind GameController: difficulty-ranked weights (explicit step), arbitrary unanswered-question selection, a 30-second soft threshold, final-answer Dasher, timely-completion Combo, configured fatigue damage, reward timing reservations, and trusted asynchronous evaluation with session/submission tickets. Combat state is copied transactionally and exposed as immutable views. Legacy constructors and non-combat evaluation remain available.
+
+The weighted-credit total and separate five-point Combo award go to a configured percentage converter; direct legacy score submission rejects an active combat. HP depletion reports T01 rather than guessing defeat behavior. Serious-cheating zero, ordinary three-day return, immediate major results, makeup conditions and version-1 day-end saves retain their behavior.
+
+This is backend logic, not an installed combat screen or a complete item system. The shipped Demo remains Days 1–4 and has no assessment bank. The weight text/example conflict, HP curve, timeout/Dasher priority, evaluation timing, reward-clock inclusion and score normalization are explicit pending policy, not hidden demo constants. Item ownership, consumption, effects and detection remain T09; reward delay completion alone performs none of them.
+
+The frontend task is specified in [frontend combat handoff](frontend-combat-handoff.md), including API signatures, event ordering, worker tickets, UI states, remaining content needs and a Claude prompt. Existing frontend files, assets, Main and build dependencies were preserved.

@@ -23,6 +23,7 @@ public final class GameState {
     Set<String> rewards = new LinkedHashSet<>();
     Map<String, Double> relationships = new LinkedHashMap<>();
     ActiveAssessment active;
+    CombatSession combat;
     record ActiveAssessment(DayPlan original, List<ContentCatalog.Question> questions, boolean makeup) {
         ActiveAssessment { questions = List.copyOf(questions); }
     }
@@ -41,7 +42,7 @@ public final class GameState {
         s.seriousCheating = new LinkedHashSet<>(seriousCheating);
         s.feedbackApplied = new LinkedHashSet<>(feedbackApplied); s.estimates = new LinkedHashMap<>(estimates);
         s.rewards = new LinkedHashSet<>(rewards); s.relationships = new LinkedHashMap<>(relationships);
-        s.active = active; return s;
+        s.active = active; s.combat = combat == null ? null : combat.copy(); return s;
     }
     public String name() { return name; }
     public int day() { return day; }
@@ -55,6 +56,7 @@ public final class GameState {
     public boolean lessonShown() { return lessonShown; }
     /** True between a successful assessment start and submission; exposes no mutable assessment data. */
     public boolean hasActiveAssessment() { return active != null; }
+    public boolean hasActiveCombat() { return combat != null; }
     public boolean hasMorningBonus() { return nextMorningBonus; }
     public List<TimedEffect> effects() { return List.copyOf(effects); }
     public Map<Integer, Integer> makeups() { return Map.copyOf(makeups); }
@@ -73,5 +75,5 @@ public final class GameState {
     }
     public DayPlan currentCourse() { return SchoolCalendar.day(makeups.getOrDefault(day, day)); }
     public boolean isTutorial() { return day <= 2; }
-    public boolean canSave() { return openingCompleted && period == DayPeriod.DAY_END && status == Status.ACTIVE && active == null; }
+    public boolean canSave() { return openingCompleted && period == DayPeriod.DAY_END && status == Status.ACTIVE && active == null && combat == null; }
 }

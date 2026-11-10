@@ -7,6 +7,7 @@ sequenceDiagram
     participant Content as ContentCatalog
     participant Grades as GradeBook
     participant Runner as JavaAssessmentRunner
+    participant Combat as CombatSession
     participant Save as SaveManager
 
     Note over Caller,Save: Implemented foundation, not complete gameplay. Fixture values are not approved rules.
@@ -31,7 +32,36 @@ sequenceDiagram
         Caller->>Game: lessonChoice(choice)
         Game->>State: Apply supplied effects, waive tutorial penalties, advance to OTHER_CLASSES
         Note over Caller,Game: Exactly one choice because the successful operation consumes the class slot.
-    else Assessment slot
+    else Combat assessment slot
+        Caller->>Game: startCombatAssessment()
+        Game->>Content: Load fixed or sampled questions
+        Game->>Combat: Validate difficulty ranks and configured weight step
+        loop Select and complete each question
+            Caller->>Game: startCombatQuestion(id)
+            Game->>Combat: Start monotonic clock once for this question
+            opt Reward delay with explicit timing policy
+                Caller->>Game: beginCombatRewardDelay(kind)
+                Game-->>Caller: RewardTicket and duration
+                Note over Caller,Combat: Timing only. Inventory and item effects remain T09.
+                Caller->>Game: finishCombatRewardDelay(ticket)
+                Game->>Combat: Verify elapsed duration and ticket
+            end
+            Caller->>Game: submitCombatAnswer()
+            Game-->>Caller: AnswerTicket for the captured work
+            Caller->>Runner: Evaluate captured Java work off UI thread when applicable
+            Runner-->>Caller: Evidence for configured trusted evaluator
+            Caller->>Game: recordCombatEvaluation(ticket, fraction, evidence)
+            Game->>Combat: Validate ticket, soft timeout, Dasher and configured HP cost
+            Game->>State: Commit answer and HP change once, with tutorial exemption
+            Game-->>Caller: Refresh immutable combat view
+        end
+        Caller->>Game: combatSummary()
+        Game-->>Caller: Weighted credits and separate Combo award
+        Caller->>Game: finishCombatAssessment()
+        Game->>Grades: Configured 0..100 conversion, preserving serious-cheating zero
+        Game->>State: Clear combat and follow ordinary delay or major checkpoint
+        Note over Caller,State: Unconfigured decisions reject transactionally with T01, T06, T07 or T09.
+    else Legacy non-combat assessment slot
         Caller->>Game: startAssessment()
         Game->>Content: questions(originalPlan, random)
         Content-->>Game: Fixed ordinary bank or configured major sample

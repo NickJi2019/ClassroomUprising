@@ -60,6 +60,11 @@ public record DemoProfile(String label, StudentState initialStudent, RuleValues 
         return new GameController(new GameState(name, initialStudent), rules, content, random);
     }
 
+    /** Explicit combat policy injection; the shipped Demo still has no assessment question bank. */
+    public GameController newGame(String name, RandomGenerator random, CombatRules combatRules) {
+        return new GameController(new GameState(name, initialStudent), rules, content, random, combatRules);
+    }
+
     private static final class Fields {
         private final Properties values;
         private final Set<String> used = new HashSet<>();
