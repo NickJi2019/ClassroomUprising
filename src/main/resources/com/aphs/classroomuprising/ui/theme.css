@@ -364,3 +364,35 @@
 .tip-title { -fx-font-size: 18px; -fx-text-fill: -cu-cyan; }
 .tip-body { -fx-font-size: 14px; -fx-text-fill: -cu-text; -fx-line-spacing: 2px; }
 .tip-close { -fx-font-size: 10px; -fx-text-fill: -cu-dim; }
+
+/* ---------- lecture slides (projector panel beside the teacher) ---------- */
+.slide-frame { -fx-fill: rgba(11, 15, 42, 0.94); -fx-stroke: -cu-line; -fx-stroke-width: 2; }
+.slide-shard { -fx-fill: -cu-cyan; -fx-opacity: 0.85; }
+.slide-screen { -fx-background-color: #05071A; }
+.slide-edge { -fx-fill: linear-gradient(to right, rgba(92, 225, 230, 0), #FFFFFF 55%, #5CE1E6); }
+.slide-tag { -fx-padding: 3 22 3 18; }
+.slide-tag > .slant-bg { -fx-fill: -cu-caret; }
+.slide-kind { -fx-font-size: 13px; -fx-text-fill: -cu-ink; }
+.slide-number { -fx-font-size: 20px; -fx-text-fill: -cu-ink; }
+.slide-scrim { -fx-background-color: rgba(5, 7, 26, 0.80); }
+
+/* ---------- sound volume rows (Esc menu and title) ---------- */
+.sound-panel { -fx-padding: 8 0 0 0; }
+.sound-row { -fx-padding: 8 16 8 14; -fx-background-color: transparent; -fx-cursor: hand; }
+.sound-row:active {
+    -fx-background-color: rgba(255, 210, 63, 0.12);
+    -fx-border-color: transparent transparent transparent -cu-caret;
+    -fx-border-width: 0 0 0 4;
+}
+.sound-name { -fx-font-size: 22px; -fx-text-fill: -cu-soft; -fx-min-width: 132; -fx-pref-width: 132; }
+.sound-row:active .sound-name { -fx-text-fill: -cu-caret; }
+.sound-cell {
+    -fx-min-width: 16; -fx-min-height: 26; -fx-max-width: 16; -fx-max-height: 26;
+    -fx-background-color: -cu-line;
+    -fx-shape: "M 5 0 L 16 0 L 11 26 L 0 26 Z";
+}
+.sound-cell:on { -fx-background-color: -cu-cyan; }
+.sound-row:active .sound-cell:on { -fx-background-color: -cu-caret; }
+.sound-value { -fx-font-size: 22px; -fx-text-fill: -cu-text; -fx-min-width: 44; }
+.sound-keys { -fx-font-size: 11px; -fx-text-fill: -cu-dim; -fx-padding: 6 0 0 14; }
+.slide-zoom-hint { -fx-font-size: 14px; -fx-text-fill: -cu-soft; }

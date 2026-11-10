@@ -79,6 +79,7 @@ final class Router {
         canvas.getChildren().addAll(screenLayer, tips, toastLayer, overlayLayer, transitionLayer);
         scene.addEventFilter(KeyEvent.KEY_PRESSED, this::filterKeys);
         scene.addEventHandler(RevealOriginEvent.ACTIVATED, e -> origin = canvas.sceneToLocal(e.sceneX(), e.sceneY()));
+        scene.addEventHandler(Sfx.Request.PLAY, e -> sound(e.sound()));
     }
 
     void bind(AppContext context) { this.context = context; }
@@ -96,10 +97,12 @@ final class Router {
         closePauseNow();
         dropTips();
         next.root();
+        music(next);
         if (current == null) {
             swap(next);
             return;
         }
+        sound(Sfx.TRANSITION);
         Optional<FrameSequence> drawn = sequence("screen");
         if (drawn.isPresent()) playSequence(next, drawn.get());
         else reveal(next, caption);
@@ -110,10 +113,12 @@ final class Router {
         closePauseNow();
         dropTips();
         next.root();
+        music(next);
         if (current == null) {
             swap(next);
             return;
         }
+        sound(Sfx.CLOCK);
         // The scene behind the clock is re-graded to the new time of day while the hands turn.
         SceneView world = current.root().lookup(".scene-view") instanceof SceneView scene ? scene : null;
         ClockShift clock = new ClockShift(from, to, () -> swap(next),
@@ -295,6 +300,7 @@ final class Router {
         overlayLayer.getChildren().setAll(root);
         pause.onShown();
         pause.focus();
+        sound(Sfx.MENU_OPEN);
         begin();
         Optional<FrameSequence> drawn = sequence("menu-open");
         if (drawn.isPresent()) {
@@ -321,6 +327,7 @@ final class Router {
     void closePause() {
         if (pause == null || transitioning) return;
         Parent root = pause.root();
+        sound(Sfx.MENU_CLOSE);
         begin();
         Animation close = maskAnimation(root, 1, 0, Duration.millis(180), 8);
         close.setOnFinished(e -> {
@@ -363,6 +370,14 @@ final class Router {
         else if (current != null && current.allowsPause() && context.hasSession()) openPause();
         else return;
         event.consume();
+    }
+
+    private void music(Screen next) {
+        if (context != null) context.audio().music(next.music());
+    }
+
+    private void sound(Sfx sound) {
+        if (context != null) context.audio().play(sound);
     }
 
     private void begin() {

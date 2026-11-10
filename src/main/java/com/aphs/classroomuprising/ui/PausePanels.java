@@ -104,6 +104,12 @@ final class PausePanels {
         return page;
     }
 
+    /** The title and subtitle every page starts with. */
+    static VBox heading(String title, String subtitle) {
+        VBox head = new VBox(12, label(title, "display", "panel-title"), label(subtitle, "mono", "panel-muted"));
+        return head;
+    }
+
     private static VBox page(String title, String subtitle) {
         VBox page = new VBox(12, label(title, "display", "panel-title"), label(subtitle, "mono", "panel-muted"));
         page.getStyleClass().add("pause-page");

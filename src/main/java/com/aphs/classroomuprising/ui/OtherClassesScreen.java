@@ -19,6 +19,9 @@ final class OtherClassesScreen extends Screen {
     OtherClassesScreen(AppContext ctx) { super(ctx); }
 
     @Override
+    protected String music() { return "school"; }
+
+    @Override
     protected Parent build() {
         StackPane root = Views.load("other-classes.fxml", this);
         ctx.stage(scene, "hallway", null, "other_classes");

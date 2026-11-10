@@ -27,6 +27,9 @@ final class DayEndScreen extends Screen {
     DayEndScreen(AppContext ctx) { super(ctx); }
 
     @Override
+    protected String music() { return "night"; }
+
+    @Override
     protected Parent build() {
         StackPane root = Views.load("day-end.fxml", this);
         ctx.stage(scene, "dorm", "day_end", "day_end");

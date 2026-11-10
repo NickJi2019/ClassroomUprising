@@ -54,6 +54,7 @@ final class CutIn {
         banner.setRotate(-4);
         banner.setMouseTransparent(true);
         layer.getChildren().add(banner);
+        Sfx.CUTIN.play(layer);
 
         Scale bandGrow = new Scale(0, 1, -120, 0);
         band.getTransforms().add(bandGrow);

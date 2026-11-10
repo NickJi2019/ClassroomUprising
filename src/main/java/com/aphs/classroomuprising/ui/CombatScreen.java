@@ -123,6 +123,9 @@ final class CombatScreen extends Screen {
     }
 
     @Override
+    protected String music() { return "combat"; }
+
+    @Override
     protected Parent build() {
         StackPane root = Views.load("combat.fxml", this);
         plan = ctx.session().view().currentCourse();
@@ -584,6 +587,7 @@ final class CombatScreen extends Screen {
 
     /** The answer cost HP: a red flash and a short jolt of the HUD, where HP is shown. */
     private void hit() {
+        Sfx.HIT.play(hitFlash);
         new Timeline(
                 new KeyFrame(Duration.ZERO, new KeyValue(hitFlash.opacityProperty(), 0)),
                 new KeyFrame(Duration.millis(40), new KeyValue(hitFlash.opacityProperty(), 0.5)),

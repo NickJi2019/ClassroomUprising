@@ -26,6 +26,7 @@ final class AppContext {
     private final AssetStore assets;
     private final CombatRules combatRules;
     private final CombatEvaluator combatEvaluator;
+    private final AudioDirector audio;
     private GameSession session;
     private GameState dayStart;
     /** Tutorial tips already shown in this playthrough (window state only, not saved). */
@@ -51,7 +52,11 @@ final class AppContext {
         this.assets = assets;
         this.combatRules = combatRules;
         this.combatEvaluator = combatEvaluator;
+        this.audio = new AudioDirector(assets, savePath == null ? null : AudioSettings.fileFor(savePath));
     }
+
+    /** The window's music and interface sounds. */
+    AudioDirector audio() { return audio; }
 
     /** The combat policy every new or loaded game is created with. */
     CombatRules combatRules() { return combatRules; }

@@ -59,6 +59,7 @@ final class TipLayer extends StackPane {
         next.setOnMouseClicked(e -> clear());
         card = next;
         getChildren().add(next);
+        Sfx.TIP.play(this);
 
         // In: drops a little and opens left to right in drawn steps; the badge punches after.
         Rectangle wipe = new Rectangle(0, 400);
