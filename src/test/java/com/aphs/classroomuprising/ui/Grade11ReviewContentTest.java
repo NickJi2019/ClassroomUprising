@@ -54,29 +54,52 @@ class Grade11ReviewContentTest {
         assertEquals(JavaAssessmentRunner.Status.PASSED,report.tests().getFirst().status(),report.tests().toString());
     }
     @Test void dayOneJavaExamplesProduceTheTaughtValues() throws Exception {
-        String text=DemoProfile.load().content().lesson(1).text();var source=new StringBuilder();
-        for(String code:List.of("int tickets = 7;","double price = 2.5;","String name = \"Ada\";",
-                "boolean hasPass = true;","tickets = tickets + 1;","int wholeShare = 7 / 2;",
-                "double decimalShare = 7 / 2;","double properShare = 7 / 2.0;","int age = 16;"))
-            source.append(excerpt(text,code));
-        source.append("System.out.print(tickets+\"|\"+price+\"|\"+name+\"|\"+hasPass+\"|\"+wholeShare+\"|\"+decimalShare+\"|\"+properShare+\"|\");");
-        source.append("System.out.print((").append(excerpt(text,"2 + 3 * 4")).append(")+\"|\"+(")
-                .append(excerpt(text,"(2 + 3) * 4")).append(")+\"|\");");
-        String branch=excerpt(text,"if (age >= 16 && hasPass) { System.out.print(\"Enter\"); } else { System.out.print(\"Wait\"); }");
-        source.append(branch).append("System.out.print(\"|\");age=15;").append(branch)
-                .append("System.out.print(\"|\"+").append(excerpt(text,"\"Ada\".equals(name)")).append(");");
-        passed(run(source.toString(),"","8|2.5|Ada|true|3|3.0|3.5|14|20|Enter|Wait|true"));
+        String text=DemoProfile.load().content().lesson(1).text();
+        String source=excerpt(text,"int count;")+excerpt(text,"double price;")+"int x;"+
+                excerpt(text,"x = 22;")+excerpt(text,"System.out.println(\"'sup?\");");
+        passed(run(source,"","'sup?"+System.lineSeparator()));
     }
     @Test void dayTwoJavaExamplesProduceTheTaughtValues() throws Exception {
-        String text=DemoProfile.load().content().lesson(2).text();var source=new StringBuilder();
-        source.append(excerpt(text,"for (int i = 0; i < 3; i++) { System.out.print(i); }"));
-        source.append(excerpt(text,"int total = 0;")).append(excerpt(text,"for (int n = 1; n <= 3; n++) { total += n; }"));
-        source.append(excerpt(text,"int remaining = 3;")).append(excerpt(text,"while (remaining > 0) { remaining--; }"));
-        source.append(excerpt(text,"int[] values = {4, 7, 2};"));
-        source.append(excerpt(text,"int sum = 0;")).append(excerpt(text,"for (int i = 0; i < values.length; i++) { sum += values[i]; }"));
-        source.append(excerpt(text,"int doubled = doubleValue(4);"));
-        source.append("System.out.print(\"|\"+total+\"|\"+remaining+\"|\"+values[1]+\"|\"+values.length+\"|\"+sum+\"|\"+doubled);");
-        passed(run(source.toString(),excerpt(text,"static int doubleValue(int value) { return value * 2; }"),"012|6|0|7|3|13|8"));
+        String text=DemoProfile.load().content().lesson(2).text();
+        // The loop initializes y to zero as in the supplied slide/example contract.
+        String loop=excerpt(text,"for (int i = 0; i < 100; i += 2)");
+        String add=excerpt(text,"y += i");
+        String source="int y=0;int last=-1;"+loop+" { "+add+";last=i;System.out.println(i+\" \"+y); }"+
+                "System.out.println(\"last=\"+last+\", y=\"+y);"+
+                "double aSide=3.0;double bSide=4.0;"+
+                excerpt(text,"double cSide = pythag(aSide, bSide);")+
+                excerpt(text,"System.out.println(cSide);")+
+                excerpt(text,"int[] values = {4, 7, 2};")+"System.out.println(values.length);";
+        String method="static double pythag(double a,double b) { return "+
+                excerpt(text,"Math.sqrt(a * a + b * b)")+"; }";
+        String nl=System.lineSeparator();var output=new StringBuilder();
+        // Independent closed-form expectation for the sum of even integers through 2*n.
+        for(int n=0;n<50;n++) output.append(2*n).append(' ').append(n*(n+1)).append(nl);
+        output.append("last=98, y=2450").append(nl).append("5.0").append(nl).append("3").append(nl);
+        passed(run(source,method,output.toString()));
+    }
+    @ParameterizedTest @ValueSource(ints={1,2})
+    void everyReviewLineKeepsTheSlideSpecifiedByTheNarration(int day) throws Exception {
+        var lines=DialogueScript.parse(DemoProfile.load().content().lesson(day).text(),"Unexpected fallback");
+        var slides=day==1?List.of("review-purpose","file-structure","example-java","data-types",
+                "variables","math-and-symbols","decisions"):
+                List.of("loops","methods","method-example","the-rest","automated-testing");
+        var counts=day==1?List.of(3,2,2,2,2,3,2):List.of(5,2,3,3,2);
+        assertEquals(day==1?16:15,lines.size());
+        assertEquals(slides,SlideProjector.cues(lines));
+        // This is an assertion about the current supplied draft, not a runtime line-number map.
+        String current=null;int offset=0;
+        for(int page=0;page<slides.size();page++) {
+            for(int i=0;i<counts.get(page);i++) {
+                var line=lines.get(offset++);
+                if(line.slide()!=null) current=line.slide();
+                assertEquals(slides.get(page),current);
+                if(i==0) assertEquals(current,line.slide()); else assertNull(line.slide());
+                assertFalse(line.text().contains("[slide:"));
+                assertTrue(line.text().length()<=180,"Narration should retain the validated compact page size.");
+            }
+        }
+        assertEquals(lines.size(),offset);
     }
     @Test void theArrayBoundaryExampleReallyIsOutOfBounds() throws Exception {
         String text=DemoProfile.load().content().lesson(2).text();

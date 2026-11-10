@@ -2,6 +2,8 @@
 
 Date: 2026-11-10. From: frontend. To: backend owner of `src/main/resources/demo/demo.properties`.
 
+Backend integration status: applied to the bundled lesson text on 2026-11-10. The two property lines below are preserved verbatim. The old example checks have been updated, and per-day slide-sequence checks cover all 31 spoken lines. The request and frontend observations below are retained as the handoff record.
+
 The class deck *Review Overview* is now in the game: 12 useful pages are bundled as lecture slides (`assets/slides/gr11-review/`). The dialogue box must carry Mr. Reward's spoken explanation of the slide on screen, so the Day 1–2 lecture text has to be rewritten around those slides. The frontend owns the slides, the projector and the cue parsing; the lecture text and its content tests are yours.
 
 ## What to change
