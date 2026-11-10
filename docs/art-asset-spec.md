@@ -40,7 +40,7 @@ Avoid strong detail behind the left and right edges where menus sit; the game ad
 | Expressions | `character.<id>.expression.<name>`. `neutral` is required; others use short lower-case names (`smile`, `stern`, `worried`, …). A missing expression falls back to `neutral` |
 | Dialogue name | `character.<id>.name` must match the speaker name used in dialogue text (e.g. `Mr. Reward`); `You` is the player |
 | Facing (optional) | `character.<id>.faces = right` (or `left`): the way the art looks. On the other side of the screen the figure is mirrored about its anchor, so characters face the middle. Leave it out for art that faces the viewer |
-| Photos | Cut-out photos work. HDR photos (iPhone: 16-bit PNG with a BT.2100 PQ profile) must be converted to SDR sRGB first; read as ordinary sRGB they look grey and flat. Stripping the profile does not convert them |
+| Photos | Cut-out photos work. HDR photos (iPhone: 16-bit PNG with a BT.2100 PQ profile) must be converted to SDR sRGB first; read as ordinary sRGB they look grey and flat. Stripping the profile does not convert them. A drawing photographed in HDR can still come out grey after the system conversion when its paper is dimmer than HDR reference white: raise the exposure (in linear light) until the paper reads white |
 
 In dialogue text, a line can ask for an expression: `Mr. Reward[smile]: Good question.` The tag is not shown to the player. *This text format needs agreement with the content authors before they rely on it.*
 
@@ -60,7 +60,7 @@ Seven cut-out photos of the teacher, delivered by the team on 2026-11-10, placed
 | `staring` | `staring.png` | wide-eyed stare | After the player stays quiet |
 | `thumbs-up` | `thumbs-up.png` | thumbs up | Reply to an appropriate response |
 
-`ui/reward-logo.png` is the team's hand-drawn "Mr. Reward" title, shown on a red band as he steps into the opening.
+`ui/reward-logo.png` is the team's hand-drawn "Mr. Reward" title, shown on a red band as he steps into the opening. Its source is an HDR (BT.2100 PQ) photo whose paper sits at about half of reference white, so the system's SDR conversion left the paper grey (sRGB 188). After that conversion its exposure was raised ×1.6 in linear light so the paper is sRGB 232 (near white) and the ink stays black; trimmed to the drawing, 900 px wide, no metadata.
 
 ## Textures
 
