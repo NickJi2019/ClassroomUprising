@@ -61,13 +61,14 @@ final class ClassroomScreen extends Screen {
         log = new DialogueLog(ctx.assets());
         root.getChildren().add(log);
         dialogue.attachKeys(root);
+        if (ctx.router() != null) dialogue.followFastForward(ctx.router().fastForward());
         dialogue.setAdvanceAllowed(() -> (slides == null || !slides.zoomed()) && !log.isOpen());
         dialogue.setOnHistory(this::openLog);
         root.setOnKeyPressed(e -> {
             if (slides != null && slides.zoomed()) {
-                // The slide is open large: the lecture waits, and any of these keys closes it.
+                // The slide is open large: the lecture waits, and any of these keys (or Esc) closes it.
                 switch (e.getCode()) {
-                    case Z, ENTER, SPACE, BACK_SPACE, ESCAPE -> {
+                    case Z, ENTER, SPACE, BACK_SPACE -> {
                         slides.unzoom();
                         e.consume();
                     }
@@ -87,9 +88,25 @@ final class ClassroomScreen extends Screen {
         return root;
     }
 
-    /** Esc closes an enlarged slide or the log first; otherwise it opens the menu. */
     @Override
-    protected boolean allowsPause() { return (slides == null || !slides.zoomed()) && (log == null || !log.isOpen()); }
+    protected boolean allowsPause() { return true; }
+
+    /** Esc, one level back: the log (its large slide first), a large slide, the response menu. */
+    @Override
+    protected boolean back() {
+        if (log != null && log.isOpen()) return log.back();
+        if (slides != null && slides.zoomed()) slides.unzoom();
+        else if (responding) participation();
+        else return false;
+        return true;
+    }
+
+    /** The lecture is playing (and not waiting on the log or a large slide). */
+    @Override
+    protected boolean isPlaying() {
+        return dialogue.isVisible() && !dialogue.isFinished()
+                && (slides == null || !slides.zoomed()) && (log == null || !log.isOpen());
+    }
 
     @Override
     protected String music() { return "school"; }
@@ -124,7 +141,10 @@ final class ClassroomScreen extends Screen {
         hud.setCourseTitle(lesson.title());
         List<DialogueScript.Line> script = ctx.script(lesson.text());
         projector(SlideProjector.cues(script));
-        hud.setHint("HOLD ENTER  FAST    H  LOG" + (slides != null ? "    Z  SLIDE" : "") + "    ESC  MENU");
+        var keys = new java.util.ArrayList<>(List.of(KeyHints.Hint.of("HOLD ENTER / MOUSE", "FAST"), KeyHints.Hint.of("H", "LOG")));
+        if (slides != null) keys.add(KeyHints.Hint.of("Z", "SLIDE"));
+        keys.add(KeyHints.Hint.of("ESC", "MENU"));
+        hud.setHints(keys.toArray(KeyHints.Hint[]::new));
         dialogue.play(script, this::offer);
         root().requestFocus();
     }
@@ -137,13 +157,13 @@ final class ClassroomScreen extends Screen {
     private void projector(List<String> cued) {
         if (ctx.assets() == null || cued.isEmpty()) return;
         slides = new SlideProjector(ctx.assets(), cued);
+        slides.setOnLargeView(hud::hideHints);   // the large view has its own key hints
         StackPane root = (StackPane) root();
         root.getChildren().add(root.getChildren().indexOf(log), slides);   // the log stays on top
     }
 
     private void offer() {
         if (slides != null) slides.close();
-        hud.setHint("H  LOG    ESC  MENU");
         ctx.tip(TutorialTips.Moment.LESSON_CHOICE);
         if (lesson.decision() == null) flatChoices();
         else {
@@ -167,6 +187,7 @@ final class ClassroomScreen extends Screen {
     /** First menu: take part or stay quiet. Showing it (again) changes nothing in the game. */
     private void participation() {
         responding = false;
+        hud.setHints(KeyHints.Hint.of("H", "LOG"), KeyHints.Hint.of("ESC", "MENU"));
         notice(notice, null);
         prompt.setText(UiText.interactionPrompt(lesson.interaction()));
         choices.getStyleClass().remove("sentences");
@@ -179,13 +200,14 @@ final class ClassroomScreen extends Screen {
     /** Second menu: the authored responses. Opening it changes nothing in the game. */
     private void responses() {
         responding = true;
+        hud.setHints(KeyHints.Hint.of("H", "LOG"), KeyHints.Hint.of("ESC", "BACK"));
         notice(notice, null);
         prompt.setText(LessonMenu.responsePrompt(lesson));
         if (!choices.getStyleClass().contains("sentences")) choices.getStyleClass().add("sentences");
         var list = new java.util.ArrayList<ChoiceList.Choice>();
         for (LessonMenu.Entry entry : LessonMenu.responses(lesson.decision()))
             list.add(ChoiceList.Choice.of(entry.label(), null, () -> settle(entry.option())));
-        list.add(ChoiceList.Choice.of("BACK", "Backspace", this::participation).tone("cyan"));
+        list.add(ChoiceList.Choice.of("BACK", "Esc", this::participation).tone("cyan"));
         choices.setChoices(list);
         choices.requestFocus();
     }
@@ -225,6 +247,7 @@ final class ClassroomScreen extends Screen {
     }
 
     private void dismissed() {
+        hud.setHints(KeyHints.Hint.of("H", "LOG"), KeyHints.Hint.of("ESC", "MENU"));
         prompt.setText("CLASS DISMISSED");
         choices.getStyleClass().remove("sentences");
         choices.setChoices(List.of(ChoiceList.Choice.of("CONTINUE", "Go to your other class", ctx::advance)));
@@ -233,6 +256,7 @@ final class ClassroomScreen extends Screen {
 
     /** A lesson without an authored decision (older content): its choices in one list, as before. */
     private void flatChoices() {
+        hud.setHints(KeyHints.Hint.of("H", "LOG"), KeyHints.Hint.of("ESC", "MENU"));
         prompt.setText(UiText.interactionPrompt(lesson.interaction()));
         choices.setChoices(UiText.choiceOrder(lesson.choices().keySet()).stream()
                 .map(id -> ChoiceList.Choice.of(UiText.lessonChoice(id), null, () -> choose(id)))

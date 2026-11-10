@@ -23,16 +23,16 @@ import javafx.util.Duration;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.BooleanSupplier;
+import javafx.beans.value.ObservableBooleanValue;
 
 /**
  * Bottom-of-screen dialogue: a name tag, typewriter text and an advance marker.
  * {@link #advance()} first completes the line being typed, then moves to the next line.
  *
- * <p>Enter, Space or the mouse button: a tap advances once; holding it for a moment
- * fast-forwards (each line completes, then the next starts, quickly) until it is released or
- * the script ends. A key still held when the script ends never reaches whatever appears next
- * (such as a choice menu), so fast-forward cannot choose anything. Every shown line goes into a
- * {@link DialogueHistory} for the log; scrolling up over the box asks for the log.</p>
+ * <p>Enter, Space or a click on the box advances once. While the window's hold-to-fast-forward
+ * is active ({@link FastForward}), lines complete and follow each other quickly until it is
+ * released or the script ends. Every shown line goes into a {@link DialogueHistory} for the log;
+ * scrolling up over the box asks for the log.</p>
  */
 public class DialogueBox extends StackPane {
     private final Label speaker = new Label();
@@ -48,14 +48,12 @@ public class DialogueBox extends StackPane {
     /** The full text of the line on screen, used to size the box before and while it types. */
     private String current = "";
     private final DialogueHistory history = new DialogueHistory();
-    /** How long Enter/Space/the mouse must be held before fast-forward starts. */
-    private static final Duration HOLD = Duration.millis(380);
     /** One fast-forward step: complete the line on screen, or start the next one. */
     private static final Duration FAST_STEP = Duration.millis(70);
-    private final PauseTransition holdTimer = new PauseTransition(HOLD);
     private final Timeline fastTimer = new Timeline(new KeyFrame(FAST_STEP, e -> fastStep()));
-    private final Slant fastTag;
-    private boolean held;
+    private ObservableBooleanValue fast;
+    /** Held here; the window's hold only keeps a weak reference, so a replaced screen can go. */
+    private final javafx.beans.value.ChangeListener<Boolean> fastListener = (obs, was, now) -> updateFast();
     private BooleanSupplier advanceAllowed = () -> true;
     private Runnable onHistory = () -> {};
 
@@ -82,27 +80,11 @@ public class DialogueBox extends StackPane {
         blink.setCycleCount(Animation.INDEFINITE);
         blink.play();
 
-        Label fastLabel = new Label("FAST");
-        fastLabel.getStyleClass().addAll("display", "dialogue-fast-label");
-        HBox fastMark = new HBox(4, arrow(), arrow(), fastLabel);
-        fastMark.setAlignment(Pos.CENTER_LEFT);
-        fastTag = new Slant(fastMark);
-        fastTag.getStyleClass().add("dialogue-fast");
-        fastTag.setMaxSize(USE_PREF_SIZE, USE_PREF_SIZE);
-        StackPane.setAlignment(fastTag, Pos.TOP_RIGHT);
-        fastTag.setTranslateY(-40);
-        fastTag.setVisible(false);
-        fastTag.setMouseTransparent(true);
-
-        holdTimer.setOnFinished(e -> startFast());
         fastTimer.setCycleCount(Animation.INDEFINITE);
 
-        getChildren().addAll(text, tag, more, fastTag);
-        addEventHandler(MouseEvent.MOUSE_PRESSED, e -> {
-            if (e.getButton() == MouseButton.PRIMARY) press();
-        });
-        addEventHandler(MouseEvent.MOUSE_RELEASED, e -> {
-            if (e.getButton() == MouseButton.PRIMARY) release();
+        getChildren().addAll(text, tag, more);
+        addEventHandler(MouseEvent.MOUSE_CLICKED, e -> {
+            if (e.getButton() == MouseButton.PRIMARY && advanceAllowed.getAsBoolean()) advance();
         });
         addEventHandler(ScrollEvent.SCROLL, e -> {
             if (e.getDeltaY() > 0) onHistory.run();
@@ -110,33 +92,22 @@ public class DialogueBox extends StackPane {
         widthProperty().addListener((obs, a, b) -> fit());
     }
 
-    private static Polygon arrow() {
-        Polygon arrow = new Polygon(0, 0, 9, 6, 0, 12);
-        arrow.getStyleClass().add("dialogue-fast-arrow");
-        return arrow;
-    }
-
-    /**
-     * Lets Enter and Space on {@code root} drive this box: a tap advances, holding fast-forwards.
-     * While the key is held, further presses of it (the keyboard's auto-repeat) are swallowed, so a
-     * key held past the end of the script cannot activate the menu that appears.
-     */
+    /** Lets Enter and Space on {@code root} advance this box (a tap; holding is {@link FastForward}). */
     void attachKeys(Node root) {
-        root.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
-            if (advanceKey(e.getCode()) && held) e.consume();
-        });
-        root.addEventFilter(KeyEvent.KEY_RELEASED, e -> {
-            if (advanceKey(e.getCode())) release();
-        });
         root.addEventHandler(KeyEvent.KEY_PRESSED, e -> {
-            if (advanceKey(e.getCode()) && !finished && advanceAllowed.getAsBoolean()) {
-                press();
+            if (FastForward.advanceKey(e.getCode()) && !finished && advanceAllowed.getAsBoolean()) {
+                advance();
                 e.consume();
             }
         });
     }
 
-    private static boolean advanceKey(KeyCode code) { return code == KeyCode.ENTER || code == KeyCode.SPACE; }
+    /** Plays lines quickly while {@code active} is true (the window's hold-to-fast-forward). */
+    void followFastForward(ObservableBooleanValue active) {
+        fast = active;
+        active.addListener(new javafx.beans.value.WeakChangeListener<>(fastListener));
+        updateFast();
+    }
 
     /** When this is false (a slide shown large, the log open) neither taps nor fast-forward advance. */
     void setAdvanceAllowed(BooleanSupplier allowed) { advanceAllowed = allowed; }
@@ -147,42 +118,18 @@ public class DialogueBox extends StackPane {
     /** Every line shown so far, with the slide that was up. */
     List<DialogueHistory.Entry> history() { return history.entries(); }
 
-    /** Whether Enter/Space/the mouse button is being held on the box. */
-    boolean holding() { return held; }
-
     /** Whether fast-forward is running. */
     boolean fastForwarding() { return fastTimer.getStatus() == Animation.Status.RUNNING; }
 
-    /** The advance key or button went down: advance once now, fast-forward if it stays down. */
-    void press() {
-        if (held) return;
-        held = true;
-        if (advanceAllowed.getAsBoolean()) advance();
-        holdTimer.playFromStart();
-    }
-
-    /** The advance key or button came up: fast-forward stops. */
-    void release() {
-        held = false;
-        holdTimer.stop();
-        stopFast();
-    }
-
-    private void startFast() {
-        if (!held || finished) return;
-        fastTag.setVisible(true);
-        fastTimer.play();
-    }
-
-    private void stopFast() {
-        fastTimer.stop();
-        fastTag.setVisible(false);
+    private void updateFast() {
+        if (fast != null && fast.get() && !finished) fastTimer.play();
+        else fastTimer.stop();
     }
 
     /** One step of fast-forward (no per-line sound): finish the typing, or go on to the next line. */
     private void fastStep() {
-        if (finished) {
-            stopFast();
+        if (finished || fast == null || !fast.get()) {
+            fastTimer.stop();
             return;
         }
         if (!advanceAllowed.getAsBoolean()) return;
@@ -192,7 +139,7 @@ public class DialogueBox extends StackPane {
             more.setVisible(true);
         } else {
             next();
-            if (finished) stopFast();
+            if (finished) fastTimer.stop();
         }
     }
 
@@ -204,6 +151,7 @@ public class DialogueBox extends StackPane {
         index = -1;
         history.beginScript();
         next();
+        updateFast();   // a hold that is still down carries on into the new script
     }
 
     /** Shows one line with no follow-up action. */

@@ -40,6 +40,15 @@ abstract class Screen {
     /** Whether ESC may open the menu over this screen. */
     protected boolean allowsPause() { return false; }
 
+    /**
+     * Esc: closes whatever this screen has open on top of itself (a log, a large slide, a sub-menu)
+     * and returns true; false when there is nothing to go back from here.
+     */
+    protected boolean back() { return false; }
+
+    /** Whether something is playing that a held Enter/Space/mouse button speeds up (such as dialogue). */
+    protected boolean isPlaying() { return false; }
+
     /** Replaces the contents of a notice area with one card (or clears it with null). */
     protected static void notice(Pane area, Node card) {
         if (card == null) area.getChildren().clear();

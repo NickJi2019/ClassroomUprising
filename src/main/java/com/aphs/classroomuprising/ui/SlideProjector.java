@@ -47,10 +47,11 @@ final class SlideProjector extends Pane {
     private final Label number = new Label();
     private final Slant tag;
     private final Region scrim = new Region();
-    private final Label zoomHint = new Label();
+    private final KeyHints zoomKeys = new KeyHints();
     private final Scale zoom = new Scale(1, 1, SW / 2, SH / 2);
     private int shown = -1;
     private boolean zoomed;
+    private java.util.function.Consumer<Boolean> onZoom = on -> {};
     private Animation moving;
 
     SlideProjector(AssetStore assets, List<String> slides) {
@@ -64,13 +65,10 @@ final class SlideProjector extends Pane {
         scrim.setOpacity(0);
         scrim.setVisible(false);
         scrim.addEventHandler(MouseEvent.MOUSE_CLICKED, e -> setZoomed(false));
-        zoomHint.getStyleClass().addAll("display", "slide-zoom-hint");
-        zoomHint.setLayoutX(0);
-        zoomHint.setLayoutY(ClassroomApp.HEIGHT - 26);
-        zoomHint.setPrefWidth(ClassroomApp.WIDTH - 28);
-        zoomHint.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
-        zoomHint.setMouseTransparent(true);
-        zoomHint.setOpacity(0);
+        // Bottom-right, where every screen keeps its key hints.
+        zoomKeys.layoutXProperty().bind(zoomKeys.widthProperty().negate().add(ClassroomApp.WIDTH - 18));
+        zoomKeys.layoutYProperty().bind(zoomKeys.heightProperty().negate().add(ClassroomApp.HEIGHT - 4));
+        zoomKeys.setOpacity(0);
 
         frame.getStyleClass().add("slide-frame");
         shard.getStyleClass().add("slide-shard");
@@ -100,7 +98,7 @@ final class SlideProjector extends Pane {
         rig.setCursor(javafx.scene.Cursor.HAND);
         rig.addEventHandler(MouseEvent.MOUSE_CLICKED, e -> toggleZoom());
         rig.setVisible(false);
-        getChildren().addAll(scrim, rig, zoomHint);
+        getChildren().addAll(scrim, rig, zoomKeys);
         // Decode every slide now, so turning a page never waits on a file.
         this.slides.forEach(assets::slide);
     }
@@ -153,10 +151,14 @@ final class SlideProjector extends Pane {
     /** Closes the large view, if it is open. */
     void unzoom() { setZoomed(false); }
 
+    /** Called when the large view opens (true) or closes (false), by key or by click. */
+    void setOnLargeView(java.util.function.Consumer<Boolean> listener) { onZoom = listener; }
+
     private void setZoomed(boolean on) {
         if (on == zoomed) return;
         zoomed = on;
-        zoomHint.setText("SLIDE " + number.getText() + "     Z / ENTER  CLOSE");
+        onZoom.accept(on);
+        zoomKeys.set(KeyHints.Hint.info("SLIDE " + number.getText()), KeyHints.Hint.of("Z / ESC", "CLOSE"));
         double scale = on ? ZOOM : 1;
         double dx = on ? ZOOM_CX - (X + SW / 2) : 0;
         double dy = on ? ZOOM_CY - (Y + SH / 2) : 0;
@@ -167,7 +169,7 @@ final class SlideProjector extends Pane {
                 new KeyValue(rig.translateXProperty(), dx, MotionTokens.OUT),
                 new KeyValue(rig.translateYProperty(), dy, MotionTokens.OUT),
                 new KeyValue(scrim.opacityProperty(), on ? 1 : 0, MotionTokens.OUT),
-                new KeyValue(zoomHint.opacityProperty(), on ? 1 : 0, MotionTokens.OUT),
+                new KeyValue(zoomKeys.opacityProperty(), on ? 1 : 0, MotionTokens.OUT),
                 // The page tag would be pushed off the top edge; the hint carries the number instead.
                 new KeyValue(tag.opacityProperty(), on ? 0 : 1, MotionTokens.OUT)));
         change.setOnFinished(e -> scrim.setVisible(zoomed));

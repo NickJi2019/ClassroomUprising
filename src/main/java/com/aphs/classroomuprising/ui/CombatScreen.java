@@ -190,7 +190,8 @@ final class CombatScreen extends Screen {
         CombatSession.View view = fetch.value();
         last = view;
         hud.show(ctx.session().view(), ctx.demoLabel());
-        hud.setHint(view.currentQuestionId() == null ? "ESC  MENU" : "CLOCK RUNNING  ·  NO PAUSE");
+        if (view.currentQuestionId() == null) hud.setHints(KeyHints.Hint.of("ESC", "MENU"));
+        else hud.setHints(KeyHints.Hint.note("CLOCK RUNNING  ·  NO PAUSE"));
         showTargets(view);
         showStatus(view);
         if (view.complete()) showResults();

@@ -34,7 +34,7 @@ final class DayIntroScreen extends Screen {
     @FXML private Label nextLine;
     @FXML private Label tutorial;
     @FXML private VBox notes;
-    @FXML private Label hint;
+    @FXML private KeyHints hint;
 
     /**
      * @param started     the outcome of starting this day, or null for Day 1
@@ -84,7 +84,8 @@ final class DayIntroScreen extends Screen {
         tutorial.setVisible(view.isTutorial());
         tutorial.setManaged(view.isTutorial());
         fillNotes(view);
-        hint.setText(notes.getChildren().isEmpty() ? "" : "ENTER  CONTINUE");
+        // With notes the card waits for the player; without, it moves on by itself (Enter skips).
+        hint.set(KeyHints.Hint.of("ENTER", notes.getChildren().isEmpty() ? "SKIP" : "CONTINUE"));
         for (Node detail : details()) detail.setOpacity(0);
 
         dayNumber.setText("%02d".formatted(previousDay));
@@ -128,7 +129,8 @@ final class DayIntroScreen extends Screen {
         }
     }
 
-    private Node[] details() { return new Node[] {course, nextLine, tutorial, notes, hint}; }
+    /** The parts that slide in after the flip; the key hint is there from the start (Enter skips at any point). */
+    private Node[] details() { return new Node[] {course, nextLine, tutorial, notes}; }
 
     private void leave() {
         if (leaving) return;

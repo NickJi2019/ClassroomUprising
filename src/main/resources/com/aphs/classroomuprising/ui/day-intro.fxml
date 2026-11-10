@@ -7,6 +7,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import com.aphs.classroomuprising.ui.CalendarStrip?>
 <?import com.aphs.classroomuprising.ui.FlipNumber?>
+<?import com.aphs.classroomuprising.ui.KeyHints?>
 <?import com.aphs.classroomuprising.ui.Slant?>
 <?import com.aphs.classroomuprising.ui.scene.SceneView?>
 
@@ -29,6 +30,6 @@
             <Label fx:id="tutorial" text="TUTORIAL  &#183;  PENALTIES ARE WARNINGS ONLY" styleClass="mono, intro-tutorial"/>
             <VBox fx:id="notes" spacing="8" maxWidth="560.0"/>
         </VBox>
-        <Label fx:id="hint" styleClass="display, hud-hint" AnchorPane.rightAnchor="40.0" AnchorPane.bottomAnchor="30.0"/>
+        <KeyHints fx:id="hint" AnchorPane.rightAnchor="18.0" AnchorPane.bottomAnchor="4.0"/>
     </AnchorPane>
 </StackPane>

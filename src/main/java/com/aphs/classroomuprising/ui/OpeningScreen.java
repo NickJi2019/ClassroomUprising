@@ -27,6 +27,7 @@ final class OpeningScreen extends Screen {
     @FXML private ChoiceList actions;
     @FXML private VBox notice;
     private DialogueLog log;
+    private final KeyHints keys = new KeyHints();
 
     OpeningScreen(AppContext ctx) { super(ctx); }
 
@@ -44,8 +45,12 @@ final class OpeningScreen extends Screen {
                 "The opening battle against Mr. Reward is not built yet; its scripted defeat is told as text."));
         dialogue.setOnLine(line -> scene.speak(line.characterId(), line.expression()));
         log = new DialogueLog(ctx.assets());
-        root.getChildren().add(log);
-        dialogue.attachKeys(root);   // hold to fast-forward; a held key never presses BEGIN
+        StackPane.setAlignment(keys, javafx.geometry.Pos.BOTTOM_RIGHT);
+        StackPane.setMargin(keys, new javafx.geometry.Insets(0, 18, 4, 0));
+        root.getChildren().addAll(keys, log);
+        dialogue.attachKeys(root);
+        // Hold to fast-forward; a held key or button never presses BEGIN (see FastForward).
+        if (ctx.router() != null) dialogue.followFastForward(ctx.router().fastForward());
         dialogue.setAdvanceAllowed(() -> !log.isOpen());
         dialogue.setOnHistory(this::openLog);
         root.setOnKeyPressed(e -> {
@@ -64,7 +69,9 @@ final class OpeningScreen extends Screen {
             scene.enter("reward", 0.74, "gotcha", Duration.millis(320));
             titleCard();
         }
+        keys.set(KeyHints.Hint.of("HOLD ENTER / MOUSE", "FAST"), KeyHints.Hint.of("H", "LOG"));
         dialogue.play(ctx.script(SCRIPT), () -> {
+            keys.set(KeyHints.Hint.of("H", "LOG"));
             actions.setChoices(List.of(ChoiceList.Choice.of("BEGIN THE RETAKE", "Day 1 of 40", this::complete)));
             actions.requestFocus();
         });
@@ -90,6 +97,13 @@ final class OpeningScreen extends Screen {
                 .setOnFinished(done -> root.getChildren().remove(layer)));
         wait.play();
     }
+
+    /** Esc: closes the log (its large slide first). There is no menu before the game starts. */
+    @Override
+    protected boolean back() { return log != null && log.back(); }
+
+    @Override
+    protected boolean isPlaying() { return !dialogue.isFinished() && (log == null || !log.isOpen()); }
 
     @Override
     protected void focus() {

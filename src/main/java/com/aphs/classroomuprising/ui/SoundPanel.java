@@ -40,7 +40,7 @@ final class SoundPanel extends VBox {
                     audio.setEffects(level);
                     Sfx.CURSOR.play(this);
                 }));
-        Label keys = new Label("↑↓  CHOOSE     ←→  ADJUST     ENTER  BACK");
+        Label keys = new Label("↑↓  CHOOSE     ←→  ADJUST     ESC  BACK");
         keys.getStyleClass().addAll("mono", "sound-keys");
         rows.forEach(r -> getChildren().add(r.box()));
         getChildren().add(keys);

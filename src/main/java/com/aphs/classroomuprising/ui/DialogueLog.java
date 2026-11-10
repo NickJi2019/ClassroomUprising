@@ -24,7 +24,7 @@ import java.util.Locale;
  * The log: every line this scene's dialogue box has shown, newest at the bottom, to read again
  * at any time (also from the choice menu after a lecture). Selecting a line replays it with the
  * lecture slide that was up when it was said; Z or Enter shows that slide large. Up/Down or the
- * mouse wheel move through the lines; H, Backspace or Esc close the log. While it is open the
+ * mouse wheel move through the lines; Esc (or H, Backspace) goes back: the large slide, then the log. While it is open the
  * scene waits. It only reads what was shown; it changes nothing in the game.
  */
 final class DialogueLog extends StackPane {
@@ -39,8 +39,9 @@ final class DialogueLog extends StackPane {
     private final Label below = new Label();
     private final Label count = new Label();
     private final Label slideName = new Label();
-    private final Label keys = new Label();
+    private final KeyHints keys = new KeyHints();
     private VBox side;
+    private boolean slides;
     private final ImageView preview = new ImageView();
     private final Label noSlide = new Label("NO SLIDE ON THIS LINE");
     private final StackPane large = new StackPane();
@@ -87,9 +88,6 @@ final class DialogueLog extends StackPane {
         zoomHint.getStyleClass().addAll("mono", "log-hint");
         side = new VBox(10, tag, screen, zoomHint);
 
-        keys.setText("↑↓  MOVE     Z  SLIDE     H / ESC  CLOSE");
-        keys.getStyleClass().addAll("mono", "log-hint");
-
         AnchorPane layout = new AnchorPane(head, list, side, keys);
         layout.setPickOnBounds(false);
         AnchorPane.setLeftAnchor(head, 60.0);
@@ -98,8 +96,8 @@ final class DialogueLog extends StackPane {
         AnchorPane.setTopAnchor(list, 150.0);
         AnchorPane.setLeftAnchor(side, 760.0);
         AnchorPane.setTopAnchor(side, 156.0);
-        AnchorPane.setRightAnchor(keys, 40.0);
-        AnchorPane.setBottomAnchor(keys, 22.0);
+        AnchorPane.setRightAnchor(keys, 18.0);
+        AnchorPane.setBottomAnchor(keys, 4.0);
 
         largeView.setFitWidth(1120);
         largeView.setFitHeight(630);
@@ -108,7 +106,7 @@ final class DialogueLog extends StackPane {
         large.getChildren().add(largeView);
         large.getStyleClass().add("log-large");
         large.setVisible(false);
-        large.addEventHandler(MouseEvent.MOUSE_CLICKED, e -> large.setVisible(false));
+        large.addEventHandler(MouseEvent.MOUSE_CLICKED, e -> showLarge(false));
 
         Region scrim = new Region();
         scrim.getStyleClass().add("log-scrim");
@@ -132,11 +130,10 @@ final class DialogueLog extends StackPane {
         entries = List.copyOf(lines);
         onClose = whenClosed;
         selected = entries.size() - 1;
-        large.setVisible(false);
         // Scenes without lecture slides (the opening) get no slide panel at all.
-        boolean slides = entries.stream().anyMatch(entry -> entry.slide() != null);
+        slides = entries.stream().anyMatch(entry -> entry.slide() != null);
         side.setVisible(slides);
-        keys.setText(slides ? "↑↓  MOVE     Z  SLIDE     H / ESC  CLOSE" : "↑↓  MOVE     H / ESC  CLOSE");
+        showLarge(false);
         count.setText(entries.size() + (entries.size() == 1 ? " LINE" : " LINES") + "  ·  THIS SCENE");
         render();
         setOpacity(0);
@@ -168,6 +165,14 @@ final class DialogueLog extends StackPane {
         then.run();
     }
 
+    /** Esc: closes the large slide first, then the log. False when the log is not open. */
+    boolean back() {
+        if (!isOpen()) return false;
+        if (large.isVisible()) showLarge(false);
+        else close();
+        return true;
+    }
+
     private void onKey(KeyEvent e) {
         switch (e.getCode()) {
             case UP, W -> select(selected - 1);
@@ -177,10 +182,7 @@ final class DialogueLog extends StackPane {
             case HOME -> select(0);
             case END -> select(entries.size() - 1);
             case Z, ENTER, SPACE -> toggleLarge();
-            case ESCAPE, H, BACK_SPACE -> {
-                if (large.isVisible()) large.setVisible(false);
-                else close();
-            }
+            case ESCAPE, H, BACK_SPACE -> back();
             default -> { }
         }
         e.consume();
@@ -190,7 +192,7 @@ final class DialogueLog extends StackPane {
         int next = Math.max(0, Math.min(entries.size() - 1, index));
         if (next == selected) return;
         selected = next;
-        large.setVisible(false);
+        showLarge(false);
         Sfx.CURSOR.play(this);
         render();
     }
@@ -198,12 +200,22 @@ final class DialogueLog extends StackPane {
     private void toggleLarge() {
         String slide = entries.isEmpty() ? null : entries.get(selected).slide();
         if (large.isVisible() || slide == null || assets == null) {
-            large.setVisible(false);
+            showLarge(false);
             return;
         }
         largeView.setImage(assets.slide(slide));
-        large.setVisible(true);
+        showLarge(true);
     }
+
+    private void showLarge(boolean on) {
+        large.setVisible(on);
+        if (on) keys.set(KeyHints.Hint.of("Z / ESC", "CLOSE SLIDE"));
+        else if (slides) keys.set(KeyHints.Hint.of("↑↓", "MOVE"), KeyHints.Hint.of("Z", "SLIDE"), KeyHints.Hint.of("ESC", "CLOSE LOG"));
+        else keys.set(KeyHints.Hint.of("↑↓", "MOVE"), KeyHints.Hint.of("ESC", "CLOSE LOG"));
+    }
+
+    /** The key hints shown now, for checks. */
+    List<String> keyHints() { return keys.texts(); }
 
     private void render() {
         int first = DialogueHistory.firstVisible(entries.size(), selected, ROWS);

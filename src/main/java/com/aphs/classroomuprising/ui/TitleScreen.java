@@ -28,6 +28,7 @@ final class TitleScreen extends Screen {
     @FXML private ChoiceList nameActions;
     @FXML private VBox notice;
     @FXML private Label demoLabel;
+    @FXML private KeyHints keys;
     private VBox soundBox;
     private SoundPanel sound;
 
@@ -78,7 +79,17 @@ final class TitleScreen extends Screen {
         else menu.requestFocus();
     }
 
+    /** Esc: closes the name or sound panel. On the menu itself there is nothing to go back to. */
+    @Override
+    protected boolean back() {
+        if (namePanel.isVisible()) closeNamePanel();
+        else if (soundBox.isVisible()) closeSound();
+        else return false;
+        return true;
+    }
+
     private void showMenu() {
+        keys.set(KeyHints.Hint.of("↑↓", "CHOOSE"), KeyHints.Hint.of("ENTER", "SELECT"));
         boolean hasSave = GameSession.saveExists(ctx.savePath());
         menu.setChoices(List.of(
                 ChoiceList.Choice.of("NEW GAME",
@@ -95,6 +106,7 @@ final class TitleScreen extends Screen {
         soundBox.setManaged(true);
         soundBox.setVisible(true);
         Motion.slideIn(soundBox, 0);
+        keys.set(KeyHints.Hint.of("←→", "ADJUST"), KeyHints.Hint.of("ESC", "BACK"));
         sound.requestFocus();
     }
 
@@ -113,6 +125,7 @@ final class TitleScreen extends Screen {
         namePanel.setVisible(true);
         Motion.slideIn(namePanel, 0);
         nameActions.unlock();
+        keys.set(KeyHints.Hint.of("ENTER", "START"), KeyHints.Hint.of("ESC", "BACK"));
         nameField.requestFocus();
     }
 

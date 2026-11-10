@@ -7,6 +7,7 @@
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 <?import com.aphs.classroomuprising.ui.ChoiceList?>
+<?import com.aphs.classroomuprising.ui.KeyHints?>
 <?import com.aphs.classroomuprising.ui.Slant?>
 <?import com.aphs.classroomuprising.ui.scene.SceneView?>
 
@@ -36,5 +37,6 @@
 
         <VBox fx:id="notice" maxWidth="620.0" AnchorPane.leftAnchor="90.0" AnchorPane.bottomAnchor="64.0"/>
         <Label fx:id="demoLabel" styleClass="mono, demo-label" AnchorPane.leftAnchor="24.0" AnchorPane.bottomAnchor="8.0"/>
+        <KeyHints fx:id="keys" AnchorPane.rightAnchor="18.0" AnchorPane.bottomAnchor="4.0"/>
     </AnchorPane>
 </StackPane>

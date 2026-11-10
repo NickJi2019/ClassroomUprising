@@ -28,7 +28,7 @@ public class Hud extends AnchorPane {
     private final Label san = new Label();
     private final Label vibe = new Label();
     private final Label demo = new Label();
-    private final Label hint = new Label("ESC  MENU");
+    private final KeyHints hints = new KeyHints();
 
     public Hud() {
         getStyleClass().add("hud");
@@ -67,15 +67,18 @@ public class Hud extends AnchorPane {
         AnchorPane.setLeftAnchor(demo, 24.0);
         AnchorPane.setBottomAnchor(demo, 8.0);
 
-        hint.getStyleClass().addAll("display", "hud-hint");
-        AnchorPane.setRightAnchor(hint, 28.0);
-        AnchorPane.setBottomAnchor(hint, 8.0);
+        hints.set(KeyHints.Hint.of("ESC", "MENU"));
+        AnchorPane.setRightAnchor(hints, 18.0);
+        AnchorPane.setBottomAnchor(hints, 4.0);
 
-        getChildren().addAll(date, stats, demo, hint);
+        getChildren().addAll(date, stats, demo, hints);
     }
 
-    /** The key hint in the bottom-right corner (e.g. when the Esc menu is not available). */
-    public void setHint(String text) { hint.setText(text); }
+    /** The key hints in the bottom-right corner, for what the screen offers right now. */
+    void setHints(KeyHints.Hint... list) { hints.set(list); }
+
+    /** Hides the key hints while something on top shows its own (a slide shown large). */
+    void hideHints(boolean hidden) { hints.setOpacity(hidden ? 0 : 1); }
 
     /** An authored title for today's course (e.g. a lesson title), shown in the course line; null for none. */
     public void setCourseTitle(String title) {

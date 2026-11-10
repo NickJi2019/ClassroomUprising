@@ -4,6 +4,7 @@ import com.aphs.classroomuprising.DayPeriod;
 import com.aphs.classroomuprising.ui.scene.FrameSequence;
 import com.aphs.classroomuprising.ui.scene.SceneView;
 import javafx.animation.Animation;
+import javafx.animation.AnimationTimer;
 import javafx.animation.FadeTransition;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
@@ -46,7 +47,12 @@ import java.util.Optional;
  *   <li>Time change within a day: the clock ({@link ClockShift}).</li>
  *   <li>Esc menu: opens and closes through a stepped mask (or the "menu-open" sequence).</li>
  * </ul>
- * Input is blocked while any of these runs, so nothing reaches a screen being replaced.
+ * Input is blocked while any of these runs, so nothing reaches a screen being replaced; holding
+ * Enter, Space or the mouse button ({@link FastForward}) plays them faster, with a FAST badge.
+ *
+ * <p>Esc goes back one level: the Esc menu's own sub-page first, then the menu itself, then
+ * whatever the screen has open ({@link Screen#back()}); only when there is nothing to go back
+ * from does it open the Esc menu.</p>
  */
 final class Router {
     private static final double W = ClassroomApp.WIDTH, H = ClassroomApp.HEIGHT;
@@ -66,6 +72,15 @@ final class Router {
     private PauseMenu pause;
     private boolean transitioning;
     private Point2D origin;
+    private final FastForward fastForward;
+    /** The transition animation running now, so a hold can speed it up; null when none runs. */
+    private Animation running;
+    private final Node fastBadge = fastBadge();
+    /** While a hold is active: shows the badge and speeds up the transition when something plays. */
+    private final AnimationTimer fastWatch = new AnimationTimer() {
+        @Override
+        public void handle(long now) { updateFast(); }
+    };
 
     Router(StackPane canvas, Scene scene) {
         this.canvas = canvas;
@@ -75,8 +90,17 @@ final class Router {
         toastLayer.setMouseTransparent(true);
         StackPane.setAlignment(toasts, Pos.TOP_RIGHT);
         StackPane.setMargin(toasts, new Insets(92, 32, 0, 0));
+        Pane badgeLayer = new Pane(fastBadge);
+        badgeLayer.setMouseTransparent(true);
         // Toasts and tips sit under the menu overlay, so the Esc menu is never covered by them.
-        canvas.getChildren().addAll(screenLayer, tips, toastLayer, overlayLayer, transitionLayer);
+        canvas.getChildren().addAll(screenLayer, tips, toastLayer, overlayLayer, transitionLayer, badgeLayer);
+        // Registered first: it must see every press, even ones the filter below swallows.
+        fastForward = new FastForward(scene);
+        fastForward.active().addListener((obs, was, now) -> {
+            if (now) fastWatch.start();
+            else fastWatch.stop();
+            updateFast();
+        });
         scene.addEventFilter(KeyEvent.KEY_PRESSED, this::filterKeys);
         scene.addEventHandler(RevealOriginEvent.ACTIVATED, e -> origin = canvas.sceneToLocal(e.sceneX(), e.sceneY()));
         scene.addEventHandler(Sfx.Request.PLAY, e -> sound(e.sound()));
@@ -85,6 +109,9 @@ final class Router {
     void bind(AppContext context) { this.context = context; }
 
     Toasts toasts() { return toasts; }
+
+    /** True while Enter, Space or the mouse button is held to fast-forward. */
+    javafx.beans.value.ObservableBooleanValue fastForward() { return fastForward.active(); }
 
     /** Shows a tutorial tip now, or after the transition that is running. */
     void tip(TutorialTips.Tip tip) {
@@ -130,7 +157,7 @@ final class Router {
             transitionLayer.getChildren().remove(clock);
             end();
         });
-        animation.play();
+        run(animation);
     }
 
     // ---- screen change: mask reveal -----------------------------------------------------
@@ -202,7 +229,7 @@ final class Router {
             reset(oldRoot);
             end();
         });
-        all.play();
+        run(all);
     }
 
     /** The old screen's UI (not its art) slides out and fades, one layer after another. */
@@ -276,7 +303,7 @@ final class Router {
             transitionLayer.getChildren().remove(view);
             end();
         });
-        animation.play();
+        run(animation);
     }
 
     private Optional<FrameSequence> sequence(String name) {
@@ -312,7 +339,7 @@ final class Router {
                 transitionLayer.getChildren().remove(view);
                 end();
             });
-            animation.play();
+            run(animation);
             return;
         }
         Animation open = maskAnimation(root, 0, 1, Duration.millis(320), 12);
@@ -320,7 +347,7 @@ final class Router {
             root.setClip(null);
             end();
         });
-        open.play();
+        run(open);
     }
 
     /** Closes the Esc menu through the same stepped mask, in reverse. */
@@ -334,7 +361,7 @@ final class Router {
             closePauseNow();
             end();
         });
-        close.play();
+        run(close);
     }
 
     private void closePauseNow() {
@@ -366,10 +393,72 @@ final class Router {
             return;
         }
         if (event.getCode() != KeyCode.ESCAPE) return;
-        if (pause != null) closePause();
-        else if (current != null && current.allowsPause() && context.hasSession()) openPause();
-        else return;
         event.consume();
+        back();
+    }
+
+    /** Esc: one level back. The menu's sub-page, the menu, the screen's own layer, then the menu opens. */
+    private void back() {
+        if (pause != null) {
+            if (!pause.back()) closePause();
+        } else if (current != null && !current.back() && current.allowsPause() && context.hasSession()) {
+            openPause();
+        }
+    }
+
+    // ---- fast-forward -------------------------------------------------------------------
+
+    /** Plays a transition, at the fast-forward rate if a hold is already active. */
+    private void run(Animation animation) {
+        running = animation;
+        animation.setRate(fastForward.active().get() ? FastForward.RATE : 1);
+        animation.play();
+        updateFast();
+    }
+
+    private void updateFast() {
+        boolean held = fastForward.active().get();
+        if (running != null) running.setRate(held ? FastForward.RATE : 1);
+        boolean playing = held && (transitioning || (pause == null && current != null && current.isPlaying()));
+        if (playing) placeBadge();
+        fastBadge.setVisible(playing);
+        if (playing) fastForward.markUsed();
+    }
+
+    /**
+     * Puts the FAST badge in the key-hint row, just left of the screen's hint plate (so it never
+     * covers dialogue text). During a transition, when screens move and input is blocked, it
+     * sits in the bottom-right corner instead.
+     */
+    private void placeBadge() {
+        fastBadge.applyCss();
+        double w = fastBadge.prefWidth(-1), h = fastBadge.prefHeight(-1);
+        double right = W - 18, middle = H - 4 - h / 2;
+        Node plate = null;
+        if (!transitioning)
+            for (Node node : canvas.lookupAll(".key-hints")) if (shown(node)) plate = node;
+        if (plate != null) {
+            javafx.geometry.Bounds b = canvas.sceneToLocal(plate.localToScene(plate.getLayoutBounds()));
+            right = b.getMinX() - 10;
+            middle = b.getCenterY();
+        }
+        fastBadge.relocate(Math.max(0, right - w), Math.min(H - 4 - h, middle - h / 2));
+    }
+
+    /** Visible to the player: it and every parent are shown (and not faded out). */
+    private static boolean shown(Node node) {
+        for (Node n = node; n != null; n = n.getParent()) if (!n.isVisible() || n.getOpacity() < 0.05) return false;
+        return true;
+    }
+
+    private static Node fastBadge() {
+        Label label = new Label("▶▶  FAST");
+        label.getStyleClass().addAll("display", "fast-badge-label");
+        Slant badge = new Slant(label);
+        badge.getStyleClass().add("fast-badge");
+        badge.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        badge.setVisible(false);
+        return badge;
     }
 
     private void music(Screen next) {
@@ -388,6 +477,7 @@ final class Router {
 
     private void end() {
         transitioning = false;
+        running = null;
         screenLayer.setMouseTransparent(false);
         overlayLayer.setMouseTransparent(false);
         if (pendingTip != null) {
