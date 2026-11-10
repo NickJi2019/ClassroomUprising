@@ -24,6 +24,8 @@ import java.util.List;
  * After the lecture comes the lesson's decision in two menus ({@link LessonMenu}): take part or
  * stay quiet, then one of the authored responses. Only the final choice settles the class, once,
  * for the lesson day captured when the lecture opened; the authored feedback follows.
+ * Holding Enter, Space or the mouse fast-forwards the lecture (never into a choice); H or
+ * scrolling up opens the log, which replays any earlier line with its slide.
  * Review days go to the matching core operation; assessment days start a combat
  * ({@link CombatScreen}). When that hits a pending rule the notice says so and the player can
  * return to the title with the save intact.
@@ -41,6 +43,7 @@ final class ClassroomScreen extends Screen {
     private ContentCatalog.Lesson lesson;
     /** Whether the response menu (second level) is showing, so Backspace can go back. */
     private boolean responding;
+    private DialogueLog log;
 
     ClassroomScreen(AppContext ctx) { super(ctx); }
 
@@ -55,6 +58,11 @@ final class ClassroomScreen extends Screen {
             scene.speak(line.characterId(), line.expression());
             if (slides != null && line.slide() != null) slides.show(line.slide());
         });
+        log = new DialogueLog(ctx.assets());
+        root.getChildren().add(log);
+        dialogue.attachKeys(root);
+        dialogue.setAdvanceAllowed(() -> (slides == null || !slides.zoomed()) && !log.isOpen());
+        dialogue.setOnHistory(this::openLog);
         root.setOnKeyPressed(e -> {
             if (slides != null && slides.zoomed()) {
                 // The slide is open large: the lecture waits, and any of these keys closes it.
@@ -65,8 +73,8 @@ final class ClassroomScreen extends Screen {
                     }
                     default -> { }
                 }
-            } else if ((e.getCode() == KeyCode.ENTER || e.getCode() == KeyCode.SPACE) && !dialogue.isFinished()) {
-                dialogue.advance();
+            } else if (e.getCode() == KeyCode.H) {
+                openLog();
                 e.consume();
             } else if (e.getCode() == KeyCode.Z && slides != null) {
                 slides.toggleZoom();
@@ -79,16 +87,17 @@ final class ClassroomScreen extends Screen {
         return root;
     }
 
-    /** Esc closes an enlarged slide first; otherwise it opens the menu. */
+    /** Esc closes an enlarged slide or the log first; otherwise it opens the menu. */
     @Override
-    protected boolean allowsPause() { return slides == null || !slides.zoomed(); }
+    protected boolean allowsPause() { return (slides == null || !slides.zoomed()) && (log == null || !log.isOpen()); }
 
     @Override
     protected String music() { return "school"; }
 
     @Override
     protected void focus() {
-        if (choices.hasChoices()) choices.requestFocus();
+        if (log != null && log.isOpen()) log.requestFocus();
+        else if (choices.hasChoices()) choices.requestFocus();
         else root().requestFocus();
     }
 
@@ -115,6 +124,7 @@ final class ClassroomScreen extends Screen {
         hud.setCourseTitle(lesson.title());
         List<DialogueScript.Line> script = ctx.script(lesson.text());
         projector(SlideProjector.cues(script));
+        hud.setHint("HOLD ENTER  FAST    H  LOG" + (slides != null ? "    Z  SLIDE" : "") + "    ESC  MENU");
         dialogue.play(script, this::offer);
         root().requestFocus();
     }
@@ -127,15 +137,13 @@ final class ClassroomScreen extends Screen {
     private void projector(List<String> cued) {
         if (ctx.assets() == null || cued.isEmpty()) return;
         slides = new SlideProjector(ctx.assets(), cued);
-        ((StackPane) root()).getChildren().add(slides);
-        hud.setHint("Z  SLIDE     ESC  MENU");
+        StackPane root = (StackPane) root();
+        root.getChildren().add(root.getChildren().indexOf(log), slides);   // the log stays on top
     }
 
     private void offer() {
-        if (slides != null) {
-            slides.close();
-            hud.setHint("ESC  MENU");
-        }
+        if (slides != null) slides.close();
+        hud.setHint("H  LOG    ESC  MENU");
         ctx.tip(TutorialTips.Moment.LESSON_CHOICE);
         if (lesson.decision() == null) flatChoices();
         else {
@@ -143,6 +151,16 @@ final class ClassroomScreen extends Screen {
             if (LessonMenu.spoken(lesson.decision())) dialogue.say(ctx.script(lesson.decision().prompt()).get(0));
             participation();
         }
+    }
+
+    /** Opens the log on the newest line; the lecture (or the menu) waits until it closes. */
+    private void openLog() {
+        if (dialogue.history().isEmpty() || log.isOpen()) return;
+        ctx.router().hideTips(true);
+        log.open(dialogue.history(), () -> {
+            ctx.router().hideTips(false);
+            focus();
+        });
     }
 
     /** First menu: take part or stay quiet. Showing it (again) changes nothing in the game. */

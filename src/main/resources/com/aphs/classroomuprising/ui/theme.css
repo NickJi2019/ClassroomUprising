@@ -401,3 +401,29 @@
 .choice-list.sentences .choice { -fx-padding: 8 30 8 22; }
 .choice-list.sentences .choice-label { -fx-font-size: 16px; -fx-line-spacing: 1px; }
 .lesson-narration { -fx-font-size: 15px; -fx-text-fill: -cu-soft; -fx-max-width: 470px; }
+
+/* ---------- dialogue fast-forward mark ---------- */
+.dialogue-fast { -fx-padding: 3 18 3 14; }
+.dialogue-fast > .slant-bg { -fx-fill: -cu-cyan; }
+.dialogue-fast-label { -fx-font-size: 13px; -fx-text-fill: -cu-ink; }
+.dialogue-fast-arrow { -fx-fill: -cu-ink; }
+
+/* ---------- dialogue log (history replay) ---------- */
+.log-scrim { -fx-background-color: rgba(5, 7, 26, 0.95); }
+.log-title { -fx-font-size: 72px; -fx-text-fill: -cu-caret; }
+.log-count { -fx-font-size: 12px; -fx-text-fill: -cu-dim; }
+.log-more { -fx-font-size: 11px; -fx-text-fill: -cu-dim; -fx-padding: 0 0 0 12; }
+.log-row { -fx-background-color: transparent; -fx-cursor: hand; }
+.log-row:selected {
+    -fx-background-color: rgba(255, 210, 63, 0.10);
+    -fx-border-color: transparent transparent transparent -cu-caret;
+    -fx-border-width: 0 0 0 4;
+}
+.log-speaker { -fx-font-size: 15px; -fx-text-fill: -cu-dim; -fx-min-width: 110; }
+.log-row:selected .log-speaker { -fx-text-fill: -cu-caret; }
+.log-text { -fx-font-size: 15px; -fx-text-fill: -cu-soft; -fx-line-spacing: 2px; }
+.log-row:selected .log-text { -fx-text-fill: -cu-text; }
+.log-slide { -fx-background-color: #05071A; -fx-border-color: -cu-line; -fx-border-width: 2; }
+.log-no-slide { -fx-font-size: 12px; -fx-text-fill: -cu-dim; }
+.log-hint { -fx-font-size: 11px; -fx-text-fill: -cu-dim; }
+.log-large { -fx-background-color: rgba(5, 7, 26, 0.94); -fx-cursor: hand; }

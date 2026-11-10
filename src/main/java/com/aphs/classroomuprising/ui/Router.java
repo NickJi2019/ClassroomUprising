@@ -400,7 +400,14 @@ final class Router {
     private void dropTips() {
         pendingTip = null;
         tips.clear();
+        tips.setVisible(true);
     }
+
+    /**
+     * Hides the tip card while a screen shows something over its whole area (such as the log),
+     * without dismissing it: it is still there when the overlay closes.
+     */
+    void hideTips(boolean hidden) { tips.setVisible(!hidden); }
 
     private Point2D takeOrigin() {
         Point2D at = origin == null ? new Point2D(W / 2, H / 2) : origin;

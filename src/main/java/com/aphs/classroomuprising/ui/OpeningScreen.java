@@ -26,6 +26,7 @@ final class OpeningScreen extends Screen {
     @FXML private DialogueBox dialogue;
     @FXML private ChoiceList actions;
     @FXML private VBox notice;
+    private DialogueLog log;
 
     OpeningScreen(AppContext ctx) { super(ctx); }
 
@@ -42,9 +43,14 @@ final class OpeningScreen extends Screen {
         notice(notice, Diagnostic.info("info: placeholder scene",
                 "The opening battle against Mr. Reward is not built yet; its scripted defeat is told as text."));
         dialogue.setOnLine(line -> scene.speak(line.characterId(), line.expression()));
+        log = new DialogueLog(ctx.assets());
+        root.getChildren().add(log);
+        dialogue.attachKeys(root);   // hold to fast-forward; a held key never presses BEGIN
+        dialogue.setAdvanceAllowed(() -> !log.isOpen());
+        dialogue.setOnHistory(this::openLog);
         root.setOnKeyPressed(e -> {
-            if ((e.getCode() == KeyCode.ENTER || e.getCode() == KeyCode.SPACE) && !dialogue.isFinished()) {
-                dialogue.advance();
+            if (e.getCode() == KeyCode.H) {
+                openLog();
                 e.consume();
             }
         });
@@ -60,6 +66,22 @@ final class OpeningScreen extends Screen {
         dialogue.play(ctx.script(SCRIPT), () -> {
             actions.setChoices(List.of(ChoiceList.Choice.of("BEGIN THE RETAKE", "Day 1 of 40", this::complete)));
             actions.requestFocus();
+        });
+    }
+
+    @Override
+    protected void focus() {
+        if (log != null && log.isOpen()) log.requestFocus();
+        else if (actions.hasChoices()) actions.requestFocus();
+        else root().requestFocus();
+    }
+
+    private void openLog() {
+        if (dialogue.history().isEmpty() || log.isOpen()) return;
+        ctx.router().hideTips(true);
+        log.open(dialogue.history(), () -> {
+            ctx.router().hideTips(false);
+            focus();
         });
     }
 

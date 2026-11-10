@@ -115,6 +115,15 @@ classDiagram
         +play(Node from) void
     }
     class SoundPanel
+    class DialogueHistory {
+        +shown(Line line) void
+        +entries() List~Entry~
+        +firstVisible(int size, int selected, int rows)$ int
+    }
+    class DialogueLog {
+        +open(List~Entry~ lines, Runnable whenClosed) void
+        +close() void
+    }
     class LessonMenu {
         +first(Lesson lesson)$ List~Entry~
         +responses(LessonDecision decision)$ List~Entry~
@@ -637,6 +646,10 @@ classDiagram
     SoundPanel ..> AudioDirector : volume levels
     ClassroomScreen --> SlideProjector : slides the lecture cues
     ClassroomScreen ..> LessonMenu : two menus from Lesson.decision()
+    DialogueBox --> DialogueHistory : every shown line and its slide
+    ClassroomScreen --> DialogueLog : H or scroll up
+    OpeningScreen --> DialogueLog : H or scroll up
+    DialogueLog ..> AssetStore : slide images
     LessonMenu ..> LessonDecision : labels in authored order
     SlideProjector ..> DialogueScript : slide cues in lecture lines
     SlideProjector ..> AssetStore : slide images
@@ -703,6 +716,7 @@ classDiagram
     note for CombatScreen "Displays the backend view only: no UI timing, weights, HP or marks.<br/>No pause while a question's clock runs.<br/>No evaluator shipped: submission reports T06 (Lab) or T07."
     note for SlideProjector "A lecture line starting with a slide:name cue turns to that slide.<br/>Presentation only: never calls the core.<br/>Large view pauses the lecture until closed."
     note for LessonMenu "Opening or leaving a menu calls nothing in the core.<br/>Only the final response or quiet settles, once, for the captured lesson day."
+    note for DialogueHistory "Window state only, never saved.<br/>Holding the advance key fast-forwards; a held key never makes a choice."
     note for AudioDirector "Same cue keeps playing across screens; a new cue cross-fades.<br/>Missing or unplayable files are silent and listed.<br/>Sound never changes game state."
     note for LabRunService "One run at a time; results return on the UI thread.<br/>Edits make older results stale.<br/>Evidence-to-mark is T06; Lab problems not supplied yet."
 
