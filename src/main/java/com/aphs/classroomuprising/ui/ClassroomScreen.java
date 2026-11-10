@@ -83,6 +83,7 @@ final class ClassroomScreen extends Screen {
 
     private void offer(ContentCatalog.Lesson lesson) {
         prompt.setText(UiText.interactionPrompt(lesson.interaction()));
+        ctx.tip(TutorialTips.Moment.LESSON_CHOICE);
         choices.setChoices(UiText.choiceOrder(lesson.choices().keySet()).stream()
                 .map(id -> ChoiceList.Choice.of(UiText.lessonChoice(id), null, () -> choose(id)))
                 .toList());
@@ -105,8 +106,8 @@ final class ClassroomScreen extends Screen {
     }
 
     private void review() {
-        dialogue.say("Schedule", "Today: " + UiText.courseLine(ctx.session().view().currentCourse()) + ".");
-        prompt.setText("REVIEW DAY");
+        noLecture();
+        prompt.setText("TODAY  ·  " + UiText.courseLine(ctx.session().view().currentCourse()));
         choices.setChoices(List.of(ChoiceList.Choice.of("START REVIEW", null, () -> {
             Outcome outcome = ctx.session().completeReview();
             if (outcome instanceof Outcome.Done done) {
@@ -120,8 +121,8 @@ final class ClassroomScreen extends Screen {
 
     private void assessment(DayPlan plan, boolean makeup) {
         String name = (makeup ? "MAKEUP " : "") + UiText.course(plan.course());
-        dialogue.say("Schedule", "Today: " + (makeup ? "MAKEUP " : "") + UiText.courseLine(plan) + ".");
-        prompt.setText(name);
+        noLecture();
+        prompt.setText("TODAY  ·  " + (makeup ? "MAKEUP " : "") + UiText.courseLine(plan));
         choices.setChoices(List.of(ChoiceList.Choice.of("BEGIN " + name, null, this::beginAssessment)));
     }
 
@@ -133,6 +134,12 @@ final class ClassroomScreen extends Screen {
             return;
         }
         ctx.openCombat(fetch.value());
+    }
+
+    /** No one is speaking: the dialogue box is for characters, not for schedule notices. */
+    private void noLecture() {
+        dialogue.setVisible(false);
+        dialogue.setManaged(false);
     }
 
     /** The class cannot go on: show why, and offer the title screen (the day-end save is kept). */

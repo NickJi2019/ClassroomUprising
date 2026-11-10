@@ -68,6 +68,13 @@ classDiagram
         +close() void
     }
     class CombatText
+    class TutorialTips {
+        +at(Moment moment, GameState view) Optional~Tip~$
+    }
+    class TipLayer {
+        +show(Tip tip) void
+        +clear() void
+    }
     class CutIn
     class TimeGauge
     class LabScreen {
@@ -534,6 +541,8 @@ classDiagram
     Screen <|-- PauseMenu
     Screen <|-- LabScreen
     Screen <|-- CombatScreen
+    Router --> TipLayer : tutorial tips, cleared on screen change
+    AppContext ..> TutorialTips : once per playthrough, tutorial only
     ClassroomScreen ..> CombatScreen : assessment day starts a combat
     AppContext --> CombatRules : policy for new and loaded games
     AppContext --> CombatEvaluator : optional, none shipped

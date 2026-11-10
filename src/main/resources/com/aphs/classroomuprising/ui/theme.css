@@ -347,3 +347,20 @@
 .result-tag-late, .result-tag-dasher { -fx-font-size: 10px; -fx-text-fill: -cu-ink; -fx-padding: 1 6 1 6; }
 .result-tag-late { -fx-background-color: -cu-red; }
 .result-tag-dasher { -fx-background-color: -cu-caret; }
+
+/* ---------- tutorial tip card (a game notice, not dialogue) ---------- */
+.tip-card {
+    -fx-background-color: rgba(11, 15, 42, 0.92);
+    -fx-border-color: transparent transparent -cu-cyan transparent;
+    -fx-border-width: 0 0 3 0;
+    -fx-padding: 10 18 10 12;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(5, 7, 26, 0.6), 18, 0.2, 0, 4);
+}
+.tip-badge { -fx-padding: 2 18 4 16; -fx-min-width: 64; }
+.tip-badge > .slant-bg { -fx-fill: -cu-cyan; }
+.tip-mark { -fx-font-size: 34px; -fx-text-fill: -cu-ink; }
+.tip-kind { -fx-font-size: 13px; -fx-text-fill: -cu-ink; }
+.tip-title { -fx-font-size: 18px; -fx-text-fill: -cu-cyan; }
+.tip-body { -fx-font-size: 14px; -fx-text-fill: -cu-text; -fx-line-spacing: 2px; }
+.tip-close { -fx-font-size: 10px; -fx-text-fill: -cu-dim; }

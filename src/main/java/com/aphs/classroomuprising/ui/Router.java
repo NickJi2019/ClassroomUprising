@@ -58,6 +58,9 @@ final class Router {
     private final StackPane overlayLayer = new StackPane();
     private final Pane transitionLayer = new Pane();
     private final Toasts toasts = new Toasts();
+    private final TipLayer tips = new TipLayer();
+    /** A tip asked for during a transition; it appears once the transition has finished. */
+    private TutorialTips.Tip pendingTip;
     private AppContext context;
     private Screen current;
     private PauseMenu pause;
@@ -72,8 +75,8 @@ final class Router {
         toastLayer.setMouseTransparent(true);
         StackPane.setAlignment(toasts, Pos.TOP_RIGHT);
         StackPane.setMargin(toasts, new Insets(92, 32, 0, 0));
-        // Toasts sit under the menu overlay, so the Esc menu is never covered by feedback.
-        canvas.getChildren().addAll(screenLayer, toastLayer, overlayLayer, transitionLayer);
+        // Toasts and tips sit under the menu overlay, so the Esc menu is never covered by them.
+        canvas.getChildren().addAll(screenLayer, tips, toastLayer, overlayLayer, transitionLayer);
         scene.addEventFilter(KeyEvent.KEY_PRESSED, this::filterKeys);
         scene.addEventHandler(RevealOriginEvent.ACTIVATED, e -> origin = canvas.sceneToLocal(e.sceneX(), e.sceneY()));
     }
@@ -82,9 +85,16 @@ final class Router {
 
     Toasts toasts() { return toasts; }
 
+    /** Shows a tutorial tip now, or after the transition that is running. */
+    void tip(TutorialTips.Tip tip) {
+        if (transitioning) pendingTip = tip;
+        else tips.show(tip);
+    }
+
     /** Shows a screen; a caption (e.g. the next time of day) is shown during the change. */
     void show(Screen next, String caption) {
         closePauseNow();
+        dropTips();
         next.root();
         if (current == null) {
             swap(next);
@@ -98,6 +108,7 @@ final class Router {
     /** Shows a screen with the clock: hands sweep from one time of day to the next. */
     void showTimeChange(Screen next, DayPeriod from, DayPeriod to) {
         closePauseNow();
+        dropTips();
         next.root();
         if (current == null) {
             swap(next);
@@ -364,6 +375,16 @@ final class Router {
         transitioning = false;
         screenLayer.setMouseTransparent(false);
         overlayLayer.setMouseTransparent(false);
+        if (pendingTip != null) {
+            tips.show(pendingTip);
+            pendingTip = null;
+        }
+    }
+
+    /** A tip belongs to the screen it was shown on. */
+    private void dropTips() {
+        pendingTip = null;
+        tips.clear();
     }
 
     private Point2D takeOrigin() {

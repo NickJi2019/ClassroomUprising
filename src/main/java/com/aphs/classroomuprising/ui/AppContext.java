@@ -10,7 +10,9 @@ import com.aphs.classroomuprising.ui.scene.AssetStore;
 import com.aphs.classroomuprising.ui.scene.SceneView;
 
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * What every screen shares: the Demo profile, the save location, the router and the
@@ -26,6 +28,8 @@ final class AppContext {
     private final CombatEvaluator combatEvaluator;
     private GameSession session;
     private GameState dayStart;
+    /** Tutorial tips already shown in this playthrough (window state only, not saved). */
+    private final Set<String> shownTips = new HashSet<>();
     /** What the window last showed; used only to choose the transition animation. */
     private DayPeriod shownPeriod;
     private int shownDay;
@@ -80,6 +84,15 @@ final class AppContext {
         session = newSession;
         dayStart = null;
         shownPeriod = null;
+        shownTips.clear();
+    }
+
+    /** Shows the tutorial tip for this moment the first time it comes up, while the tutorial lasts. */
+    void tip(TutorialTips.Moment moment) {
+        if (session == null) return;
+        TutorialTips.at(moment, session.view())
+                .filter(tip -> shownTips.add(tip.id()))
+                .ifPresent(router::tip);
     }
 
     /**

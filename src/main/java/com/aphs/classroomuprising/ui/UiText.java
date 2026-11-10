@@ -54,8 +54,9 @@ final class UiText {
         }).orElse("");
     }
 
+    /** "LAB · UNIT 1"; the two tutorial days are the Grade 11 review lessons. */
     static String courseLine(DayPlan plan) {
-        String suffix = plan.tutorial() ? " · TUTORIAL" : plan.unit() > 0 ? " · UNIT " + plan.unit() : "";
+        String suffix = plan.tutorial() ? " · GR11 REVIEW" : plan.unit() > 0 ? " · UNIT " + plan.unit() : "";
         return course(plan.course()) + suffix;
     }
 
