@@ -153,7 +153,7 @@ final class AppContext {
             String id = assets == null ? null : assets.manifest().characterNamed(line.speaker())
                     .map(AssetManifest.CharacterSpec::id).orElse(null);
             String shown = line.speaker().equals("You") ? name : line.speaker();
-            return new DialogueScript.Line(shown, line.expression(), line.text(), id);
+            return new DialogueScript.Line(shown, line.expression(), line.text(), id, line.slide());
         }).toList();
     }
 

@@ -99,28 +99,23 @@ class AssetManifestTest {
             "bgm.title = audio/bgm/title.ogg",                      // JavaFX cannot play Ogg
             "sfx.confirm = audio/sfx/confirm.png",                  // not a sound
             "bgm.title.loop = audio/bgm/title.mp3",                 // too many parts
-            "slide.1 = slides/day-01/01.png",                       // no line number
-            "slide.1.0 = slides/day-01/01.png",                     // lines count from 1
-            "slide.day.2 = slides/day-01/01.png",                   // day is not a number
-            "slide.1.2 = slides/day-01/01.mp3",                     // not an image
+            "slide.loops.2 = slides/review/13-loops.png",            // too many parts
+            "slide.Loops = slides/review/13-loops.png",             // name not lower-case
+            "slide.loops = slides/review/13-loops.mp3",             // not an image
     })
     void malformedEntriesAreRejected(String text) {
         assertThrows(IOException.class, () -> read(text));
     }
 
-    @Test void slidesAreGroupedByDayInLectureOrder() throws IOException {
+    @Test void slidesAreListedByTheNameLecturesCue() throws IOException {
         AssetManifest manifest = read("""
-                slide.2.10 = slides/day-02/c.png
-                slide.2.2 = slides/day-02/b.png
-                slide.2.1 = slides/day-02/a.png
-                slide.1.1 = slides/day-01/a.png
+                slide.loops = slides/review/13-loops.png
+                slide.file-structure = slides/review/07-file-structure.png
                 """);
-        assertEquals(java.util.List.of(1, 2), manifest.slideDays());
-        assertEquals(java.util.List.of(1, 2, 10),
-                manifest.slides(2).stream().map(AssetManifest.Slide::fromLine).toList(), "numeric, not text, order");
-        assertEquals("slides/day-02/c.png", manifest.slides(2).get(2).file());
-        assertTrue(manifest.slides(3).isEmpty());
-        assertTrue(manifest.allFiles().contains("slides/day-02/b.png"));
+        assertEquals("slides/review/13-loops.png", manifest.slide("loops").orElseThrow().file());
+        assertTrue(manifest.slide("arrays").isEmpty());
+        assertEquals(java.util.List.of("file-structure", "loops"), manifest.slideNames());
+        assertTrue(manifest.allFiles().contains("slides/review/07-file-structure.png"));
     }
 
     @Test void soundsAreListedByFamily() throws IOException {

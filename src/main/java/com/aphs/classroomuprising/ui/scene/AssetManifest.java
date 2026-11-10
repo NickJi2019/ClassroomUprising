@@ -30,7 +30,7 @@ import java.util.regex.Pattern;
  * character.&lt;id&gt;.expression.&lt;name&gt;  = characters/reward/neutral.png
  * texture.&lt;name&gt;                    = textures/grain.png
  * grade.&lt;name&gt;                      = #3B4FB8, MULTIPLY, 0.45, -0.25, -0.10
- * slide.&lt;day&gt;.&lt;line&gt;               = slides/day-01/02.png  (lecture slide shown from that line on)
+ * slide.&lt;name&gt;                      = slides/gr11-review/07-file-structure.png  (a lecture cues it by name)
  * bgm.&lt;cue&gt;                         = audio/bgm/title.m4a   (looping music; .wav .mp3 .m4a .aiff)
  * sfx.&lt;name&gt;                        = audio/sfx/confirm.wav (short sound effect)
  * </pre>
@@ -58,10 +58,10 @@ public final class AssetManifest {
     }
 
     /**
-     * A lecture slide: shown from lecture line {@code fromLine} (1-based, counting the lines the
-     * dialogue box shows) until the next slide of the same lesson starts.
+     * A lecture slide. Lecture text turns to it with the cue {@code [slide:name]} at the start
+     * of a line (see the dialogue format); the manifest only says which image it is.
      */
-    public record Slide(int day, int fromLine, String file) {}
+    public record Slide(String name, String file) {}
 
     public static final String RESOURCE = "/com/aphs/classroomuprising/assets/manifest.properties";
     private static final Pattern NAME = Pattern.compile("[a-z0-9][a-z0-9_-]*");
@@ -73,10 +73,10 @@ public final class AssetManifest {
     private final Map<String, Grade> grades;
     private final Map<String, SequenceSpec> sequences;
     private final Map<String, String> audio;
-    private final Map<Integer, List<Slide>> slides;
+    private final Map<String, Slide> slides;
 
     private AssetManifest(Map<String, String> files, Map<String, CharacterSpec> characters, Map<String, Grade> grades,
-                          Map<String, SequenceSpec> sequences, Map<String, String> audio, Map<Integer, List<Slide>> slides) {
+                          Map<String, SequenceSpec> sequences, Map<String, String> audio, Map<String, Slide> slides) {
         this.files = Map.copyOf(files);
         this.characters = Map.copyOf(characters);
         this.grades = Map.copyOf(grades);
@@ -106,7 +106,7 @@ public final class AssetManifest {
         var expressions = new LinkedHashMap<String, Map<String, String>>();
         var sequenceFields = new LinkedHashMap<String, Map<String, String>>();
         var audio = new LinkedHashMap<String, String>();
-        var slideLists = new java.util.TreeMap<Integer, java.util.TreeMap<Integer, Slide>>();
+        var slides = new LinkedHashMap<String, Slide>();
         try {
             for (String key : new TreeSet<>(p.stringPropertyNames())) {
                 String value = p.getProperty(key).strip();
@@ -124,10 +124,9 @@ public final class AssetManifest {
                         audio.put(key, audio(value, key));
                     }
                     case "slide" -> {
-                        if (part.length != 3) throw new IllegalArgumentException("Unexpected key " + key);
-                        int day = number(part[1], key);
-                        int line = number(part[2], key);
-                        slideLists.computeIfAbsent(day, d -> new java.util.TreeMap<>()).put(line, new Slide(day, line, file(value, key)));
+                        if (part.length != 2) throw new IllegalArgumentException("Unexpected key " + key);
+                        String name = name(part[1], key);
+                        slides.put(name, new Slide(name, file(value, key)));
                     }
                     case "grade" -> {
                         if (part.length != 2) throw new IllegalArgumentException("Unexpected key " + key);
@@ -167,8 +166,6 @@ public final class AssetManifest {
             }
             var sequences = new LinkedHashMap<String, SequenceSpec>();
             sequenceFields.forEach((name, fields) -> sequences.put(name, sequence(name, fields)));
-            var slides = new LinkedHashMap<Integer, List<Slide>>();
-            slideLists.forEach((day, byLine) -> slides.put(day, List.copyOf(byLine.values())));
             return new AssetManifest(files, characters, grades, sequences, audio, slides);
         } catch (IllegalArgumentException e) {
             throw new IOException("Invalid asset manifest: " + e.getMessage(), e);
@@ -210,11 +207,11 @@ public final class AssetManifest {
         return new SequenceSpec(name, pattern, count, frameMillis, swapAt);
     }
 
-    /** The slides of the lesson taught on {@code day}, in lecture order; empty when it has none. */
-    public List<Slide> slides(int day) { return slides.getOrDefault(day, List.of()); }
+    /** The slide a lecture cues by this name, if one is listed. */
+    public Optional<Slide> slide(String name) { return Optional.ofNullable(slides.get(name)); }
 
-    /** Every day that has lecture slides, in order. */
-    public List<Integer> slideDays() { return slides.keySet().stream().sorted().toList(); }
+    /** Every listed slide name, sorted. */
+    public List<String> slideNames() { return slides.keySet().stream().sorted().toList(); }
 
     /** The looping music file for a cue (e.g. "title"), if one is listed. */
     public Optional<String> bgm(String cue) { return Optional.ofNullable(audio.get("bgm." + cue)); }
@@ -239,7 +236,7 @@ public final class AssetManifest {
         characters.values().forEach(c -> all.addAll(c.expressions().values()));
         sequences.values().forEach(s -> all.addAll(s.files()));
         all.addAll(audio.values());
-        slides.values().forEach(list -> list.forEach(slide -> all.add(slide.file())));
+        slides.values().forEach(slide -> all.add(slide.file()));
         return all.stream().distinct().sorted().toList();
     }
 
@@ -259,11 +256,6 @@ public final class AssetManifest {
             throw new IllegalArgumentException("Bad file '" + text + "' in " + key
                     + " (lower-case relative .wav/.mp3/.m4a/.aiff path)");
         return text;
-    }
-
-    private static int number(String text, String key) {
-        if (!text.matches("[1-9][0-9]{0,2}")) throw new IllegalArgumentException("Bad number '" + text + "' in " + key);
-        return Integer.parseInt(text);
     }
 
     private static double positive(String text, String key) {
