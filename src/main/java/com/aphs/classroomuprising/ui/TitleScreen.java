@@ -8,6 +8,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
 import javafx.scene.input.KeyCode;
+import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
@@ -15,7 +16,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.random.RandomGenerator;
 
-/** New game, continue from the day-end save, or quit. */
+/** New game, continue from the day-end save, sound volume, or quit. */
 final class TitleScreen extends Screen {
     private static final int MAX_NAME = 24;
 
@@ -27,8 +28,13 @@ final class TitleScreen extends Screen {
     @FXML private ChoiceList nameActions;
     @FXML private VBox notice;
     @FXML private Label demoLabel;
+    private VBox soundBox;
+    private SoundPanel sound;
 
     TitleScreen(AppContext ctx) { super(ctx); }
+
+    @Override
+    protected String music() { return "title"; }
 
     @Override
     protected Parent build() {
@@ -49,6 +55,18 @@ final class TitleScreen extends Screen {
         nameActions.setChoices(List.of(
                 ChoiceList.Choice.of("START", null, this::startNewGame),
                 ChoiceList.Choice.of("BACK", null, this::closeNamePanel)));
+        sound = new SoundPanel(ctx.audio());
+        sound.setOnBack(this::closeSound);
+        Label soundTitle = new Label("SOUND");
+        soundTitle.getStyleClass().addAll("display", "panel-title");
+        soundBox = new VBox(16, soundTitle, sound);
+        soundBox.getStyleClass().add("name-panel");
+        soundBox.setPrefWidth(520);
+        soundBox.setVisible(false);
+        soundBox.setManaged(false);
+        AnchorPane.setRightAnchor(soundBox, 110.0);
+        AnchorPane.setTopAnchor(soundBox, 330.0);
+        ((AnchorPane) namePanel.getParent()).getChildren().add(soundBox);
         showMenu();
         return root;
     }
@@ -56,6 +74,7 @@ final class TitleScreen extends Screen {
     @Override
     protected void focus() {
         if (namePanel.isVisible()) nameField.requestFocus();
+        else if (soundBox.isVisible()) sound.requestFocus();
         else menu.requestFocus();
     }
 
@@ -66,7 +85,25 @@ final class TitleScreen extends Screen {
                         hasSave ? "Your save is replaced when Day 1 ends" : "Start the summer retake", this::openNamePanel),
                 ChoiceList.Choice.of("CONTINUE",
                         hasSave ? "Resume from your last day-end save" : "No save yet", this::continueGame).enabled(hasSave),
+                ChoiceList.Choice.of("SOUND", "Music and effects volume", this::openSound),
                 ChoiceList.Choice.of("QUIT", null, Platform::exit)));
+    }
+
+    private void openSound() {
+        notice(notice, null);
+        menu.setVisible(false);
+        soundBox.setManaged(true);
+        soundBox.setVisible(true);
+        Motion.slideIn(soundBox, 0);
+        sound.requestFocus();
+    }
+
+    private void closeSound() {
+        soundBox.setVisible(false);
+        soundBox.setManaged(false);
+        menu.setVisible(true);
+        showMenu();
+        menu.requestFocus();
     }
 
     private void openNamePanel() {

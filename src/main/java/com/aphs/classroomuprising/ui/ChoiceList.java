@@ -213,7 +213,7 @@ public class ChoiceList extends VBox {
             row.hint = hint;
             row.ghostHint = ghostHint;
             int index = i;
-            box.addEventHandler(MouseEvent.MOUSE_ENTERED, e -> select(index));
+            box.addEventHandler(MouseEvent.MOUSE_ENTERED, e -> pick(index));
             box.addEventHandler(MouseEvent.MOUSE_CLICKED, e -> {
                 select(index);
                 activate();
@@ -318,6 +318,13 @@ public class ChoiceList extends VBox {
     }
 
     // ---- selection and cursor motion ------------------------------------------------
+
+    /** The player moved the cursor: select and give the cursor sound if it actually moved. */
+    private void pick(int index) {
+        int before = selected;
+        select(index);
+        if (selected != before) Sfx.CURSOR.play(this);
+    }
 
     private void select(int index) {
         if (index < 0 || index >= rows.size() || index == selected || !rows.get(index).choice.enabled()) return;
@@ -498,6 +505,7 @@ public class ChoiceList extends VBox {
         if (locked || selected < 0 || !rows.get(selected).choice.enabled()) return;
         locked = true;
         Row row = rows.get(selected);
+        Sfx.CONFIRM.play(this);
         flash();
         echo();
         ScaleTransition punch = new ScaleTransition(MotionTokens.SNAP, row.label);
@@ -541,7 +549,7 @@ public class ChoiceList extends VBox {
         int index = selected;
         for (int step = 0; step < rows.size(); step++) {
             index = Math.floorMod(index + direction, rows.size());
-            if (rows.get(index).choice.enabled()) { select(index); return; }
+            if (rows.get(index).choice.enabled()) { pick(index); return; }
         }
     }
 

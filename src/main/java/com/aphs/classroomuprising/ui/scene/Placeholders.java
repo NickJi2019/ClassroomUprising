@@ -78,6 +78,36 @@ final class Placeholders {
         });
     }
 
+    /** A 16:9 slide plate: which lesson and line it belongs to, and the file to deliver. */
+    static Image slide(AssetManifest.Slide slide) {
+        return CACHE.computeIfAbsent("slide|" + slide.file(), k -> {
+            Canvas canvas = new Canvas(1280, 720);
+            GraphicsContext g = canvas.getGraphicsContext2D();
+            g.setFill(Color.web("#E9ECF7"));
+            g.fillRect(0, 0, 1280, 720);
+            g.setFill(Color.web("#0B0F2A", 0.05));
+            for (int y = 0; y < 720; y += 60)
+                for (int x = (y / 60) % 2 * 60; x < 1280; x += 120) g.fillRect(x, y, 60, 60);
+            g.setStroke(Color.web("#5A6499"));
+            g.setLineWidth(4);
+            g.setLineDashes(18, 12);
+            g.strokeRect(30, 30, 1220, 660);
+            g.setLineDashes();
+            g.setTextAlign(TextAlignment.CENTER);
+            ink(g, "SLIDE  ·  DAY " + slide.day() + "  ·  FROM LINE " + slide.fromLine(), 640, 300, 44, FontWeight.BOLD);
+            ink(g, "MISSING SLIDE", 640, 380, 30, FontWeight.BOLD);
+            ink(g, "assets/" + slide.file(), 640, 430, 28, FontWeight.NORMAL);
+            return snapshot(canvas, Color.web("#E9ECF7"));
+        });
+    }
+
+    private static void ink(GraphicsContext g, String text, double x, double y, double size, FontWeight weight) {
+        g.setFill(Color.web("#2A3366"));
+        g.setFont(Font.font("Menlo", weight, size));
+        g.setTextBaseline(VPos.BASELINE);
+        g.fillText(text, x, y);
+    }
+
     private static void label(GraphicsContext g, String text, double x, double y, double size, FontWeight weight) {
         g.setFill(LABEL);
         g.setFont(Font.font("Menlo", weight, size));

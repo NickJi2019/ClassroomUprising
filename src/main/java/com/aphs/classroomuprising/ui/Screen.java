@@ -31,6 +31,12 @@ abstract class Screen {
     /** Gives keyboard focus to the screen's main control. */
     protected void focus() { root().requestFocus(); }
 
+    /**
+     * The music cue for this screen (a {@code bgm.<cue>} key in the asset manifest), or null to
+     * keep whatever is playing. A cue that is already playing carries on without restarting.
+     */
+    protected String music() { return null; }
+
     /** Whether ESC may open the menu over this screen. */
     protected boolean allowsPause() { return false; }
 

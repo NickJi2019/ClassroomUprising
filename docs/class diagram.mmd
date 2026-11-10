@@ -27,6 +27,7 @@ classDiagram
         +advance() void
         +startDay(Outcome outcome) void
         +toTitle() void
+        +audio() AudioDirector
         -screenFor(GameState view) Screen
     }
     class Screen {
@@ -37,6 +38,7 @@ classDiagram
         #onShown() void
         #onHidden() void
         #focus() void
+        #music() String
         #allowsPause() boolean
     }
     class TitleScreen
@@ -75,6 +77,44 @@ classDiagram
         +show(Tip tip) void
         +clear() void
     }
+    class SlideProjector {
+        +indexFor(List~Slide~ slides, int line)$ int
+        +showLine(int line) void
+        +close() void
+        +toggleZoom() void
+    }
+    class AudioDirector {
+        -AudioSettings settings
+        -String cue
+        +music(String cue) void
+        +play(Sfx sound) void
+        +setMusic(int level) void
+        +setEffects(int level) void
+    }
+    class AudioSettings {
+        <<record>>
+        +int music
+        +int effects
+        +gain(int level)$ double
+        +load(Path file)$ AudioSettings
+        +save(Path file) void
+    }
+    class Sfx {
+        <<enumeration>>
+        CURSOR
+        CONFIRM
+        MENU_OPEN
+        MENU_CLOSE
+        DIALOGUE
+        SLIDE
+        TIP
+        TRANSITION
+        CLOCK
+        CUTIN
+        HIT
+        +play(Node from) void
+    }
+    class SoundPanel
     class CutIn
     class TimeGauge
     class LabScreen {
@@ -222,6 +262,9 @@ classDiagram
         +read(Reader reader)$ AssetManifest
         +background(String place, String variant) Optional
         +characterNamed(String name) Optional
+        +slides(int day) List~Slide~
+        +bgm(String cue) Optional
+        +sfx(String name) Optional
     }
     class AssetStore {
         -AssetManifest manifest
@@ -229,6 +272,9 @@ classDiagram
         +background(String place, String variant) Image
         +character(CharacterSpec spec, String expression) Image
         +texture(String name) Optional
+        +slide(Slide slide) Image
+        +bgm(String cue) Optional~URL~
+        +sfx(String name) Optional~URL~
         +missingFiles() Set
     }
     class Grade {
@@ -543,6 +589,17 @@ classDiagram
     Screen <|-- CombatScreen
     Router --> TipLayer : tutorial tips, cleared on screen change
     AppContext ..> TutorialTips : once per playthrough, tutorial only
+    AppContext --> AudioDirector
+    Router ..> AudioDirector : screen's music cue, Sfx requests
+    AudioDirector --> AudioSettings : kept beside the save, not in it
+    AudioDirector ..> AssetStore : music and sound files
+    ChoiceList ..> Sfx : cursor, confirm
+    DialogueBox ..> Sfx : next line
+    TitleScreen --> SoundPanel
+    PauseMenu --> SoundPanel
+    SoundPanel ..> AudioDirector : volume levels
+    ClassroomScreen --> SlideProjector : lesson slides
+    SlideProjector ..> AssetStore : slide images
     ClassroomScreen ..> CombatScreen : assessment day starts a combat
     AppContext --> CombatRules : policy for new and loaded games
     AppContext --> CombatEvaluator : optional, none shipped
@@ -604,6 +661,8 @@ classDiagram
     note for GameSession "Frontend controller: never edits GameState.<br/>Refusals become Pending/Rejected with nothing changed.<br/>showLesson() is called once per class."
     note for CombatEvaluations "One evaluation at a time; results return on the UI thread.<br/>Leaving the combat drops late results.<br/>A failed or refused result keeps the ticket and work for a retry."
     note for CombatScreen "Displays the backend view only: no UI timing, weights, HP or marks.<br/>No pause while a question's clock runs.<br/>No evaluator shipped: submission reports T06 (Lab) or T07."
+    note for SlideProjector "Slides start at a lecture line listed in the manifest.<br/>Presentation only: never calls the core.<br/>Large view pauses the lecture until closed."
+    note for AudioDirector "Same cue keeps playing across screens; a new cue cross-fades.<br/>Missing or unplayable files are silent and listed.<br/>Sound never changes game state."
     note for LabRunService "One run at a time; results return on the UI thread.<br/>Edits make older results stale.<br/>Evidence-to-mark is T06; Lab problems not supplied yet."
 
     GameController --> CombatRules : explicit decisions

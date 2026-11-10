@@ -75,6 +75,9 @@ public class DialogueBox extends StackPane {
 
     public boolean isFinished() { return finished; }
 
+    /** The line on screen, counted from 1 (0 before the first line). */
+    int lineNumber() { return index + 1; }
+
     /** Called as each line starts, e.g. to put its speaker in focus. */
     void setOnLine(java.util.function.Consumer<DialogueScript.Line> listener) { onLine = listener; }
 
@@ -86,6 +89,7 @@ public class DialogueBox extends StackPane {
             return;
         }
         if (finished) return;
+        Sfx.DIALOGUE.play(this);
         next();
     }
 

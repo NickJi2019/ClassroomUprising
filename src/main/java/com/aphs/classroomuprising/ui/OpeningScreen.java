@@ -30,6 +30,9 @@ final class OpeningScreen extends Screen {
     OpeningScreen(AppContext ctx) { super(ctx); }
 
     @Override
+    protected String music() { return "opening"; }
+
+    @Override
     protected Parent build() {
         StackPane root = Views.load("opening.fxml", this);
         ctx.stage(scene, "opening", null, "opening");

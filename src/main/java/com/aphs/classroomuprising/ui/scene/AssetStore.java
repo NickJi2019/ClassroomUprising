@@ -23,6 +23,7 @@ public final class AssetStore {
     private final AssetManifest manifest;
     private final Function<String, URL> locate;
     private final Map<String, Optional<Image>> cache = new HashMap<>();
+    private final Map<String, Optional<URL>> sounds = new HashMap<>();
     private final Set<String> missing = new LinkedHashSet<>();
 
     /**
@@ -85,12 +86,43 @@ public final class AssetStore {
         return Optional.of(new FrameSequence(frames, spec.get().frameMillis(), spec.get().swapAt()));
     }
 
+    /** A lecture slide, or a slide-shaped plate naming the file that has not been delivered. */
+    public Image slide(AssetManifest.Slide slide) {
+        return load(slide.file()).orElseGet(() -> Placeholders.slide(slide));
+    }
+
+    /** The music file for a cue; empty when none is listed or the file is not delivered. */
+    public Optional<URL> bgm(String cue) {
+        return manifest.bgm(cue).flatMap(this::sound);
+    }
+
+    /** The sound-effect file for a name; empty when none is listed or the file is not delivered. */
+    public Optional<URL> sfx(String name) {
+        return manifest.sfx(name).flatMap(this::sound);
+    }
+
+    /** Records a sound that was found but could not be played (for example an unsupported encoding). */
+    public void soundFailed(URL url) {
+        sounds.forEach((path, found) -> {
+            if (found.filter(url::equals).isPresent() && missing.add(path))
+                LOG.log(System.Logger.Level.WARNING, "Sound could not be played: {0}", path);
+        });
+    }
+
     public Grade grade(String name) {
         return manifest.grade(name).orElse(Grade.NONE);
     }
 
     /** Files that were requested but not delivered, for the art checklist. */
     public Set<String> missingFiles() { return Set.copyOf(missing); }
+
+    private Optional<URL> sound(String path) {
+        return sounds.computeIfAbsent(path, p -> {
+            URL url = locate.apply(p);
+            if (url == null && missing.add(p)) LOG.log(System.Logger.Level.INFO, "Sound not delivered yet: {0}", p);
+            return Optional.ofNullable(url);
+        });
+    }
 
     private Optional<Image> load(String path) {
         return cache.computeIfAbsent(path, p -> {

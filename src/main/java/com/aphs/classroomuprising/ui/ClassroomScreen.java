@@ -18,6 +18,8 @@ import java.util.List;
 
 /**
  * The ICS4U slot. A Lesson shows its content once, then offers its single choice node.
+ * While Mr. Reward lectures, the lesson's slides (if the asset manifest lists any for the day)
+ * follow along on a projector panel.
  * Review days go to the matching core operation; assessment days start a combat
  * ({@link CombatScreen}). When that hits a pending rule the notice says so and the player can
  * return to the title with the save intact.
@@ -29,6 +31,7 @@ final class ClassroomScreen extends Screen {
     @FXML private VBox notice;
     @FXML private DialogueBox dialogue;
     @FXML private Hud hud;
+    private SlideProjector slides;
 
     ClassroomScreen(AppContext ctx) { super(ctx); }
 
@@ -39,18 +42,37 @@ final class ClassroomScreen extends Screen {
         root.getChildren().add(1, new Backdrop(
                 new Backdrop.Glyph("private int sanity;", 330, 150, 62, false),
                 new Backdrop.Glyph("ICS4U", 640, 300, 170, true)));
-        dialogue.setOnLine(line -> scene.speak(line.characterId(), line.expression()));
+        dialogue.setOnLine(line -> {
+            scene.speak(line.characterId(), line.expression());
+            if (slides != null) slides.showLine(dialogue.lineNumber());
+        });
         root.setOnKeyPressed(e -> {
-            if ((e.getCode() == KeyCode.ENTER || e.getCode() == KeyCode.SPACE) && !dialogue.isFinished()) {
+            if (slides != null && slides.zoomed()) {
+                // The slide is open large: the lecture waits, and any of these keys closes it.
+                switch (e.getCode()) {
+                    case Z, ENTER, SPACE, BACK_SPACE, ESCAPE -> {
+                        slides.unzoom();
+                        e.consume();
+                    }
+                    default -> { }
+                }
+            } else if ((e.getCode() == KeyCode.ENTER || e.getCode() == KeyCode.SPACE) && !dialogue.isFinished()) {
                 dialogue.advance();
+                e.consume();
+            } else if (e.getCode() == KeyCode.Z && slides != null) {
+                slides.toggleZoom();
                 e.consume();
             }
         });
         return root;
     }
 
+    /** Esc closes an enlarged slide first; otherwise it opens the menu. */
     @Override
-    protected boolean allowsPause() { return true; }
+    protected boolean allowsPause() { return slides == null || !slides.zoomed(); }
+
+    @Override
+    protected String music() { return "school"; }
 
     @Override
     protected void focus() {
@@ -77,11 +99,27 @@ final class ClassroomScreen extends Screen {
             return;
         }
         ContentCatalog.Lesson lesson = fetch.value();
+        projector(ctx.session().view().day());
         dialogue.play(ctx.script(lesson.text()), () -> offer(lesson));
         root().requestFocus();
     }
 
+    /**
+     * Puts the day's slides on top of the classroom and HUD, if the manifest lists any (on top,
+     * so the HUD's shading never dims them and the large view can cover the whole screen).
+     */
+    private void projector(int day) {
+        if (ctx.assets() == null || ctx.assets().manifest().slides(day).isEmpty()) return;
+        slides = new SlideProjector(ctx.assets(), ctx.assets().manifest().slides(day));
+        ((StackPane) root()).getChildren().add(slides);
+        hud.setHint("Z  SLIDE     ESC  MENU");
+    }
+
     private void offer(ContentCatalog.Lesson lesson) {
+        if (slides != null) {
+            slides.close();
+            hud.setHint("ESC  MENU");
+        }
         prompt.setText(UiText.interactionPrompt(lesson.interaction()));
         ctx.tip(TutorialTips.Moment.LESSON_CHOICE);
         choices.setChoices(UiText.choiceOrder(lesson.choices().keySet()).stream()

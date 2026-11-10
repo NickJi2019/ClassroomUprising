@@ -47,6 +47,9 @@ final class DayIntroScreen extends Screen {
     }
 
     @Override
+    protected String music() { return "school"; }
+
+    @Override
     protected Parent build() {
         StackPane root = Views.load("day-intro.fxml", this);
         GameState view = ctx.session().view();

@@ -96,9 +96,44 @@ class AssetManifestTest {
             "grade.evening = #3B4FB8, NOT_A_MODE, 0.5, 0, 0",       // unknown blend mode
             "character.x.name = X\ncharacter.x.height = 600\ncharacter.x.anchor = 0.5, 1.0",  // no neutral expression
             "character.x.name = X\ncharacter.x.height = 600\ncharacter.x.anchor = 1.5, 1.0\ncharacter.x.expression.neutral = c/x.png",
+            "bgm.title = audio/bgm/title.ogg",                      // JavaFX cannot play Ogg
+            "sfx.confirm = audio/sfx/confirm.png",                  // not a sound
+            "bgm.title.loop = audio/bgm/title.mp3",                 // too many parts
+            "slide.1 = slides/day-01/01.png",                       // no line number
+            "slide.1.0 = slides/day-01/01.png",                     // lines count from 1
+            "slide.day.2 = slides/day-01/01.png",                   // day is not a number
+            "slide.1.2 = slides/day-01/01.mp3",                     // not an image
     })
     void malformedEntriesAreRejected(String text) {
         assertThrows(IOException.class, () -> read(text));
+    }
+
+    @Test void slidesAreGroupedByDayInLectureOrder() throws IOException {
+        AssetManifest manifest = read("""
+                slide.2.10 = slides/day-02/c.png
+                slide.2.2 = slides/day-02/b.png
+                slide.2.1 = slides/day-02/a.png
+                slide.1.1 = slides/day-01/a.png
+                """);
+        assertEquals(java.util.List.of(1, 2), manifest.slideDays());
+        assertEquals(java.util.List.of(1, 2, 10),
+                manifest.slides(2).stream().map(AssetManifest.Slide::fromLine).toList(), "numeric, not text, order");
+        assertEquals("slides/day-02/c.png", manifest.slides(2).get(2).file());
+        assertTrue(manifest.slides(3).isEmpty());
+        assertTrue(manifest.allFiles().contains("slides/day-02/b.png"));
+    }
+
+    @Test void soundsAreListedByFamily() throws IOException {
+        AssetManifest manifest = read("""
+                bgm.title = audio/bgm/title.mp3
+                bgm.night = audio/bgm/night.m4a
+                sfx.confirm = audio/sfx/confirm.wav
+                """);
+        assertEquals("audio/bgm/night.m4a", manifest.bgm("night").orElseThrow());
+        assertEquals("audio/sfx/confirm.wav", manifest.sfx("confirm").orElseThrow());
+        assertTrue(manifest.bgm("confirm").isEmpty(), "music and effects are separate lists");
+        assertEquals(java.util.List.of("night", "title"), manifest.audioNames("bgm"));
+        assertTrue(manifest.allFiles().containsAll(java.util.List.of("audio/bgm/title.mp3", "audio/sfx/confirm.wav")));
     }
 
     private static AssetManifest read(String text) throws IOException {

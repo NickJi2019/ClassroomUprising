@@ -40,6 +40,15 @@ final class HubScreen extends Screen {
     HubScreen(AppContext ctx) { super(ctx); }
 
     @Override
+    protected String music() {
+        return switch (ctx.session().view().period()) {
+            case AFTER_SCHOOL -> "after-school";
+            case EVENING, LATE_NIGHT -> "night";
+            default -> "school";
+        };
+    }
+
+    @Override
     protected Parent build() {
         StackPane root = Views.load("hub.fxml", this);
         root.getChildren().add(1, new Backdrop(
