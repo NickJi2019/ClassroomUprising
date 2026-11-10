@@ -69,7 +69,12 @@ public class DialogueBox extends StackPane {
 
     /** Shows one line with no follow-up action. */
     public void say(String who, String line) {
-        play(List.of(new DialogueScript.Line(who, line)), () -> {});
+        say(new DialogueScript.Line(who, line));
+    }
+
+    /** Shows one prepared line (speaker art and all) with no follow-up action. */
+    void say(DialogueScript.Line line) {
+        play(List.of(line), () -> {});
         finished = true;
     }
 

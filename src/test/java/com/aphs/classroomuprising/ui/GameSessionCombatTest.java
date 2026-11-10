@@ -7,6 +7,7 @@ import com.aphs.classroomuprising.DayPeriod;
 import com.aphs.classroomuprising.DemoProfile;
 import com.aphs.classroomuprising.GameController;
 import com.aphs.classroomuprising.GameState;
+import com.aphs.classroomuprising.LessonDecision;
 import com.aphs.classroomuprising.SchoolCalendar;
 import com.aphs.classroomuprising.StatChange;
 import org.junit.jupiter.api.BeforeEach;
@@ -215,7 +216,10 @@ class GameSessionCombatTest {
         assertTrue(fixture.completeOpening().ok());
         for (int day = 1; day <= 4; day++) {
             assertTrue(fixture.openLesson().ok());
-            assertTrue(fixture.lessonChoice("ask").ok());
+            // The lesson's authored appropriate response: the learning the old "ask" fixture step stood for.
+            String response = lessons.get(day).decision().responses().stream()
+                    .filter(o -> o.outcome() == LessonDecision.Outcome.APPROPRIATE).findFirst().orElseThrow().id();
+            assertTrue(fixture.lessonChoice(day, response).ok());
             assertTrue(fixture.otherClasses(true).ok());
             assertTrue(fixture.hubActivity("study").ok());
             assertTrue(fixture.sleepNormally().ok());

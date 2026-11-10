@@ -107,6 +107,15 @@ public final class GameSession {
 
     public Outcome lessonChoice(String choiceId) { return change(() -> game.lessonChoice(choiceId)); }
 
+    /**
+     * Settles the lesson of {@code lessonDay} with one final option (a response or staying quiet).
+     * The day is the one captured when that lesson was opened, so a late callback cannot settle a
+     * different class: a stale day, an unknown option or a repeat changes nothing.
+     */
+    public Outcome lessonChoice(int lessonDay, String optionId) {
+        return change(() -> game.lessonChoice(lessonDay, optionId));
+    }
+
     public Outcome completeReview() { return change(game::completeReview); }
 
     public Outcome otherClasses(boolean reviseIcs) { return change(() -> game.otherClasses(reviseIcs)); }

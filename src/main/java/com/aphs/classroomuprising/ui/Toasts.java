@@ -20,9 +20,14 @@ final class Toasts extends VBox {
 
     /** Shows what actually changed (from snapshots) and any warnings the core returned. */
     void outcome(Outcome.Done done) {
+        deltas(done);
+        for (String warning : done.warnings()) show(warning, "toast-warn");
+    }
+
+    /** Only the stat changes, for screens that show the warnings themselves. */
+    void deltas(Outcome.Done done) {
         for (StatDelta delta : StatDelta.between(done.before(), done.after()))
             show(delta.text(), delta.positive() ? "toast-up" : "toast-down");
-        for (String warning : done.warnings()) show(warning, "toast-warn");
     }
 
     void show(String text, String tone) {

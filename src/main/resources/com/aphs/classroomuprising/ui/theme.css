@@ -396,3 +396,8 @@
 .sound-value { -fx-font-size: 22px; -fx-text-fill: -cu-text; -fx-min-width: 44; }
 .sound-keys { -fx-font-size: 11px; -fx-text-fill: -cu-dim; -fx-padding: 6 0 0 14; }
 .slide-zoom-hint { -fx-font-size: 14px; -fx-text-fill: -cu-soft; }
+
+/* ---------- lesson decision: full-sentence responses and narration ---------- */
+.choice-list.sentences .choice { -fx-padding: 8 30 8 22; }
+.choice-list.sentences .choice-label { -fx-font-size: 16px; -fx-line-spacing: 1px; }
+.lesson-narration { -fx-font-size: 15px; -fx-text-fill: -cu-soft; -fx-max-width: 470px; }

@@ -115,6 +115,11 @@ classDiagram
         +play(Node from) void
     }
     class SoundPanel
+    class LessonMenu {
+        +first(Lesson lesson)$ List~Entry~
+        +responses(LessonDecision decision)$ List~Entry~
+        +spoken(LessonDecision decision)$ boolean
+    }
     class CutIn
     class TimeGauge
     class LabScreen {
@@ -132,6 +137,7 @@ classDiagram
         +completeOpening() Outcome
         +openLesson() Fetch
         +lessonChoice(String id) Outcome
+        +lessonChoice(int lessonDay, String optionId) Outcome
         +completeReview() Outcome
         +otherClasses(boolean reviseIcs) Outcome
         +hubActivity(String id) Outcome
@@ -630,6 +636,8 @@ classDiagram
     PauseMenu --> SoundPanel
     SoundPanel ..> AudioDirector : volume levels
     ClassroomScreen --> SlideProjector : slides the lecture cues
+    ClassroomScreen ..> LessonMenu : two menus from Lesson.decision()
+    LessonMenu ..> LessonDecision : labels in authored order
     SlideProjector ..> DialogueScript : slide cues in lecture lines
     SlideProjector ..> AssetStore : slide images
     ClassroomScreen ..> CombatScreen : assessment day starts a combat
@@ -694,6 +702,7 @@ classDiagram
     note for CombatEvaluations "One evaluation at a time; results return on the UI thread.<br/>Leaving the combat drops late results.<br/>A failed or refused result keeps the ticket and work for a retry."
     note for CombatScreen "Displays the backend view only: no UI timing, weights, HP or marks.<br/>No pause while a question's clock runs.<br/>No evaluator shipped: submission reports T06 (Lab) or T07."
     note for SlideProjector "A lecture line starting with a slide:name cue turns to that slide.<br/>Presentation only: never calls the core.<br/>Large view pauses the lecture until closed."
+    note for LessonMenu "Opening or leaving a menu calls nothing in the core.<br/>Only the final response or quiet settles, once, for the captured lesson day."
     note for AudioDirector "Same cue keeps playing across screens; a new cue cross-fades.<br/>Missing or unplayable files are silent and listed.<br/>Sound never changes game state."
     note for LabRunService "One run at a time; results return on the UI thread.<br/>Edits make older results stale.<br/>Evidence-to-mark is T06; Lab problems not supplied yet."
 

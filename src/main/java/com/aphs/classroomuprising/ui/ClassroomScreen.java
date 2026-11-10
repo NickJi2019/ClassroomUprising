@@ -5,6 +5,7 @@ import com.aphs.classroomuprising.CourseType;
 import com.aphs.classroomuprising.DayPlan;
 import com.aphs.classroomuprising.GameController;
 import com.aphs.classroomuprising.GameState;
+import com.aphs.classroomuprising.LessonDecision;
 import com.aphs.classroomuprising.ui.scene.SceneView;
 import javafx.fxml.FXML;
 import javafx.util.Duration;
@@ -20,6 +21,9 @@ import java.util.List;
  * The ICS4U slot. A Lesson shows its content once, then offers its single choice node.
  * While Mr. Reward lectures, the slides his lines cue ({@code [slide:name]}) appear on a
  * projector panel, and the dialogue box carries what he says about each one.
+ * After the lecture comes the lesson's decision in two menus ({@link LessonMenu}): take part or
+ * stay quiet, then one of the authored responses. Only the final choice settles the class, once,
+ * for the lesson day captured when the lecture opened; the authored feedback follows.
  * Review days go to the matching core operation; assessment days start a combat
  * ({@link CombatScreen}). When that hits a pending rule the notice says so and the player can
  * return to the title with the save intact.
@@ -32,6 +36,11 @@ final class ClassroomScreen extends Screen {
     @FXML private DialogueBox dialogue;
     @FXML private Hud hud;
     private SlideProjector slides;
+    /** The day whose lesson this screen opened; every settlement names it. */
+    private int lessonDay;
+    private ContentCatalog.Lesson lesson;
+    /** Whether the response menu (second level) is showing, so Backspace can go back. */
+    private boolean responding;
 
     ClassroomScreen(AppContext ctx) { super(ctx); }
 
@@ -61,6 +70,9 @@ final class ClassroomScreen extends Screen {
                 e.consume();
             } else if (e.getCode() == KeyCode.Z && slides != null) {
                 slides.toggleZoom();
+                e.consume();
+            } else if (e.getCode() == KeyCode.BACK_SPACE && responding) {
+                participation();
                 e.consume();
             }
         });
@@ -98,10 +110,12 @@ final class ClassroomScreen extends Screen {
             blocked(fetch.failure());
             return;
         }
-        ContentCatalog.Lesson lesson = fetch.value();
+        lessonDay = ctx.session().view().day();
+        lesson = fetch.value();
+        hud.setCourseTitle(lesson.title());
         List<DialogueScript.Line> script = ctx.script(lesson.text());
         projector(SlideProjector.cues(script));
-        dialogue.play(script, () -> offer(lesson));
+        dialogue.play(script, this::offer);
         root().requestFocus();
     }
 
@@ -117,13 +131,88 @@ final class ClassroomScreen extends Screen {
         hud.setHint("Z  SLIDE     ESC  MENU");
     }
 
-    private void offer(ContentCatalog.Lesson lesson) {
+    private void offer() {
         if (slides != null) {
             slides.close();
             hud.setHint("ESC  MENU");
         }
-        prompt.setText(UiText.interactionPrompt(lesson.interaction()));
         ctx.tip(TutorialTips.Moment.LESSON_CHOICE);
+        if (lesson.decision() == null) flatChoices();
+        else {
+            // A question the teacher asks the class is his line: it stays in the dialogue box.
+            if (LessonMenu.spoken(lesson.decision())) dialogue.say(ctx.script(lesson.decision().prompt()).get(0));
+            participation();
+        }
+    }
+
+    /** First menu: take part or stay quiet. Showing it (again) changes nothing in the game. */
+    private void participation() {
+        responding = false;
+        notice(notice, null);
+        prompt.setText(UiText.interactionPrompt(lesson.interaction()));
+        choices.getStyleClass().remove("sentences");
+        choices.setChoices(LessonMenu.first(lesson).stream().map(entry -> entry.opensResponses()
+                ? ChoiceList.Choice.of(entry.label(), null, this::responses)
+                : ChoiceList.Choice.of(entry.label(), null, () -> settle(entry.option()))).toList());
+        choices.requestFocus();
+    }
+
+    /** Second menu: the authored responses. Opening it changes nothing in the game. */
+    private void responses() {
+        responding = true;
+        notice(notice, null);
+        prompt.setText(LessonMenu.responsePrompt(lesson));
+        if (!choices.getStyleClass().contains("sentences")) choices.getStyleClass().add("sentences");
+        var list = new java.util.ArrayList<ChoiceList.Choice>();
+        for (LessonMenu.Entry entry : LessonMenu.responses(lesson.decision()))
+            list.add(ChoiceList.Choice.of(entry.label(), null, () -> settle(entry.option())));
+        list.add(ChoiceList.Choice.of("BACK", "Backspace", this::participation).tone("cyan"));
+        choices.setChoices(list);
+        choices.requestFocus();
+    }
+
+    /** The one settlement of this class: the chosen response or staying quiet. */
+    private void settle(LessonDecision.Option option) {
+        Outcome outcome = ctx.session().lessonChoice(lessonDay, option.id());
+        if (!(outcome instanceof Outcome.Done done)) {
+            notice(notice, Diagnostic.of(outcome));
+            choices.unlock();
+            return;
+        }
+        responding = false;
+        ctx.toasts().deltas(done);
+        hud.show(done.after(), ctx.demoLabel());
+        VBox after = new VBox(10);
+        if (option.outcome() == LessonDecision.Outcome.SKIP) {
+            Label narration = new Label(done.message());
+            narration.getStyleClass().add("lesson-narration");
+            narration.setWrapText(true);
+            after.getChildren().add(narration);
+        } else {
+            // The teacher's reply to your answer or question.
+            dialogue.say(reply(done.message()));
+        }
+        for (String warning : done.warnings()) after.getChildren().add(Diagnostic.warning("TUTORIAL", warning));
+        notice(notice, after.getChildren().isEmpty() ? null : after);
+        dismissed();
+    }
+
+    private DialogueScript.Line reply(String message) {
+        boolean hasSpeaker = DialogueScript.parse(message, null).stream().findFirst()
+                .map(line -> line.speaker() != null).orElse(false);
+        return ctx.script(hasSpeaker ? message : "Mr. Reward: " + message).get(0);
+    }
+
+    private void dismissed() {
+        prompt.setText("CLASS DISMISSED");
+        choices.getStyleClass().remove("sentences");
+        choices.setChoices(List.of(ChoiceList.Choice.of("CONTINUE", "Go to your other class", ctx::advance)));
+        choices.requestFocus();
+    }
+
+    /** A lesson without an authored decision (older content): its choices in one list, as before. */
+    private void flatChoices() {
+        prompt.setText(UiText.interactionPrompt(lesson.interaction()));
         choices.setChoices(UiText.choiceOrder(lesson.choices().keySet()).stream()
                 .map(id -> ChoiceList.Choice.of(UiText.lessonChoice(id), null, () -> choose(id)))
                 .toList());
@@ -131,14 +220,12 @@ final class ClassroomScreen extends Screen {
     }
 
     private void choose(String choiceId) {
-        Outcome outcome = ctx.session().lessonChoice(choiceId);
+        Outcome outcome = ctx.session().lessonChoice(lessonDay, choiceId);
         if (outcome instanceof Outcome.Done done) {
             ctx.toasts().outcome(done);
             hud.show(done.after(), ctx.demoLabel());
             notice(notice, null);
-            prompt.setText("CLASS DISMISSED");
-            choices.setChoices(List.of(ChoiceList.Choice.of("CONTINUE", "Go to your other class", ctx::advance)));
-            choices.requestFocus();
+            dismissed();
         } else {
             notice(notice, Diagnostic.of(outcome));
             choices.unlock();

@@ -1,6 +1,8 @@
 # Frontend handoff: authored classroom responses
 
-Status: **backend implemented; frontend work remains with Claude**, explicitly confirmed by the user on 2026-11-10. This request changes neither production UI nor frontend-owned tests. The current flat screen is not the requested final two-level interaction. Do not restore `ask -> automatic reward` to keep old tests green.
+Status: **backend implemented; frontend work remains with Claude**, explicitly confirmed by the user on 2026-11-10.
+
+Frontend status: **implemented in frontend request 22** (`ClassroomScreen`, `LessonMenu`, the two-argument `GameSession.lessonChoice`, migrated tests and `LessonDecisionFlowTest`); see the implementation status for its checks. The text below is the backend's original handoff. This request changes neither production UI nor frontend-owned tests. The current flat screen is not the requested final two-level interaction. Do not restore `ask -> automatic reward` to keep old tests green.
 
 ## Confirmed behavior
 

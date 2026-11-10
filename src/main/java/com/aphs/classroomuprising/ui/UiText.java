@@ -79,6 +79,32 @@ final class UiText {
         };
     }
 
+    /** The first-level button that opens a lesson's response menu. */
+    static String participation(ContentCatalog.Interaction interaction) {
+        return switch (interaction) {
+            case ASK_TEACHER -> "ASK A QUESTION";
+            case RAISE_HAND -> "RAISE YOUR HAND";
+        };
+    }
+
+    /** The side prompt over the responses when the decision prompt itself is spoken in the dialogue box. */
+    static String responsePrompt(ContentCatalog.Interaction interaction) {
+        return switch (interaction) {
+            case ASK_TEACHER -> "Choose your question.";
+            case RAISE_HAND -> "Choose your answer.";
+        };
+    }
+
+    /**
+     * The HUD course line with the lesson's authored title. Only lessons have titles, so the title
+     * replaces the "LESSON" word (keeping the line clear of the tip card); the unit stays.
+     */
+    static String courseLine(DayPlan plan, String title) {
+        if (title == null || title.isBlank()) return courseLine(plan);
+        String unit = !plan.tutorial() && plan.unit() > 0 ? "UNIT " + plan.unit() + " · " : "";
+        return unit + title.strip().toUpperCase(java.util.Locale.ROOT);
+    }
+
     static String lessonChoice(String id) {
         return switch (id) {
             case "ask" -> "ASK A QUESTION";

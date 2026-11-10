@@ -20,6 +20,8 @@ public class Hud extends AnchorPane {
 
     private final Label day = new Label();
     private final Label course = new Label();
+    private String courseTitle;
+    private GameState shown;
     private final Label period = new Label();
     private final HBox pips = new HBox(5);
     private final Label hp = new Label();
@@ -47,6 +49,8 @@ public class Hud extends AnchorPane {
         dayTag.getStyleClass().addAll("tag-caret", "hud-day");
         dayTag.setMaxWidth(USE_PREF_SIZE);
         course.getStyleClass().addAll("display", "hud-course");
+        // Ends before the tip card (which starts at x 340); a longer authored title ends in an ellipsis.
+        course.setMaxWidth(300);
         period.getStyleClass().addAll("display", "hud-period");
         pips.setAlignment(Pos.CENTER_LEFT);
         HBox timeRow = new HBox(10, pips, period);
@@ -73,9 +77,16 @@ public class Hud extends AnchorPane {
     /** The key hint in the bottom-right corner (e.g. when the Esc menu is not available). */
     public void setHint(String text) { hint.setText(text); }
 
+    /** An authored title for today's course (e.g. a lesson title), shown in the course line; null for none. */
+    public void setCourseTitle(String title) {
+        courseTitle = title;
+        if (shown != null) show(shown, demo.getText());
+    }
+
     public void show(GameState state, String demoLabel) {
+        shown = state;
         day.setText("DAY %02d".formatted(state.day()));
-        course.setText(UiText.courseLine(state.currentCourse()) + "  ·  %d DAYS LEFT".formatted(40 - state.day()));
+        course.setText(UiText.courseLine(state.currentCourse(), courseTitle) + "  ·  %d DAYS LEFT".formatted(40 - state.day()));
         period.setText(UiText.period(state.period()));
         hp.setText(StatDelta.number(state.student().hp()));
         san.setText(StatDelta.number(state.effectiveSan()));

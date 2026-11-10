@@ -120,6 +120,8 @@ public class ChoiceList extends VBox {
 
     private int selected = -1;
     private boolean locked;
+    /** Widest line for full-sentence options, in canvas pixels. */
+    private static final double SENTENCE_WIDTH = 380;
     private double stagger = 22;
     private IntConsumer onSelect = index -> {};
 
@@ -186,12 +188,17 @@ public class ChoiceList extends VBox {
 
         boolean rightAligned = getAlignment().getHpos() == HPos.RIGHT;
         boolean large = getStyleClass().contains("large");
+        boolean sentences = getStyleClass().contains("sentences");
         for (int i = 0; i < list.size(); i++) {
             Choice choice = list.get(i);
             Label label = label(choice.label(), "choice-label");
             VBox content = new VBox(label);
             content.getStyleClass().add("choice-text");
             Label ghostLabel = label(choice.label(), "choice-label");
+            if (sentences) {
+                sentence(label);
+                sentence(ghostLabel);
+            }
             VBox ghostContent = new VBox(ghostLabel);
             ghostContent.getStyleClass().addAll("choice-text", "choice-ghost");
             Label hint = null, ghostHint = null;
@@ -562,6 +569,17 @@ public class ChoiceList extends VBox {
             default -> { return; }
         }
         event.consume();
+    }
+
+    /**
+     * A full-sentence option (for example a question for the teacher): body font, wrapped to the
+     * column, instead of a one-line display word. The ghost copy is styled the same, so the
+     * inverted text under the cursor lines up.
+     */
+    private static void sentence(Label label) {
+        label.getStyleClass().remove("display");
+        label.setWrapText(true);
+        label.setMaxWidth(SENTENCE_WIDTH);
     }
 
     private static Label label(String text, String styleClass) {

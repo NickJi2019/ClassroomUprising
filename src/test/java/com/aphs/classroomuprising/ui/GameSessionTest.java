@@ -3,6 +3,7 @@ package com.aphs.classroomuprising.ui;
 import com.aphs.classroomuprising.CourseType;
 import com.aphs.classroomuprising.DayPeriod;
 import com.aphs.classroomuprising.DemoProfile;
+import com.aphs.classroomuprising.LessonDecision;
 import com.aphs.classroomuprising.GameState;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -53,12 +54,12 @@ class GameSessionTest {
     @Test void aLessonChoiceSettlesOnceAndARepeatChangesNothing() {
         session.completeOpening();
         session.openLesson();
-        Outcome first = session.lessonChoice("ask");
+        Outcome first = session.lessonChoice(1, appropriate(1));
         Outcome.Done done = assertInstanceOf(Outcome.Done.class, first);
         assertEquals(DayPeriod.OTHER_CLASSES, done.after().period());
         String afterFirst = signature(session.view());
 
-        Outcome repeat = session.lessonChoice("ask");
+        Outcome repeat = session.lessonChoice(1, appropriate(1));
         assertInstanceOf(Outcome.Rejected.class, repeat);
         assertEquals(afterFirst, signature(session.view()));
     }
@@ -66,7 +67,7 @@ class GameSessionTest {
     @Test void choiceBeforeTheLessonIsShownIsRefused() {
         session.completeOpening();
         String before = signature(session.view());
-        assertInstanceOf(Outcome.Rejected.class, session.lessonChoice("ask"));
+        assertInstanceOf(Outcome.Rejected.class, session.lessonChoice(1, appropriate(1)));
         assertEquals(before, signature(session.view()));
     }
 
@@ -159,12 +160,19 @@ class GameSessionTest {
 
     private void playOrdinaryDay() {
         assertTrue(session.openLesson().ok());
-        assertTrue(session.lessonChoice("ask").ok());
+        int day = session.view().day();
+        assertTrue(session.lessonChoice(day, appropriate(day)).ok());
         assertTrue(session.otherClasses(true).ok());
         assertTrue(session.hubActivity("study").ok());
         assertTrue(session.sleepNormally().ok());
         assertTrue(session.saveDayEnd().ok());
         assertTrue(session.beginNextDay().ok());
+    }
+
+    /** The authored response that earns the lesson's bonus (what the old "ask" stood for). */
+    private String appropriate(int day) {
+        return profile.content().lesson(day).decision().responses().stream()
+                .filter(o -> o.outcome() == LessonDecision.Outcome.APPROPRIATE).findFirst().orElseThrow().id();
     }
 
     private static String signature(GameState s) {
