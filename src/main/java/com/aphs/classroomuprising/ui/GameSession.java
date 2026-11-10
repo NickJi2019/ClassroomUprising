@@ -1,5 +1,7 @@
 package com.aphs.classroomuprising.ui;
 
+import com.aphs.classroomuprising.CombatRules;
+import com.aphs.classroomuprising.CombatSession;
 import com.aphs.classroomuprising.ContentCatalog;
 import com.aphs.classroomuprising.DemoProfile;
 import com.aphs.classroomuprising.GameController;
@@ -37,15 +39,36 @@ public final class GameSession {
         this.savePath = savePath;
     }
 
-    /** Starts a new Day 1 run. Nothing is written to disk until the first day ends. */
+    /** Starts a new Day 1 run with combat policy still pending. Nothing is written until the first day ends. */
     public static GameSession newGame(DemoProfile profile, String name, RandomGenerator random, Path savePath) {
-        return new GameSession(profile, profile.newGame(name, random), savePath);
+        return newGame(profile, name, random, savePath, CombatRules.pending());
+    }
+
+    /** Starts a new Day 1 run with the combat policy the backend supplies (pending values stay pending). */
+    public static GameSession newGame(DemoProfile profile, String name, RandomGenerator random, Path savePath,
+                                      CombatRules combatRules) {
+        return new GameSession(profile, profile.newGame(name, random, combatRules), savePath);
     }
 
     /** Restores the saved closed day as it was. It does not start the next day or re-apply rewards. */
     public static GameSession load(DemoProfile profile, Path savePath, RandomGenerator random) throws IOException {
+        return load(profile, savePath, random, CombatRules.pending());
+    }
+
+    /** As {@link #load(DemoProfile, Path, RandomGenerator)}, with the same combat policy as a new game. */
+    public static GameSession load(DemoProfile profile, Path savePath, RandomGenerator random,
+                                   CombatRules combatRules) throws IOException {
         GameState state = new SaveManager().load(savePath);
-        return new GameSession(profile, new GameController(state, profile.rules(), profile.content(), random), savePath);
+        return new GameSession(profile,
+                new GameController(state, profile.rules(), profile.content(), random, combatRules), savePath);
+    }
+
+    /**
+     * Wraps a controller built elsewhere, for tests and checks that need content the Demo does
+     * not ship (an assessment bank, fixture combat rules, a fake clock). Not used by the game.
+     */
+    static GameSession over(DemoProfile profile, GameController game, Path savePath) {
+        return new GameSession(profile, game, savePath);
     }
 
     public static boolean saveExists(Path savePath) { return Files.isRegularFile(savePath); }
@@ -96,13 +119,42 @@ public final class GameSession {
 
     public Outcome beginNextDay() { return change(game::beginNextDay); }
 
-    public Fetch<GameController.AssessmentView> startAssessment() {
-        try {
-            return Fetch.of(game.startAssessment());
-        } catch (RuntimeException e) {
-            return Fetch.failed(failure(e));
-        }
+    // ---- assessment combat ----------------------------------------------------------
+    // Timing, weights, HP, Dasher, Combo and the final mark are the backend's. These methods
+    // forward one call each; the screen only displays what combatView() reports.
+
+    /** Opens today's assessment as a combat. A second call is refused by the core. */
+    public Fetch<GameController.AssessmentView> startCombatAssessment() { return fetch(game::startCombatAssessment); }
+
+    /** A fresh, detached view of the running combat (questions in difficulty order, backend clock). */
+    public Fetch<CombatSession.View> combatView() { return fetch(game::combatSnapshot); }
+
+    /** Starts the clock on a question; repeating it for the open question never restarts the clock. */
+    public Outcome startCombatQuestion(String questionId) { return change(() -> game.startCombatQuestion(questionId)); }
+
+    /** Locks the open question's work for evaluation and returns the ticket its result must carry. */
+    public Fetch<CombatSession.AnswerTicket> submitCombatAnswer() { return fetch(game::submitCombatAnswer); }
+
+    /** Passes on a trusted evaluator's result for this ticket; stale or repeated tickets are refused. */
+    public Outcome recordCombatEvaluation(CombatSession.AnswerTicket ticket, double earnedFraction, String evidence) {
+        return change(() -> game.recordCombatEvaluation(ticket, earnedFraction, evidence));
     }
+
+    /** Reserves reward time on the backend clock. It does not own, use up or apply any item (T09). */
+    public Fetch<CombatSession.RewardTicket> beginRewardDelay(CombatSession.RewardKind kind) {
+        return fetch(() -> game.beginCombatRewardDelay(kind));
+    }
+
+    /** Ends a reward delay; refused before its time has passed or for an old ticket. */
+    public Outcome finishRewardDelay(CombatSession.RewardTicket ticket) {
+        return change(() -> game.finishCombatRewardDelay(ticket));
+    }
+
+    /** The breakdown of a finished combat; refused until every question has been evaluated. */
+    public Fetch<CombatSession.Summary> combatSummary() { return fetch(game::combatSummary); }
+
+    /** Converts and records the whole assessment through the original result flow. */
+    public Outcome finishCombatAssessment() { return change(game::finishCombatAssessment); }
 
     /** Writes the day-end snapshot. The core accepts this only at a legal day end. */
     public Outcome saveDayEnd() {
@@ -138,6 +190,14 @@ public final class GameSession {
     }
 
     // ---- helpers --------------------------------------------------------------------
+
+    private static <T> Fetch<T> fetch(Supplier<T> request) {
+        try {
+            return Fetch.of(request.get());
+        } catch (RuntimeException e) {
+            return Fetch.failed(failure(e));
+        }
+    }
 
     private Outcome change(Supplier<GameController.Result> action) {
         GameState before = game.snapshot();

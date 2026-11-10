@@ -18,8 +18,9 @@ import java.util.List;
 
 /**
  * The ICS4U slot. A Lesson shows its content once, then offers its single choice node.
- * Review and assessment days go to the matching core operation; when that hits a pending
- * rule the notice says so and the player can return to the title with the save intact.
+ * Review days go to the matching core operation; assessment days start a combat
+ * ({@link CombatScreen}). When that hits a pending rule the notice says so and the player can
+ * return to the title with the save intact.
  */
 final class ClassroomScreen extends Screen {
     @FXML private SceneView scene;
@@ -124,16 +125,14 @@ final class ClassroomScreen extends Screen {
         choices.setChoices(List.of(ChoiceList.Choice.of("BEGIN " + name, null, this::beginAssessment)));
     }
 
+    /** Assessments are fought as a combat; a pending bank or policy is shown here instead. */
     private void beginAssessment() {
-        Fetch<GameController.AssessmentView> fetch = ctx.session().startAssessment();
+        Fetch<GameController.AssessmentView> fetch = ctx.session().startCombatAssessment();
         if (!fetch.ok()) {
             blocked(fetch.failure());
             return;
         }
-        // The core opened the assessment, but no Lab/test content model exists to drive a screen yet.
-        notice(notice, Diagnostic.warning("warning: no screen for " + fetch.value().id(),
-                "The backend has not supplied Lab problems or question options yet."));
-        choices.setChoices(List.of(returnToTitle()));
+        ctx.openCombat(fetch.value());
     }
 
     /** The class cannot go on: show why, and offer the title screen (the day-end save is kept). */

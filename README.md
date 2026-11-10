@@ -140,6 +140,14 @@ Connected now: title (new game, continue, quit) → opening scene (text only; th
 
 Not connected yet: the Lab screen and its runner service are built and tested, but the backend does not supply Lab problems (statement, class name, tests, rubric, limits), and turning evidence into a mark is T06. Chapter tests (no answer options yet), Midterm/Final decisions (T10), absences and makeups, combat, items and endings have no screens.
 
+## Combat backend integration
+
+The combat backend is available through `CombatRules`, `CombatSession` views and the new GameController operations. The frontend implementation requirements and copyable Claude prompt are in [frontend combat handoff](docs/frontend-combat-handoff.md).
+
+It supports authored difficulty ordering, player-selected answer order, a 30-second soft threshold, last-answer Dasher, timely-completion Combo, configured HP costs, backend-clock reward delays, async evaluation tickets and settlement through the existing grade flow. The new path rejects direct legacy score submission. Existing constructors, the Day 1–4 Demo, Main and the current UI remain compatible.
+
+The .01-versus-.1 weight conflict, HP formula, timeout/Dasher priority, evaluation timing, reward-clock inclusion and score conversion are explicit policy inputs. No production defaults or new assessment content were invented. Reward-delay APIs are timing only, not inventory/effect/cheating operations. A combat scene and its frontend adapters still need implementation.
+
 ## Verification and remaining work
 
 The core tests cover calendar/rules, save round trips and invalid files, and actual Java compilation/runtime cases. Infrastructure tests compile against FXGL/JavaFX, execute libGDX and GLFW native calls without a window and detect duplicate JavaFX native variants. Entry-point tests check that Main only launches the window, never reads its arguments, and that no former command route (`--gui`, `--demo`, `--help`, …) or application parameter is read anywhere in production code. Frontend tests drive `GameSession` against the real core and Demo profile (single settlement, refused repeats, day-end-only saves, load without re-applied rewards, pending T07 without changes) and `LabRunService` (one run at a time, stale detection, failures delivered, real JDK compile on a background thread).

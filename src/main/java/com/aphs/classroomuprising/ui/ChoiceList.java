@@ -61,19 +61,23 @@ public class ChoiceList extends VBox {
 
     /** One option: its row, plus the dark copy that shows through the cursor. */
     private static final class Row {
-        final Choice choice;
+        Choice choice;
         final Slant box;
         final VBox content;
         final Label label;
+        final Label ghostLabel;
         final Pane ghost = new Pane();
         final VBox ghostContent;
         final Translate room = new Translate();
+        Label hint;
+        Label ghostHint;
 
         Row(Choice choice, Slant box, VBox content, Label label, VBox ghostContent, Label ghostLabel) {
             this.choice = choice;
             this.box = box;
             this.content = content;
             this.label = label;
+            this.ghostLabel = ghostLabel;
             this.ghostContent = ghostContent;
             box.getTransforms().add(room);
             Translate ghostRoom = new Translate();
@@ -190,9 +194,12 @@ public class ChoiceList extends VBox {
             Label ghostLabel = label(choice.label(), "choice-label");
             VBox ghostContent = new VBox(ghostLabel);
             ghostContent.getStyleClass().addAll("choice-text", "choice-ghost");
-            if (choice.hint() != null && !choice.hint().isBlank()) {
-                content.getChildren().add(label(choice.hint(), "choice-hint"));
-                ghostContent.getChildren().add(label(choice.hint(), "choice-hint"));
+            Label hint = null, ghostHint = null;
+            if (hasHint(choice)) {
+                hint = label(choice.hint(), "choice-hint");
+                ghostHint = label(choice.hint(), "choice-hint");
+                content.getChildren().add(hint);
+                ghostContent.getChildren().add(ghostHint);
             }
             Slant box = new Slant(content);
             box.getStyleClass().addAll("choice", "tone-" + choice.tone());
@@ -203,6 +210,8 @@ public class ChoiceList extends VBox {
             VBox.setMargin(box, rightAligned ? new Insets(0, step, 0, 0) : new Insets(0, 0, 0, step));
 
             Row row = new Row(choice, box, content, label, ghostContent, ghostLabel);
+            row.hint = hint;
+            row.ghostHint = ghostHint;
             int index = i;
             box.addEventHandler(MouseEvent.MOUSE_ENTERED, e -> select(index));
             box.addEventHandler(MouseEvent.MOUSE_CLICKED, e -> {
@@ -220,6 +229,66 @@ public class ChoiceList extends VBox {
             if (rows.get(i).choice.enabled()) { select(i); break; }
         }
     }
+
+    /**
+     * Changes the options' text, tone and availability in place, so the cursor stays where it
+     * is (for lists whose entries change state, such as combat targets). Falls back to
+     * {@link #setChoices} when the number of options or the presence of hints differs.
+     * The list is unlocked afterwards. If the selected option became unavailable the cursor
+     * moves to the first available one, or hides when none is left.
+     */
+    public void update(List<Choice> list) {
+        boolean sameShape = list.size() == rows.size();
+        for (int i = 0; sameShape && i < list.size(); i++) sameShape = hasHint(list.get(i)) == (rows.get(i).hint != null);
+        if (!sameShape || rows.isEmpty()) {
+            setChoices(list);
+            return;
+        }
+        for (int i = 0; i < list.size(); i++) {
+            Row row = rows.get(i);
+            Choice choice = list.get(i);
+            row.choice = choice;
+            row.label.setText(choice.label());
+            row.ghostLabel.setText(choice.label());
+            if (row.hint != null) {
+                row.hint.setText(choice.hint());
+                row.ghostHint.setText(choice.hint());
+            }
+            row.box.getStyleClass().removeIf(c -> c.startsWith("tone-"));
+            row.box.getStyleClass().add("tone-" + choice.tone());
+            row.box.pseudoClassStateChanged(UNAVAILABLE, !choice.enabled());
+        }
+        locked = false;
+        if (selected >= 0 && rows.get(selected).choice.enabled()) {
+            String tone = rows.get(selected).choice.tone();
+            slab.getStyleClass().setAll("cursor-slab", "tone-" + tone);
+            shard.getStyleClass().setAll("cursor-shard", "tone-" + tone);
+        } else {
+            int next = -1;
+            for (int i = 0; i < rows.size() && next < 0; i++) if (rows.get(i).choice.enabled()) next = i;
+            if (next >= 0) select(next);
+            else clearSelection();
+        }
+        requestLayout();
+    }
+
+    /** No option selected: the cursor hides and the options settle back into line. */
+    private void clearSelection() {
+        if (selected >= 0) rows.get(selected).box.pseudoClassStateChanged(SELECTED, false);
+        selected = -1;
+        placed = false;
+        overlay.setVisible(false);
+        Timeline settle = new Timeline();
+        for (Row row : rows) {
+            settle.getKeyFrames().add(new KeyFrame(MotionTokens.QUICK,
+                    new KeyValue(row.room.yProperty(), 0, MotionTokens.OUT),
+                    new KeyValue(row.label.scaleXProperty(), 1, MotionTokens.OUT),
+                    new KeyValue(row.label.scaleYProperty(), 1, MotionTokens.OUT)));
+        }
+        settle.play();
+    }
+
+    private static boolean hasHint(Choice choice) { return choice.hint() != null && !choice.hint().isBlank(); }
 
     public void unlock() { locked = false; }
 
@@ -414,6 +483,7 @@ public class ChoiceList extends VBox {
             String base = switch (row.choice.tone()) {
                 case "cyan" -> "#5CE1E6";
                 case "danger" -> "#FF4D6D";
+                case "caret" -> "#FFD23F";
                 default -> "#AEB6E0";
             };
             row.label.setStyle(String.format(java.util.Locale.ROOT,

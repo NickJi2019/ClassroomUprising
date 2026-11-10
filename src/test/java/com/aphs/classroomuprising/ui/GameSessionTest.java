@@ -126,7 +126,7 @@ class GameSessionTest {
         assertEquals(DayPeriod.ICS_CLASS, rest.after().period());
     }
 
-    @Test void theDay5LabReportsItsPendingRuleAndChangesNothing() {
+    @Test void theDay5LabCombatReportsItsPendingRuleAndChangesNothing() {
         session.completeOpening();
         for (int day = 1; day <= 4; day++) playOrdinaryDay();
         GameState day5 = session.view();
@@ -134,11 +134,13 @@ class GameSessionTest {
         assertEquals(CourseType.LAB, day5.currentCourse().course());
 
         String before = signature(day5);
-        Fetch<?> lab = session.startAssessment();
+        Fetch<?> lab = session.startCombatAssessment();
         Outcome.Pending pending = assertInstanceOf(Outcome.Pending.class, lab.failure());
         assertEquals("T07", pending.ruleId());
         assertFalse(session.view().hasActiveAssessment());
+        assertFalse(session.view().hasActiveCombat());
         assertEquals(before, signature(session.view()));
+        assertInstanceOf(Outcome.Rejected.class, session.combatView().failure(), "no combat is open");
     }
 
     @Test void previewsComeFromTheProfile() {
