@@ -23,25 +23,32 @@ final class PausePanels {
         grid.setVgap(10);
         int row = 0;
         row = stat(grid, row, "HP", StatDelta.number(s.student().hp()), "stat-hp");
+        // SAN is a bar, never a number; a timed effect on today's SAN is named beside it.
+        SanBar bar = new SanBar(260, 18);
+        bar.set(Stats.sanFraction(s.effectiveSan()));
         double effects = s.effectiveSan() - s.student().san();
-        row = stat(grid, row, "SAN", StatDelta.number(s.effectiveSan())
-                + (Math.abs(effects) > 1e-9 ? "   (base " + StatDelta.number(s.student().san()) + ", effects " + StatDelta.signed(effects) + ")" : ""), "stat-san");
-        row = stat(grid, row, "CODING VIBE", StatDelta.number(s.student().codingVibe()), "stat-vibe");
-        row = stat(grid, row, "XP GAIN TODAY", "×" + StatDelta.number(s.xpMultiplier()), "stat-vibe");
+        HBox sanRow = new HBox(14, bar);
+        sanRow.setAlignment(Pos.CENTER_LEFT);
+        if (Math.abs(effects) > 1e-9) sanRow.getChildren().add(label("effects today " + StatDelta.san(effects), "mono", "panel-line"));
+        row = statNode(grid, row, "SAN", sanRow, "stat-san");
+        // One XP total; clicking it shows what it is made of.
+        XpBreakdown parts = new XpBreakdown();
+        parts.show(s.student());
+        parts.setVisible(false);
+        parts.setManaged(false);
+        Label total = label(StatDelta.number(Stats.xp(s.student())) + "   ▾ details", "display", "panel-stat-value", "stat-xp");
+        total.setCursor(javafx.scene.Cursor.HAND);
+        total.setOnMouseClicked(e -> {
+            boolean open = !parts.isVisible();
+            parts.setVisible(open);
+            parts.setManaged(open);
+            total.setText(StatDelta.number(Stats.xp(s.student())) + (open ? "   ▴ hide" : "   ▾ details"));
+        });
+        row = statNode(grid, row, "XP", total, "stat-xp");
+        grid.add(parts, 1, row++);
+        row = stat(grid, row, "XP GAIN TODAY", "×" + StatDelta.number(s.xpMultiplier()), "stat-xp");
         stat(grid, row, "ABSENCES", s.grades().unexcusedAbsences() + "  (first two are free)", "stat-plain");
         page.getChildren().add(grid);
-
-        page.getChildren().add(section("KNOWLEDGE BY UNIT"));
-        HBox units = new HBox(10);
-        for (int i = 0; i < 6; i++) {
-            Label name = label("U" + (i + 1), "display", "unit-name");
-            Label value = label(StatDelta.number(s.student().unitKnowledge().get(i)), "display", "unit-value");
-            VBox cell = new VBox(2, name, value);
-            cell.getStyleClass().add("unit-cell");
-            cell.setAlignment(Pos.CENTER);
-            units.getChildren().add(cell);
-        }
-        page.getChildren().add(units);
 
         page.getChildren().add(section("EFFECTS"));
         boolean any = false;
@@ -49,7 +56,7 @@ final class PausePanels {
             any = true;
             String when = effect.activeOn(s.day()) ? "today"
                     : effect.lastDay() == Integer.MAX_VALUE ? "until results return" : "Day " + effect.firstDay();
-            page.getChildren().add(label(UiText.effect(effect) + " — " + when + ":  SAN " + StatDelta.signed(effect.sanDelta())
+            page.getChildren().add(label(UiText.effect(effect) + " — " + when + ":  SAN " + StatDelta.san(effect.sanDelta())
                     + ",  XP gain ×" + StatDelta.number(effect.xpMultiplier()), "mono", "panel-line"));
         }
         if (s.hasMorningBonus()) {
@@ -119,8 +126,12 @@ final class PausePanels {
     private static Label section(String text) { return label(text, "display", "section-label"); }
 
     private static int stat(GridPane grid, int row, String name, String value, String tone) {
+        return statNode(grid, row, name, label(value, "display", "panel-stat-value"), tone);
+    }
+
+    private static int statNode(GridPane grid, int row, String name, Node value, String tone) {
         grid.add(label(name, "display", "panel-stat-name", tone), 0, row);
-        grid.add(label(value, "display", "panel-stat-value"), 1, row);
+        grid.add(value, 1, row);
         return row + 1;
     }
 

@@ -9,7 +9,9 @@ import java.util.Locale;
 
 /**
  * Display-only differences between two snapshots, or the stated values of a configured effect.
- * It never calculates game rules; the core already applied them.
+ * It never calculates game rules; the core already applied them. Shown as {@link Stats} presents
+ * the stats: HP as a number, SAN as a share of the bar ("SAN −2%"), and Coding Vibe with the
+ * units' knowledge as one XP change.
  */
 record StatDelta(String stat, double change) {
     private static final double EPSILON = 1e-9;
@@ -19,9 +21,7 @@ record StatDelta(String stat, double change) {
         var out = new ArrayList<StatDelta>();
         add(out, "HP", after.student().hp() - before.student().hp());
         add(out, "SAN", after.effectiveSan() - before.effectiveSan());
-        add(out, "VIBE", after.student().codingVibe() - before.student().codingVibe());
-        for (int i = 0; i < 6; i++)
-            add(out, "K" + (i + 1), after.student().unitKnowledge().get(i) - before.student().unitKnowledge().get(i));
+        add(out, "XP", Stats.xp(after.student()) - Stats.xp(before.student()));
         return out;
     }
 
@@ -30,14 +30,16 @@ record StatDelta(String stat, double change) {
         var out = new ArrayList<StatDelta>();
         add(out, "HP", effect.hp() * scale);
         add(out, "SAN", effect.san() * scale);
-        add(out, "VIBE", effect.codingVibe() * scale);
-        for (int i = 0; i < 6; i++) add(out, "K" + (i + 1), effect.unitKnowledge().get(i) * scale);
+        add(out, "XP", Stats.xp(effect.codingVibe(), effect.unitKnowledge()) * scale);
         return out;
     }
 
     boolean positive() { return change > 0; }
 
-    String text() { return stat + " " + signed(change); }
+    String text() { return stat + " " + (stat.equals("SAN") ? san(change) : signed(change)); }
+
+    /** A SAN change as a share of the bar: "+6%", "−4%". */
+    static String san(double change) { return signed(Stats.sanPercent(change)) + "%"; }
 
     static String signed(double value) {
         return (value >= 0 ? "+" : "−") + number(Math.abs(value));

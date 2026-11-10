@@ -11,8 +11,10 @@ import javafx.scene.layout.VBox;
 import java.util.List;
 
 /**
- * The always-visible layer: date block, time-of-day strip and three stat chips.
- * Everything else (calendar, grades, details) lives in the ESC menu.
+ * The always-visible layer: date block, time-of-day strip and three stat chips: HP as a
+ * number, SAN as a bar, and one XP total (Coding Vibe and knowledge together) that opens a
+ * panel with its parts when clicked; Esc or another click closes it. Everything else
+ * (calendar, grades, details) lives in the ESC menu.
  */
 public class Hud extends AnchorPane {
     private static final List<DayPeriod> SLOTS =
@@ -25,10 +27,15 @@ public class Hud extends AnchorPane {
     private final Label period = new Label();
     private final HBox pips = new HBox(5);
     private final Label hp = new Label();
-    private final Label san = new Label();
-    private final Label vibe = new Label();
+    private final SanBar san = new SanBar(150, 16);
+    private final Label xp = new Label();
+    private final Label xpCaret = new Label("▾");
+    private final XpBreakdown xpParts = new XpBreakdown();
+    private boolean xpOpen;
     private final Label demo = new Label();
     private final KeyHints hints = new KeyHints();
+    /** The hints the screen asked for; while the XP panel is open the plate says how to close it. */
+    private KeyHints.Hint[] screenHints = {KeyHints.Hint.of("ESC", "MENU")};
 
     public Hud() {
         getStyleClass().add("hud");
@@ -59,9 +66,24 @@ public class Hud extends AnchorPane {
         AnchorPane.setLeftAnchor(date, 36.0);
         AnchorPane.setTopAnchor(date, 26.0);
 
-        HBox stats = new HBox(12, chip("HP", "stat-hp", hp), chip("SAN", "stat-san", san), chip("VIBE", "stat-vibe", vibe));
+        Slant xpChip = chip("XP", "stat-xp", xp);
+        xpCaret.getStyleClass().addAll("display", "xp-caret");
+        ((HBox) xpChip.getChildren().get(1)).getChildren().add(xpCaret);
+        xpChip.getStyleClass().add("xp-chip");
+        xpChip.setCursor(javafx.scene.Cursor.HAND);
+        xpChip.addEventHandler(javafx.scene.input.MouseEvent.MOUSE_CLICKED, e -> {
+            if (e.getButton() == javafx.scene.input.MouseButton.PRIMARY) toggleXp();
+        });
+        HBox stats = new HBox(12, chip("HP", "stat-hp", hp), chip("SAN", "stat-san", san), xpChip);
+        stats.setAlignment(Pos.CENTER_RIGHT);
         AnchorPane.setRightAnchor(stats, 36.0);
         AnchorPane.setTopAnchor(stats, 30.0);
+
+        xpParts.getStyleClass().add("xp-panel");
+        xpParts.setVisible(false);
+        xpParts.addEventHandler(javafx.scene.input.MouseEvent.MOUSE_CLICKED, e -> toggleXp());
+        AnchorPane.setRightAnchor(xpParts, 36.0);
+        AnchorPane.setTopAnchor(xpParts, 82.0);
 
         demo.getStyleClass().addAll("mono", "demo-label");
         AnchorPane.setLeftAnchor(demo, 24.0);
@@ -71,11 +93,39 @@ public class Hud extends AnchorPane {
         AnchorPane.setRightAnchor(hints, 18.0);
         AnchorPane.setBottomAnchor(hints, 4.0);
 
-        getChildren().addAll(date, stats, demo, hints);
+        getChildren().addAll(date, stats, xpParts, demo, hints);
     }
 
     /** The key hints in the bottom-right corner, for what the screen offers right now. */
-    void setHints(KeyHints.Hint... list) { hints.set(list); }
+    void setHints(KeyHints.Hint... list) {
+        screenHints = list.clone();
+        if (!xpOpen) hints.set(list);
+    }
+
+    /** Opens or closes the panel with the parts of the XP total. */
+    void toggleXp() {
+        xpOpen = !xpOpen;
+        xpParts.setVisible(xpOpen);
+        xpCaret.setText(xpOpen ? "▴" : "▾");
+        // While open the HUD is drawn above the screen's own layers (a lecture slide), so the panel is never hidden.
+        setViewOrder(xpOpen ? -1 : 0);
+        if (xpOpen) {
+            Motion.slideIn(xpParts, 0);
+            hints.set(KeyHints.Hint.of("ESC", "CLOSE XP"));
+        } else {
+            hints.set(screenHints);
+        }
+        (xpOpen ? Sfx.MENU_OPEN : Sfx.MENU_CLOSE).play(this);
+    }
+
+    /** Esc: closes the XP panel if it is open (true), otherwise does nothing (false). */
+    boolean collapse() {
+        if (!xpOpen) return false;
+        toggleXp();
+        return true;
+    }
+
+    boolean xpOpen() { return xpOpen; }
 
     /** Hides the key hints while something on top shows its own (a slide shown large). */
     void hideHints(boolean hidden) { hints.setOpacity(hidden ? 0 : 1); }
@@ -92,8 +142,9 @@ public class Hud extends AnchorPane {
         course.setText(UiText.courseLine(state.currentCourse(), courseTitle) + "  ·  %d DAYS LEFT".formatted(40 - state.day()));
         period.setText(UiText.period(state.period()));
         hp.setText(StatDelta.number(state.student().hp()));
-        san.setText(StatDelta.number(state.effectiveSan()));
-        vibe.setText(StatDelta.number(state.student().codingVibe()));
+        san.set(Stats.sanFraction(state.effectiveSan()));
+        xp.setText(StatDelta.number(Stats.xp(state.student())));
+        xpParts.show(state.student());
         demo.setText(demoLabel);
 
         pips.getChildren().clear();
@@ -113,12 +164,12 @@ public class Hud extends AnchorPane {
         return pip;
     }
 
-    private static Slant chip(String name, String tone, Label value) {
+    private static Slant chip(String name, String tone, javafx.scene.Node value) {
         Label label = new Label(name);
         label.getStyleClass().addAll("display", "stat-name", tone);
         value.getStyleClass().addAll("display", "stat-value");
         HBox content = new HBox(7, label, value);
-        content.setAlignment(Pos.BASELINE_LEFT);
+        content.setAlignment(value instanceof Label ? Pos.BASELINE_LEFT : Pos.CENTER_LEFT);
         Slant chip = new Slant(content);
         chip.getStyleClass().add("stat-chip");
         return chip;

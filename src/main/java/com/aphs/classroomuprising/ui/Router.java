@@ -51,8 +51,8 @@ import java.util.Optional;
  * Enter, Space or the mouse button ({@link FastForward}) plays them faster, with a FAST badge.
  *
  * <p>Esc goes back one level: the Esc menu's own sub-page first, then the menu itself, then
- * whatever the screen has open ({@link Screen#back()}); only when there is nothing to go back
- * from does it open the Esc menu.</p>
+ * the HUD's open XP panel, then whatever the screen has open ({@link Screen#back()}); only when
+ * there is nothing to go back from does it open the Esc menu.</p>
  */
 final class Router {
     private static final double W = ClassroomApp.WIDTH, H = ClassroomApp.HEIGHT;
@@ -401,9 +401,15 @@ final class Router {
     private void back() {
         if (pause != null) {
             if (!pause.back()) closePause();
-        } else if (current != null && !current.back() && current.allowsPause() && context.hasSession()) {
+        } else if (current != null && !collapseHud() && !current.back() && current.allowsPause() && context.hasSession()) {
             openPause();
         }
+    }
+
+    /** Closes the XP panel of the screen's HUD, if one is open. */
+    private boolean collapseHud() {
+        for (Node node : current.root().lookupAll(".hud")) if (node instanceof Hud hud && hud.collapse()) return true;
+        return false;
     }
 
     // ---- fast-forward -------------------------------------------------------------------

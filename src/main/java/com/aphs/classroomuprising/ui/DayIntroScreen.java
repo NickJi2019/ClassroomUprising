@@ -125,7 +125,7 @@ final class DayIntroScreen extends Screen {
         for (TimedEffect effect : view.effects()) {
             if (!effect.activeOn(view.day())) continue;
             notes.getChildren().add(Diagnostic.warning(UiText.effect(effect) + " — today",
-                    "SAN " + StatDelta.signed(effect.sanDelta()) + "  ·  XP gain ×" + StatDelta.number(effect.xpMultiplier())));
+                    "SAN " + StatDelta.san(effect.sanDelta()) + "  ·  XP gain ×" + StatDelta.number(effect.xpMultiplier())));
         }
     }
 

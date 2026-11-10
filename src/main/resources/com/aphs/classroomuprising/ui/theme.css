@@ -112,6 +112,19 @@
 .stat-hp { -fx-text-fill: -cu-green; }
 .stat-san { -fx-text-fill: -cu-violet; }
 .stat-vibe { -fx-text-fill: -cu-cyan; }
+.stat-xp { -fx-text-fill: -cu-cyan; }
+.xp-caret { -fx-font-size: 14px; -fx-text-fill: -cu-cyan; }
+.xp-chip:hover > .slant-bg { -fx-stroke: -cu-cyan; }
+/* SAN bar: ten slanted segments, violet; red below a quarter. */
+.san-track { -fx-fill: rgba(180, 140, 255, 0.16); -fx-stroke: rgba(180, 140, 255, 0.55); -fx-stroke-width: 1; }
+.san-fill { -fx-fill: -cu-violet; }
+.san-bar:low .san-fill { -fx-fill: -cu-red; }
+.san-tick { -fx-stroke: rgba(11, 15, 42, 0.85); -fx-stroke-width: 2; }
+/* XP total opened: what it is made of. */
+.xp-panel { -fx-background-color: rgba(11, 15, 42, 0.92); -fx-border-color: -cu-cyan; -fx-border-width: 0 0 0 4; -fx-padding: 12 16 14 16; }
+.xp-breakdown-title { -fx-font-size: 13px; -fx-text-fill: -cu-soft; }
+.xp-part-name { -fx-font-size: 15px; -fx-text-fill: -cu-cyan; }
+.xp-part-value { -fx-font-size: 22px; -fx-text-fill: -cu-text; }
 .stat-plain { -fx-text-fill: -cu-soft; }
 .demo-label { -fx-font-size: 11px; -fx-text-fill: -cu-dim; }
 

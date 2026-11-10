@@ -99,12 +99,12 @@ final class HubScreen extends Screen {
         }
         if (period == DayPeriod.AFTER_SCHOOL) {
             list.add(new Option("SLEEP NOW", "Ends today right after school", List.of(),
-                    "Tomorrow: SAN " + value(rules.earlySleepSanBonus(), "+") + " and a ½ bonus slot before class.",
+                    "Tomorrow: SAN " + sanValue(rules.earlySleepSanBonus(), "+") + " and a ½ bonus slot before class.",
                     "cyan", ctx.session()::sleepAfterSchool));
         }
         if (period == DayPeriod.EVENING || period == DayPeriod.LATE_NIGHT) {
             list.add(new Option("SLEEP", "Ends today", List.of(),
-                    "Sleeping recovers SAN " + value(rules.normalSleepSanRecovery(), "+") + ".",
+                    "Sleeping recovers SAN " + sanValue(rules.normalSleepSanRecovery(), "+") + ".",
                     "cyan", ctx.session()::sleepNormally));
         }
         return List.copyOf(list);
@@ -116,7 +116,7 @@ final class HubScreen extends Screen {
         if (view.period() == DayPeriod.LATE_NIGHT) {
             parts.add(view.isTutorial()
                     ? "Staying up late: no penalty during the tutorial."
-                    : "Staying up late: tomorrow SAN " + value(rules.lateNightSanReduction(), "−")
+                    : "Staying up late: tomorrow SAN " + sanValue(rules.lateNightSanReduction(), "−")
                       + ", XP gain ×" + value(rules.lateNightXpMultiplier(), "") + ".");
         }
         if (view.xpMultiplier() < 1) parts.add("XP gain today ×" + StatDelta.number(view.xpMultiplier()) + ".");
@@ -126,6 +126,11 @@ final class HubScreen extends Screen {
 
     private static String value(Double configured, String sign) {
         return configured == null ? "(pending)" : sign + StatDelta.number(configured);
+    }
+
+    /** A configured SAN amount as a share of the bar ("+6%"). */
+    private static String sanValue(Double configured, String sign) {
+        return configured == null ? "(pending)" : sign + StatDelta.number(Stats.sanPercent(configured)) + "%";
     }
 
     private void preview(int index) {

@@ -59,15 +59,16 @@ final class LessonMenu {
     static final String ASKING = "gotcha";
 
     /**
-     * Mr. Reward's reaction once the class is settled: approval for an appropriate response,
-     * mockery for an inappropriate one, a stare for staying quiet. Only the outcome the core
-     * settled chooses it; it changes nothing.
+     * Mr. Reward's reaction to an answer or question: approval for an appropriate response,
+     * mockery for an inappropriate one. Staying quiet gets no reaction of its own (the class
+     * just ends, after a classmate's turn). Only the outcome the core settled chooses it; it
+     * changes nothing.
      */
     static String reaction(LessonDecision.Outcome outcome) {
         return switch (outcome) {
             case APPROPRIATE -> "thumbs-up";
             case INAPPROPRIATE -> "ridicule";
-            case SKIP -> "staring";
+            case SKIP -> "neutral";
         };
     }
 

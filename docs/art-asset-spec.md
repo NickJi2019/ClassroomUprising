@@ -57,7 +57,7 @@ Seven cut-out photos of the teacher, delivered by the team on 2026-11-10, placed
 | `stern`, `tough` | `stern.png` | finger to lips, squinting | Available to dialogue tags |
 | `gotcha` | `gotcha.png` | pointing, full figure | Asking the class a question; the opening's first line |
 | `ridicule` | `ridicule.png` | laughing and pointing | Reply to an inappropriate response; the opening's "see you this summer" |
-| `staring` | `staring.png` | wide-eyed stare | After the player stays quiet |
+| `staring` | `staring.png` | wide-eyed stare | Not used at the moment (a quiet class ends without a reaction to you) |
 | `thumbs-up` | `thumbs-up.png` | thumbs up | Reply to an appropriate response |
 
 `ui/reward-logo.png` is the team's hand-drawn "Mr. Reward" title, shown on a red band as he steps into the opening. Its source is an HDR (BT.2100 PQ) photo whose paper sits at about half of reference white, so the system's SDR conversion left the paper grey (sRGB 188). After that conversion its exposure was raised ×1.6 in linear light so the paper is sRGB 232 (near white) and the ink stays black; trimmed to the drawing, 900 px wide, no metadata.

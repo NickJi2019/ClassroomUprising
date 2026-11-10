@@ -1,0 +1,80 @@
+package com.aphs.classroomuprising.ui;
+
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
+import javafx.animation.Timeline;
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.SimpleDoubleProperty;
+import javafx.css.PseudoClass;
+import javafx.scene.layout.Pane;
+import javafx.scene.shape.Line;
+import javafx.scene.shape.Polygon;
+import javafx.util.Duration;
+
+/**
+ * SAN as a slanted bar in ten segments, with no number: the fill is the share of a full bar
+ * ({@link Stats#sanFraction}). Changes slide to the new length. Below a quarter it turns red,
+ * as a warning to the eye only.
+ */
+final class SanBar extends Pane {
+    private static final PseudoClass LOW = PseudoClass.getPseudoClass("low");
+    private static final double SKEW = 7;
+
+    private final double width;
+    private final double height;
+    private final Polygon fill = new Polygon();
+    private final DoubleProperty fraction = new SimpleDoubleProperty(0);
+    private Timeline moving;
+    private boolean placed;
+    private double target;
+
+    SanBar(double width, double height) {
+        this.width = width;
+        this.height = height;
+        getStyleClass().add("san-bar");
+        Polygon track = new Polygon();
+        track.getStyleClass().add("san-track");
+        track.getPoints().setAll(points(1));
+        fill.getStyleClass().add("san-fill");
+        getChildren().addAll(track, fill);
+        for (int i = 1; i < 10; i++) {
+            double x = (width - SKEW) * i / 10;
+            Line tick = new Line(x + SKEW, 0, x, height);
+            tick.getStyleClass().add("san-tick");
+            getChildren().add(tick);
+        }
+        setMinSize(width, height);
+        setPrefSize(width, height);
+        setMaxSize(width, height);
+        fraction.addListener((obs, was, now) -> draw(now.doubleValue()));
+        draw(0);
+    }
+
+    /** Shows this share of a full bar (0 to 1); the first value appears at once, later ones slide. */
+    void set(double share) {
+        target = Math.max(0, Math.min(1, share));
+        setAccessibleText("SAN " + Math.round(target * 100) + "%");
+        if (moving != null) moving.stop();
+        if (!placed) {
+            placed = true;
+            fraction.set(target);
+            return;
+        }
+        moving = new Timeline(new KeyFrame(Duration.millis(420), new KeyValue(fraction, target, MotionTokens.OUT)));
+        moving.play();
+    }
+
+    /** The share shown once any slide has finished. */
+    double share() { return target; }
+
+    private void draw(double share) {
+        fill.getPoints().setAll(points(share));
+        fill.setVisible(share > 0);
+        pseudoClassStateChanged(LOW, share < 0.25);
+    }
+
+    private Double[] points(double share) {
+        double w = (width - SKEW) * share;
+        return new Double[] {SKEW, 0.0, SKEW + w, 0.0, w, height, 0.0, height};
+    }
+}

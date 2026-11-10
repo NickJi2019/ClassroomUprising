@@ -157,7 +157,10 @@ final class ClassroomScreen extends Screen {
     private void projector(List<String> cued) {
         if (ctx.assets() == null || cued.isEmpty()) return;
         slides = new SlideProjector(ctx.assets(), cued);
-        slides.setOnLargeView(hud::hideHints);   // the large view has its own key hints
+        slides.setOnLargeView(on -> {
+            hud.hideHints(on);   // the large view has its own key hints
+            if (on) hud.collapse();
+        });
         StackPane root = (StackPane) root();
         root.getChildren().add(root.getChildren().indexOf(log), slides);   // the log stays on top
     }
@@ -177,6 +180,7 @@ final class ClassroomScreen extends Screen {
     /** Opens the log on the newest line; the lecture (or the menu) waits until it closes. */
     private void openLog() {
         if (dialogue.history().isEmpty() || log.isOpen()) return;
+        hud.collapse();
         ctx.router().hideTips(true);
         log.open(dialogue.history(), () -> {
             ctx.router().hideTips(false);
@@ -237,7 +241,6 @@ final class ClassroomScreen extends Screen {
         }
         for (String warning : done.warnings()) after.getChildren().add(Diagnostic.warning("TUTORIAL", warning));
         Runnable end = () -> {
-            if (quiet) scene.speak("reward", reaction);   // to you he says nothing, but he noticed
             notice(notice, after.getChildren().isEmpty() ? null : after);
             dismissed();
         };

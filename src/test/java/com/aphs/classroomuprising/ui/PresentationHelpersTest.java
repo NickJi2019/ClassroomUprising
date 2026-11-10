@@ -40,9 +40,28 @@ class PresentationHelpersTest {
 
     @Test void configuredEffectsListOnlyNonZeroStatsAndScale() {
         var effect = new StatChange(0, -2, 8, List.of(4.0, 0.0, 0.0, 0.0, 0.0, 0.0));
-        assertEquals(List.of("SAN −1", "VIBE +4", "K1 +2"),
+        // SAN as a share of the bar; Coding Vibe and knowledge as one XP change.
+        assertEquals(List.of("SAN −1%", "XP +6"),
                 StatDelta.of(effect, 0.5).stream().map(StatDelta::text).toList());
         assertEquals(List.of(), StatDelta.of(new StatChange(0, 0, 0, Collections.nCopies(6, 0.0)), 1));
+    }
+
+    @Test void sanIsAShareOfAFullBarAndNeverOverflowsIt() {
+        assertEquals(0.6, Stats.sanFraction(60), 1e-9);
+        assertEquals(0.8, Stats.sanFraction(80), 1e-9);
+        assertEquals(1.0, Stats.sanFraction(130), 1e-9, "above the display scale: a full bar");
+        assertEquals(0.0, Stats.sanFraction(-5), 1e-9);
+        assertEquals("−4%", StatDelta.san(-4));
+        assertEquals("+6%", StatDelta.san(6));
+    }
+
+    @Test void xpIsCodingVibePlusEveryUnitAndItsPartsKeepThatOrder() {
+        var student = new com.aphs.classroomuprising.StudentState(100, 80, 4, List.of(2.0, 0.0, 1.5, 0.0, 0.0, 3.0));
+        assertEquals(10.5, Stats.xp(student), 1e-9);
+        assertEquals(List.of("CODING VIBE", "U1", "U2", "U3", "U4", "U5", "U6"),
+                Stats.xpParts(student).stream().map(Stats.Part::name).toList());
+        assertEquals(List.of(4.0, 2.0, 0.0, 1.5, 0.0, 0.0, 3.0),
+                Stats.xpParts(student).stream().map(Stats.Part::value).toList());
     }
 
     @Test void choicesHaveAStableOrderWithSilenceLast() {
