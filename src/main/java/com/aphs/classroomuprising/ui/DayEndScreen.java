@@ -46,6 +46,7 @@ final class DayEndScreen extends Screen {
     protected void onShown() {
         GameState view = ctx.session().view();
         hud.show(view, ctx.demoLabel());
+        ctx.tip(TutorialTips.Moment.DAY_END);
         dayLabel.setText("DAY %02d".formatted(view.day()));
         summary.getChildren().clear();
         GameState start = ctx.dayStart();

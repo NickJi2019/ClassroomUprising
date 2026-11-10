@@ -68,6 +68,12 @@ final class HubScreen extends Screen {
         options.setChoices(current.stream()
                 .map(o -> ChoiceList.Choice.of(o.label(), null, () -> act(o)).tone(o.tone()))
                 .toList());
+        switch (view.period()) {
+            case AFTER_SCHOOL -> ctx.tip(TutorialTips.Moment.HUB_AFTER_SCHOOL);
+            case EVENING, LATE_NIGHT -> ctx.tip(TutorialTips.Moment.HUB_EVENING);
+            case MORNING_BONUS -> ctx.tip(TutorialTips.Moment.MORNING_BONUS);
+            default -> { }
+        }
     }
 
     private List<Option> optionsFor(GameState view) {

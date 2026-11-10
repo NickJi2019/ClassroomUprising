@@ -44,6 +44,7 @@ final class OtherClassesScreen extends Screen {
         choices.setChoices(List.of(
                 ChoiceList.Choice.of("FOCUS ON CLASS", "No stat change", () -> act(false)),
                 ChoiceList.Choice.of("REVISE ICS", revisionHint, () -> act(true)).tone("cyan")));
+        ctx.tip(TutorialTips.Moment.OTHER_CLASSES);
     }
 
     private void act(boolean reviseIcs) {
