@@ -74,6 +74,8 @@ final class ItemBanner {
         banner.setLayoutX((W - BOX_W) / 2);
         banner.setLayoutY((H - BOX_H) / 2 - 30);
         banner.setMouseTransparent(true);
+        banner.setCache(true);   // slides as one bitmap; redrawn only when its text changes
+        banner.setCacheHint(javafx.scene.CacheHint.SPEED);
     }
 
     /** Slides the banner in and keeps it there until {@link #finish} or {@link #dismiss}. */

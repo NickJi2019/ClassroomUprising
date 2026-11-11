@@ -103,6 +103,10 @@ final class CutIn {
     /** A parallelogram from x0 to x1, slanted like the rest of the interface. */
     private static Polygon band(double x0, double x1, double h) {
         double lean = h * SLOPE;
-        return new Polygon(x0 + lean, 0, x1 + lean, 0, x1, h, x0, h);
+        Polygon band = new Polygon(x0 + lean, 0, x1 + lean, 0, x1, h, x0, h);
+        // A bitmap while it grows and slides (no rasterizing a huge shape every frame).
+        band.setCache(true);
+        band.setCacheHint(javafx.scene.CacheHint.SPEED);
+        return band;
     }
 }

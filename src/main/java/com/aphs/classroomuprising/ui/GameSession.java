@@ -114,10 +114,16 @@ public final class GameSession {
     /** The exam as it stands. Pure: call {@link #advanceOpeningBattle()} first to settle time. */
     public Fetch<OpeningBattle.View> openingBattle() { return fetch(game::openingBattle); }
 
-    /** Starts one unanswered question and its clock (the core times it). */
+    /** The question's bullet hits the player: the core takes the HP now (and may end the exam); no clock yet. */
+    public Outcome hitOpeningQuestion(String questionId) { return change(() -> game.hitOpeningQuestion(questionId)); }
+
+    /**
+     * The hit question's paper has fully opened: the core resumes the exam's shared time (never
+     * refilled, never reset by a repeated call). Costs no HP.
+     */
     public Outcome startOpeningQuestion(String questionId) { return change(() -> game.startOpeningQuestion(questionId)); }
 
-    /** Answers the running question with one of its option IDs; read the view for the result. */
+    /** Answers the running question with one of its option IDs (no HP cost); read the view for the result. */
     public Outcome answerOpeningQuestion(String questionId, String optionId) {
         return change(() -> game.answerOpeningQuestion(questionId, optionId));
     }

@@ -42,11 +42,12 @@ class OpeningFlowTest {
         return List.of("A", "B", "C", "D", "E").stream().filter(o -> !o.equals(keys.get(questionId))).findFirst().orElseThrow();
     }
 
-    /** Answers the next unanswered question correctly. */
-    private static void right(GameSession session) {
+    /** The next question in authored order hits, opens and is answered correctly (false: the hit was lethal). */
+    private static boolean right(GameSession session) {
         String id = OpeningPlay.view(session).availableQuestions().getFirst().id();
-        assertTrue(session.startOpeningQuestion(id).ok());
+        if (!OpeningPlay.hitAndStart(session, id)) return false;
         assertTrue(session.answerOpeningQuestion(id, keys.get(id)).ok());
+        return true;
     }
 
     @Test void theExamComesBeforeDayOneAndStartsFromItsOwnStats() {
@@ -63,8 +64,9 @@ class OpeningFlowTest {
         assertEquals(content.initialStudent(), view.student(), "the HUD shows the exam's student, not Day 1's");
         assertEquals(10, view.availableQuestions().size());
         assertEquals(1, view.ducksRemaining());
-        assertEquals(Duration.ofSeconds(20), view.timeLimit(), "the first clock");
-        assertEquals(Duration.ZERO, view.remaining(), "no clock while picking");
+        assertEquals(Duration.ofSeconds(180), view.timeLimit(), "one exam time for all ten questions");
+        assertEquals(Duration.ofSeconds(180), view.remaining(), "all of it left, shown before any question");
+        assertFalse(view.clockRunning(), "no clock between questions");
         for (OpeningContent.QuestionView q : view.availableQuestions()) {
             assertEquals(List.of("A", "B", "C", "D", "E"), q.options().stream().map(OpeningContent.Option::id).toList());
             assertFalse(q.code().isBlank(), q.id() + " has its code");
@@ -75,13 +77,23 @@ class OpeningFlowTest {
     @Test void aWrongAnswerIsADefeatAndDayOneStartsFresh() {
         GameSession session = fresh();
         session.startOpeningBattle();
-        String id = OpeningPlay.view(session).availableQuestions().get(3).id();   // any order
+        String id = OpeningPlay.view(session).availableQuestions().getFirst().id();   // authored order
+        String other = OpeningPlay.view(session).availableQuestions().get(1).id();
+        assertInstanceOf(Outcome.Rejected.class, session.startOpeningQuestion(id), "no clock before the hit");
+        assertTrue(session.hitOpeningQuestion(id).ok());
+        OpeningBattle.View revealing = OpeningPlay.view(session);
+        assertEquals(OpeningBattle.Phase.QUESTION_REVEAL, revealing.phase());
+        assertEquals(8, revealing.student().hp(), 1e-9, "the hit costs the HP");
+        assertFalse(revealing.clockRunning(), "no clock while the paper opens");
+        assertInstanceOf(Outcome.Rejected.class, session.answerOpeningQuestion(id, keys.get(id)), "nothing to answer before it is open");
+        assertInstanceOf(Outcome.Rejected.class, session.hitOpeningQuestion(other), "one question at a time");
+        assertInstanceOf(Outcome.Rejected.class, session.startOpeningQuestion(other), "the clock starts only for the question that hit");
         assertTrue(session.startOpeningQuestion(id).ok());
-        assertInstanceOf(Outcome.Rejected.class, session.startOpeningQuestion(OpeningPlay.view(session).availableQuestions().getFirst().id()),
-                "one question at a time");
+        assertInstanceOf(Outcome.Rejected.class, session.startOpeningQuestion(id), "a repeated start does nothing");
         assertTrue(session.answerOpeningQuestion(id, wrong(id)).ok());
 
         OpeningBattle.View view = OpeningPlay.view(session);
+        assertEquals(8, view.student().hp(), 1e-9, "answering costs nothing");
         OpeningBattle.Feedback feedback = view.answers().getLast();
         assertFalse(feedback.correct());
         assertEquals(keys.get(id), feedback.correctOption());
@@ -100,14 +112,17 @@ class OpeningFlowTest {
         assertInstanceOf(Outcome.Rejected.class, session.completeOpening());
     }
 
-    @Test void nineRightAnswersWithoutTheDuckEndInPassingOut() {
+    @Test void withoutTheDuckTheNinthHitIsLethalAfterEightRightAnswers() {
         GameSession session = fresh();
         session.startOpeningBattle();
-        for (int i = 0; i < 9; i++) right(session);
+        for (int i = 0; i < 8; i++) assertTrue(right(session), "hit " + (i + 1) + " is survivable");
+        assertFalse(right(session), "the ninth hit takes the last HP");
         OpeningBattle.View view = OpeningPlay.view(session);
         assertEquals(0, view.student().hp(), 1e-9);
-        assertTrue(view.answers().getLast().correct(), "the last answer was right; HP ran out");
+        assertEquals(8, view.answers().size(), "eight answers; the ninth question was never opened");
+        assertTrue(view.answers().stream().allMatch(OpeningBattle.Feedback::correct));
         assertEquals(OpeningBattle.AnimationCue.PASS_OUT, view.ending().animation());
+        assertInstanceOf(Outcome.Rejected.class, session.startOpeningQuestion(view.activeQuestionId()), "no clock after a lethal hit");
         assertEquals(67, view.ending().grade());
         assertTrue(session.completeOpening().ok());
     }
@@ -122,7 +137,7 @@ class OpeningFlowTest {
         assertTrue(working.usingDuck());
         assertEquals(0, working.ducksRemaining(), "the one duck is used at once");
         String first = working.availableQuestions().getFirst().id();
-        assertInstanceOf(Outcome.Rejected.class, session.startOpeningQuestion(first), "nothing starts while it works");
+        assertInstanceOf(Outcome.Rejected.class, session.hitOpeningQuestion(first), "no attack while it works");
 
         clock.addAndGet(session.openingContent().duckDuration().toNanos() - 1);
         session.advanceOpeningBattle();
@@ -133,8 +148,9 @@ class OpeningFlowTest {
         assertFalse(healed.usingDuck());
         assertEquals(start + session.openingContent().duckRecovery(), healed.student().hp(), 1e-9, "no cap on HP");
         assertInstanceOf(Outcome.Rejected.class, session.useOpeningDuck(), "only one duck");
+        assertEquals(Duration.ofSeconds(180), healed.remaining(), "a duck between questions spends no exam time");
 
-        for (int i = 0; i < 10; i++) right(session);
+        for (int i = 0; i < 10; i++) assertTrue(right(session));
         OpeningBattle.View view = OpeningPlay.view(session);
         assertEquals(OpeningBattle.AnimationCue.VICTORY, view.ending().animation());
         assertEquals(89, view.ending().grade());
@@ -142,31 +158,57 @@ class OpeningFlowTest {
         assertTrue(session.completeOpening().ok());
     }
 
-    @Test void noAnswerBeforeTheDeadlineIsADefeatSettledByThePulse() {
+    @Test void theTenQuestionsShareOneExamTimeThatOnlyRunsWhileAQuestionIsOpen() {
         AtomicLong clock = new AtomicLong(5_000_000_000L);
         GameSession session = OpeningPlay.withClock(profile, clock, temp.resolve("late.properties"));
         session.startOpeningBattle();
-        right(session);   // the first clock was 20 s; the second is shorter
-        String id = OpeningPlay.view(session).availableQuestions().getFirst().id();
-        assertTrue(session.startOpeningQuestion(id).ok());
-        OpeningBattle.View running = OpeningPlay.view(session);
-        assertEquals(OpeningBattle.timeLimit(2), running.timeLimit());
-        assertTrue(running.timeLimit().compareTo(Duration.ofSeconds(20)) < 0);
+        String q1 = OpeningPlay.view(session).availableQuestions().getFirst().id();
+        assertTrue(session.hitOpeningQuestion(q1).ok());
+        clock.addAndGet(760_000_000L);   // the paper opening takes no exam time
+        assertEquals(Duration.ofSeconds(180), OpeningPlay.view(session).remaining());
+        assertTrue(session.startOpeningQuestion(q1).ok());
+        assertTrue(OpeningPlay.view(session).clockRunning());
+        clock.addAndGet(30_000_000_000L);
+        assertTrue(session.answerOpeningQuestion(q1, keys.get(q1)).ok());
+        assertEquals(Duration.ofSeconds(150), OpeningPlay.view(session).remaining(), "30 s spent on Q1");
 
-        clock.addAndGet(running.timeLimit().toNanos());
+        clock.addAndGet(12_000_000_000L);   // the turn, the log, the attack: paused
+        String q2 = OpeningPlay.view(session).availableQuestions().getFirst().id();
+        assertTrue(session.hitOpeningQuestion(q2).ok());
+        clock.addAndGet(760_000_000L);
+        assertTrue(session.startOpeningQuestion(q2).ok());
+        assertEquals(Duration.ofSeconds(150), OpeningPlay.view(session).remaining(), "Q2 starts with what is left, not a new allowance");
+
+        clock.addAndGet(Duration.ofSeconds(150).toNanos());
         assertEquals(Duration.ZERO, OpeningPlay.view(session).remaining());
         assertFalse(OpeningPlay.view(session).finished(), "reading the view alone settles nothing");
         assertTrue(session.advanceOpeningBattle().ok());
         OpeningBattle.View view = OpeningPlay.view(session);
         assertEquals(OpeningBattle.DefeatReason.TIMEOUT, view.ending().reason());
         assertEquals(1, view.answers().size(), "a timeout adds no answer");
+        assertEquals(7, view.student().hp(), 1e-9, "the two hits stay paid");
         assertTrue(session.advanceOpeningBattle().ok(), "later pulses change nothing");
         assertEquals(view.ending(), OpeningPlay.view(session).ending());
     }
 
+    @Test void aDuckDuringAnOpenQuestionSpendsExamTime() {
+        AtomicLong clock = new AtomicLong(9_000_000_000L);
+        GameSession session = OpeningPlay.withClock(profile, clock, temp.resolve("duck-clock.properties"));
+        session.startOpeningBattle();
+        String q1 = OpeningPlay.view(session).availableQuestions().getFirst().id();
+        assertTrue(session.hitOpeningQuestion(q1).ok());
+        assertInstanceOf(Outcome.Rejected.class, session.useOpeningDuck(), "not while the paper opens");
+        assertTrue(session.startOpeningQuestion(q1).ok());
+        assertTrue(session.useOpeningDuck().ok());
+        clock.addAndGet(session.openingContent().duckDuration().toNanos());
+        session.advanceOpeningBattle();
+        assertTrue(session.answerOpeningQuestion(q1, keys.get(q1)).ok());
+        assertEquals(Duration.ofSeconds(175), OpeningPlay.view(session).remaining(), "the duck's 5 s ran on the exam clock");
+    }
+
     @Test void theScreenShowsHonestClocksAndHangsTheBulletsOnAnArc() {
-        assertEquals("20.0", OpeningScreen.seconds(Duration.ofSeconds(20)));
-        assertEquals("7.7", OpeningScreen.seconds(OpeningBattle.timeLimit(10)), "rounded down, never more time than there is");
+        assertEquals("180.0", OpeningScreen.seconds(OpeningBattle.totalTimeLimit()));
+        assertEquals("7.7", OpeningScreen.seconds(Duration.ofMillis(7748)), "rounded down, never more time than there is");
         assertEquals("0.0", OpeningScreen.seconds(Duration.ofMillis(99)));
         for (OpeningBattle.DefeatReason reason : OpeningBattle.DefeatReason.values())
             assertFalse(OpeningScreen.reason(reason).isBlank());

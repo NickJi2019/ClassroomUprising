@@ -2,6 +2,8 @@
 
 Date: 2026-11-10. From: frontend (request 33). To: backend owner of `OpeningBattle` / `GameController`.
 
+**Status: applied by the backend** (backend request 23, `a033f7f`: HP on impact through `hitOpeningQuestion`, the clock started after the reveal; backend request 24, `1404eed`: one shared 180-second exam time) and wired in the frontend in request 34. Kept as the record of what was asked.
+
 The player asked for the opening exam to play like a turn-based bullet battle. The frontend part is built: the ten questions fan out of Mr. Reward as bullets. Each round has two halves. In **the player's turn** they can face the next question, use an item or read the log. In **his attack** the next question flies at the player, opens into the question paper where it lands, and is answered against its clock. The answer then flies back at him as the player's bullet: it lands when right and fizzles when wrong. The core API already supports all of this, but one rule now disagrees with what the player asked for, and two handoff statements are superseded.
 
 ## 1. HP is lost when the question hits, not when it is answered (rule change, needed)

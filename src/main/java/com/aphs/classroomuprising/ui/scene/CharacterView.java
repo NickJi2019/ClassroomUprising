@@ -37,6 +37,10 @@ final class CharacterView extends Group {
         this.spec = spec;
         figure.setEffect(shade);
         figure.getTransforms().add(breath);
+        // The photo and its shading are drawn once into a bitmap; breathing and swaying then move
+        // and scale that bitmap instead of re-applying the effect to the large image every frame.
+        figure.setCache(true);
+        figure.setCacheHint(javafx.scene.CacheHint.SCALE);
         getChildren().add(figure);
         setMouseTransparent(true);
         setExpression(expression, false);

@@ -383,6 +383,7 @@
 .combat-weight-note { -fx-font-size: 12px; -fx-text-fill: -cu-red; }
 .combat-time { -fx-font-size: 34px; -fx-text-fill: -cu-text; }
 .combat-time.overtime { -fx-text-fill: -cu-red; }
+.combat-time:paused { -fx-text-fill: -cu-dim; }
 .combat-limit { -fx-font-size: 14px; -fx-text-fill: -cu-dim; }
 .combat-prompt { -fx-font-size: 18px; -fx-text-fill: -cu-text; -fx-line-spacing: 3px; }
 .combat-answer { -fx-font-size: 16px; -fx-text-fill: -cu-text; -fx-prompt-text-fill: -cu-dim; -fx-highlight-fill: #2C3A7A; -fx-border-color: -cu-line; -fx-border-width: 1; }

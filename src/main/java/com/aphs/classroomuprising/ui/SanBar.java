@@ -54,6 +54,9 @@ final class SanBar extends Pane {
         setMinSize(width, height);
         setPrefSize(width, height);
         setMaxSize(width, height);
+        // One bitmap: the twitch only moves it, and the shapes are not rasterized again each frame.
+        setCache(true);
+        setCacheHint(javafx.scene.CacheHint.SPEED);
         fraction.addListener((obs, was, now) -> draw(now.doubleValue()));
         draw(0);
     }

@@ -52,10 +52,18 @@ final class Shatter {
         Random random = new Random(11);
 
         Rectangle dark = new Rectangle(W, H, Color.web("#05060F"));
+        // While it cracks the screen is still one piece: its picture with the crack lines on it
+        // (cheap to draw). The shards replace it when they start to fall.
+        javafx.scene.image.ImageView whole = new javafx.scene.image.ImageView(picture);
+        Group lines = new Group();
+        Group cracked = new Group(whole, lines);
+        cracked.setCache(true);
+        cracked.setCacheHint(javafx.scene.CacheHint.SPEED);
         Group shards = new Group();
+        shards.setVisible(false);
         Rectangle flash = new Rectangle(W, H, Color.WHITE);
         flash.setOpacity(0);
-        layer.getChildren().addAll(dark, shards, flash);
+        layer.getChildren().addAll(dark, shards, cracked, flash);
 
         // The crack pattern: rays out of the impact, crossed by jagged rings.
         double[] angles = new double[RAYS];
@@ -71,13 +79,21 @@ final class Shatter {
         for (int k = 0; k < RINGS.length - 1; k++)
             for (int i = 0; i < RAYS; i++) {
                 int j = (i + 1) % RAYS;
+                // The piece of glass, trimmed to the screen (the outer ring reaches far past it).
+                List<Point2D> piece = onScreen(List.of(grid[k][i], grid[k][j], grid[k + 1][j], grid[k + 1][i]));
+                if (piece.size() < 3) continue;
                 Polygon shard = new Polygon();
-                for (Point2D p : List.of(grid[k][i], grid[k][j], grid[k + 1][j], grid[k + 1][i]))
-                    shard.getPoints().addAll(p.getX(), p.getY());
+                for (Point2D p : piece) shard.getPoints().addAll(p.getX(), p.getY());
                 shard.setFill(glass);
                 shard.setStroke(Color.rgb(255, 255, 255, 0.85));
                 shard.setStrokeWidth(1.4);
                 shards.getChildren().add(shard);
+                Polygon edge = new Polygon();
+                edge.getPoints().setAll(shard.getPoints());
+                edge.setFill(null);
+                edge.setStroke(Color.rgb(255, 255, 255, 0.85));
+                edge.setStrokeWidth(1.4);
+                lines.getChildren().add(edge);
                 falls.add(fall(shard, at, k, random));
             }
 
@@ -89,8 +105,14 @@ final class Shatter {
         Timeline jolt = new Timeline();
         double[] xs = {-10, 8, -6, 4, -2, 0};
         for (int i = 0; i < xs.length; i++)
-            jolt.getKeyFrames().add(new KeyFrame(Duration.millis(40 * (i + 1)), new KeyValue(shards.translateXProperty(), xs[i])));
-        ParallelTransition cracked = new ParallelTransition(crack, jolt);
+            jolt.getKeyFrames().add(new KeyFrame(Duration.millis(40 * (i + 1)), new KeyValue(cracked.translateXProperty(), xs[i])));
+        ParallelTransition breaking = new ParallelTransition(crack, jolt);
+        PauseTransition hold = new PauseTransition(Duration.millis(260));
+        // The pieces come apart: the picture gives way to the shards, which fall.
+        hold.setOnFinished(e -> {
+            layer.getChildren().remove(cracked);
+            shards.setVisible(true);
+        });
         ParallelTransition apart = new ParallelTransition();
         apart.getChildren().addAll(falls);
         apart.setOnFinished(e -> {
@@ -99,7 +121,7 @@ final class Shatter {
         });
         Timeline lift = new Timeline(new KeyFrame(Duration.millis(520), new KeyValue(dark.opacityProperty(), 0, Interpolator.EASE_IN)));
         lift.setOnFinished(e -> layer.getChildren().remove(dark));
-        return new SequentialTransition(cracked, new PauseTransition(Duration.millis(260)), apart, lift);
+        return new SequentialTransition(breaking, hold, apart, lift);
     }
 
     /** One shard falls: away from the impact, then down, turning and fading; inner ones go first. */
@@ -126,6 +148,47 @@ final class Shatter {
                 new KeyFrame(Duration.millis(time * 0.6), new KeyValue(shard.opacityProperty(), 1)),
                 new KeyFrame(Duration.millis(time), new KeyValue(shard.opacityProperty(), 0)));
         fall.setDelay(Duration.millis(ring * 70 + random.nextDouble() * 90));
+        // Drawn once into a bitmap as it starts to move (so the bitmaps are made over a few
+        // frames, not all in one); falling and turning then just move it.
+        fall.getKeyFrames().add(new KeyFrame(Duration.ZERO, e -> {
+            shard.setCacheHint(javafx.scene.CacheHint.SPEED);
+            shard.setCache(true);
+        }));
         return fall;
+    }
+
+    /** A polygon trimmed to the screen (Sutherland-Hodgman against its four edges). */
+    static List<Point2D> onScreen(List<Point2D> polygon) {
+        List<Point2D> out = polygon;
+        double[][] edges = {{0, 0}, {1, W}, {2, 0}, {3, H}};   // x >= 0, x <= W, y >= 0, y <= H
+        for (double[] edge : edges) {
+            int side = (int) edge[0];
+            double limit = edge[1];
+            List<Point2D> in = out;
+            out = new ArrayList<>();
+            for (int n = 0; n < in.size(); n++) {
+                Point2D a = in.get(n), b = in.get((n + 1) % in.size());
+                boolean aIn = inside(a, side, limit), bIn = inside(b, side, limit);
+                if (aIn) out.add(a);
+                if (aIn != bIn) out.add(cross(a, b, side, limit));
+            }
+            if (out.isEmpty()) return out;
+        }
+        return out;
+    }
+
+    private static boolean inside(Point2D p, int side, double limit) {
+        return switch (side) {
+            case 0 -> p.getX() >= limit;
+            case 1 -> p.getX() <= limit;
+            case 2 -> p.getY() >= limit;
+            default -> p.getY() <= limit;
+        };
+    }
+
+    private static Point2D cross(Point2D a, Point2D b, int side, double limit) {
+        boolean vertical = side <= 1;
+        double t = vertical ? (limit - a.getX()) / (b.getX() - a.getX()) : (limit - a.getY()) / (b.getY() - a.getY());
+        return a.add(b.subtract(a).multiply(t));
     }
 }

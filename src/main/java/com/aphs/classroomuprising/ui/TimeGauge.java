@@ -32,6 +32,7 @@ public class TimeGauge extends Region {
         }
         setMinHeight(14);
         setPrefHeight(14);
+        setCache(true);   // redrawn only when the time shown changes
     }
 
     /**

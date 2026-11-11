@@ -32,7 +32,7 @@ Main only opens the game window (`Application.launch(ClassroomApp.class)`). It i
 | Z, click on the slide | During a lecture: open the current slide large, and close it again (Enter or Space also close it) |
 | Left / Right (or A / D) | In SOUND (title or Esc menu): change music or effects volume |
 | Click the XP total (HUD) | Show what it is made of: Coding Vibe and each unit's knowledge (click again or Esc to close) |
-| Opening exam, your turn: ↑↓ and Enter | FACE THE NEXT QUESTION (Mr. Reward fires it at you), ITEM, LOG; no clock runs in your turn |
+| Opening exam, your turn: ↑↓ and Enter | FACE THE NEXT QUESTION (Mr. Reward fires it at you), ITEM, LOG. The ten questions share 180 s of exam time, which runs only while a question is open (not in your turn, nor during the attack, the ripple, the verdict or the counter-shot) |
 | A–E (or ↑↓), then Enter; or click an option | Opening exam: answer the question on the clock (the answer counts at once); then Enter or a click fires it back at him |
 | R, ITEM in your turn, or click the duck | Opening exam: use Ms Tang's rubber duck (in your turn or during a question; answering and facing the next question wait until it has worked) |
 | Esc | Back one level, anywhere: the open XP panel, a large slide, the log, the response menu (back to the first menu), the title's name or sound panel, the Esc menu's SOUND page, then the Esc menu itself. With nothing to go back from, it opens the Esc menu (status, calendar, grades, sound) where the game allows it |

@@ -24,18 +24,27 @@ final class OpeningPlay {
     private OpeningPlay() {}
 
     /**
-     * Plays the exam to an ending by answering "A" to each question in turn (it ends at the first
-     * wrong answer, or at HP 0 at the latest), then acknowledges it. The session is on Day 1.
+     * Plays the exam to an ending the way the screen does (hit, then start once the paper is open,
+     * then answer "A"), in authored order; it ends at the first wrong answer, or at the lethal hit
+     * at the latest. Then acknowledges it: the session is on Day 1.
      */
     static Outcome.Done enterDayOne(GameSession session) {
         assertTrue(session.startOpeningBattle().ok());
         for (int i = 0; i < 10 && !view(session).finished(); i++) {
             String id = view(session).availableQuestions().getFirst().id();
-            assertTrue(session.startOpeningQuestion(id).ok());
+            if (!hitAndStart(session, id)) break;
             assertTrue(session.answerOpeningQuestion(id, "A").ok());
         }
         assertTrue(view(session).finished(), "the exam has an ending");
         return assertInstanceOf(Outcome.Done.class, session.completeOpening());
+    }
+
+    /** The question's bullet lands, then its paper opens: false when the hit ended the exam. */
+    static boolean hitAndStart(GameSession session, String id) {
+        assertTrue(session.hitOpeningQuestion(id).ok());
+        if (view(session).finished()) return false;
+        assertTrue(session.startOpeningQuestion(id).ok());
+        return true;
     }
 
     static OpeningBattle.View view(GameSession session) {
@@ -53,7 +62,7 @@ final class OpeningPlay {
         for (OpeningContent.QuestionView question : profile.content().opening().questions()) {
             GameSession probe = GameSession.newGame(profile, "Probe", new Random(1), dir.resolve("probe.properties"));
             assertTrue(probe.startOpeningBattle().ok());
-            assertTrue(probe.startOpeningQuestion(question.id()).ok());
+            assertTrue(hitAndStart(probe, question.id()));
             assertTrue(probe.answerOpeningQuestion(question.id(), "A").ok());
             keys.put(question.id(), view(probe).answers().getLast().correctOption());
         }

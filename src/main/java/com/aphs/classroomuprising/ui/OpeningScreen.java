@@ -37,10 +37,15 @@ import java.util.stream.IntStream;
  *
  * <p>The battle: the ten questions spring out of Mr. Reward and hang in an arc in front of him
  * ({@link Danmaku}). Then rounds: <b>your turn</b> (face the next question, use an item, read the
- * log; no clock runs), then <b>his attack</b>: the next question flies at you; where it lands it
- * opens into the question paper as a two-tone ripple ({@link Ripple}). You answer against its
- * clock; the verdict shows at once; then the paper folds back into you and flies at him as your
- * bullet: it lands when you were right and fizzles when you were wrong. Then your turn again.</p>
+ * log; the exam clock is paused), then <b>his attack</b>: the next question flies at you. Its
+ * impact is the core's hit ({@link GameSession#hitOpeningQuestion}): the HP is lost there, with the
+ * HUD's hit effects, and a lethal hit ends the exam at once. Otherwise the paper opens out of the
+ * impact as a two-tone ripple ({@link Ripple}); only when it is fully open does the core resume
+ * the clock ({@link GameSession#startOpeningQuestion}). All ten questions share one exam time
+ * (180 seconds), spent only while a question is open; the screen shows what is left, paused or
+ * running, from the view. You answer; the verdict shows at once (no HP cost); then the paper folds
+ * back into you and flies at him as your bullet: it lands when you were right and fizzles when you
+ * were wrong. Then your turn again.</p>
  *
  * <p>The exam itself belongs to the core ({@code OpeningBattle}): this screen sends the
  * player's moves (start the next question, an option, the duck) and draws the view it reads
@@ -54,7 +59,7 @@ import java.util.stream.IntStream;
  * a question is on the clock.</p>
  */
 final class OpeningScreen extends Screen {
-    private enum Stage { INTRO, FAN_OUT, TURN, ATTACK, QUESTION, FEEDBACK, COUNTER, ENDING, DONE }
+    private enum Stage { INTRO, FAN_OUT, TURN, ATTACK, REVEAL, QUESTION, FEEDBACK, COUNTER, ENDING, DONE }
 
     /** Mr. Reward as he steps in and throws, when he is hit, when he mocks a defeat, and when the player wins. */
     static final String ARRIVES = "gotcha", STRUCK = "stern", MOCKS = "ridicule", ASTONISHED = "staring";
@@ -65,6 +70,7 @@ final class OpeningScreen extends Screen {
     private static final PseudoClass CHOSEN = PseudoClass.getPseudoClass("chosen");
     private static final PseudoClass RIGHT = PseudoClass.getPseudoClass("right");
     private static final PseudoClass WRONG = PseudoClass.getPseudoClass("wrong");
+    private static final PseudoClass PAUSED = PseudoClass.getPseudoClass("paused");
     /** Where the two stand when no art is delivered. */
     private static final Point2D PLAYER_FALLBACK = new Point2D(256, 430), REWARD_FALLBACK = new Point2D(947, 330);
 
@@ -111,6 +117,8 @@ final class OpeningScreen extends Screen {
     private boolean feedbackJustShown;
     private boolean endingPlayed;
     private long lastPulse;
+    /** Counts attacks; a reveal that finishes after its attack is no longer current does nothing. */
+    private int attackNumber;
     private final AnimationTimer clock = new AnimationTimer() {
         @Override
         public void handle(long now) { pulse(now); }
@@ -242,9 +250,12 @@ final class OpeningScreen extends Screen {
             return;
         }
         clock.start();
-        if (view.phase() == OpeningBattle.Phase.QUESTION) {
-            view.availableQuestions().stream().filter(q -> q.id().equals(view.activeQuestionId())).findFirst()
-                    .ifPresent(q -> showPaper(q, view, false));
+        var active = view.availableQuestions().stream().filter(q -> q.id().equals(view.activeQuestionId())).findFirst();
+        if (view.phase() == OpeningBattle.Phase.QUESTION && active.isPresent()) {
+            showPaper(active.get(), view, false);   // its clock is running already: never started again
+        } else if (view.phase() == OpeningBattle.Phase.QUESTION_REVEAL && active.isPresent()) {
+            attackNumber++;
+            showPaper(active.get(), view, true);    // already hit: the paper opens again, then the clock starts
         } else {
             fanOut();
         }
@@ -288,14 +299,14 @@ final class OpeningScreen extends Screen {
         }
         if (view.finished()) {
             if (stage == Stage.QUESTION) timeUp();
-            else if (stage != Stage.FEEDBACK && stage != Stage.COUNTER) beginEnding();
+            else if (stage != Stage.FEEDBACK && stage != Stage.COUNTER && stage != Stage.ATTACK) beginEnding();
             return;
         }
         drawClock(view);
         drawDuck(view);
         if (duckBanner != null && view.usingDuck()) duckBanner.update(duckDetail(view));
         if (before.usingDuck() != view.usingDuck() || before.ducksRemaining() != view.ducksRemaining()) {
-            setAnswersEnabled(!view.usingDuck());
+            setAnswersEnabled(stage == Stage.QUESTION && !view.usingDuck());
             hints();
         }
         // When the duck finishes the menu is rebuilt, so the cursor rests on facing the next question.
@@ -321,8 +332,7 @@ final class OpeningScreen extends Screen {
         paper.setManaged(false);
         examScrim.setVisible(true);
         notice(notice, null);
-        int answered = last.answers().size(), left = last.availableQuestions().size();
-        round.setText("ROUND " + (answered + 1) + "  ·  " + left + (left == 1 ? " QUESTION LEFT" : " QUESTIONS LEFT"));
+        round.setText(roundLine());
         commands.setChoices(turnChoices());
         turn.setVisible(true);
         turn.setManaged(true);
@@ -334,7 +344,7 @@ final class OpeningScreen extends Screen {
     private List<ChoiceList.Choice> turnChoices() {
         String face = last.usingDuck()
                 ? "The duck is working  ·  " + seconds(last.duckRemaining()) + " s"
-                : "Q" + (last.answers().size() + 1) + " comes at you  ·  " + seconds(last.timeLimit()) + " s on the clock";
+                : "Q" + (last.answers().size() + 1) + " comes at you  ·  " + seconds(last.remaining()) + " s of exam time left";
         String item = last.ducksRemaining() > 0 ? "Ms Tang's rubber duck ×" + last.ducksRemaining() : "No items left";
         return List.of(
                 ChoiceList.Choice.of("FACE THE NEXT QUESTION", face, this::attack).enabled(!last.usingDuck()),
@@ -382,37 +392,63 @@ final class OpeningScreen extends Screen {
         commands.setChoices(List.of());
         hints();
         String id = last.availableQuestions().getFirst().id();
+        int number = ++attackNumber;
         scene.speak("reward", ARRIVES);
         Point2D target = player();
-        danmaku.fire(id, target, () -> impact(id, target)).play();
+        danmaku.fire(id, target, () -> impact(id, number)).play();
     }
 
     /**
-     * The question lands on the player: the character is struck, the core starts the question
-     * (and its clock), and the paper opens out of the impact.
+     * The question lands on the player: the core's hit takes the HP now (the HUD shows the drop
+     * with its hit effects and the character is struck). A lethal hit ends the exam at once;
+     * otherwise the paper opens out of the impact, and only then does the clock start.
      */
-    private void impact(String questionId, Point2D at) {
-        if (stage != Stage.ATTACK) return;
-        scene.hit("student");
-        Outcome started = ctx.session().startOpeningQuestion(questionId);
-        if (!started.ok()) {
-            notice(notice, Diagnostic.of(started));
+    private void impact(String questionId, int number) {
+        if (stage != Stage.ATTACK || number != attackNumber) return;
+        Outcome hit = ctx.session().hitOpeningQuestion(questionId);
+        if (!hit.ok()) {
+            notice(notice, Diagnostic.of(hit));
             showTurn();
             return;
         }
+        double hpBefore = last.student().hp();
         OpeningBattle.View view = read();
-        hud.showStudent(view.student(), ctx.demoLabel());
+        hud.showStudent(view.student(), ctx.demoLabel());   // the drop plays the hit effects (Hud.onHurt)
+        if (view.student().hp() < hpBefore) popHp(view.student().hp() - hpBefore);
+        else scene.hit("student");
         if (view.finished()) {
-            beginEnding();
+            beginEnding();   // passed out on the hit: no paper, no clock
             return;
         }
         view.availableQuestions().stream().filter(q -> q.id().equals(questionId)).findFirst()
                 .ifPresent(q -> showPaper(q, view, true));
     }
 
+    /**
+     * The paper has fully opened: now the core resumes the exam clock, once. A late or repeated
+     * call (another attack since, the screen left, the exam over, the clock already running) does
+     * nothing.
+     */
+    private void revealed(String questionId, int number) {
+        if (stage != Stage.REVEAL || number != attackNumber || last == null || last.finished()) return;
+        if (last.phase() != OpeningBattle.Phase.QUESTION_REVEAL || !questionId.equals(last.activeQuestionId())) return;
+        Outcome started = ctx.session().startOpeningQuestion(questionId);
+        OpeningBattle.View view = read();
+        if (!started.ok() || view.phase() != OpeningBattle.Phase.QUESTION) {
+            if (view.finished()) beginEnding();
+            else notice(notice, Diagnostic.of(started));
+            return;
+        }
+        stage = Stage.QUESTION;
+        drawClock(view);
+        setAnswersEnabled(!view.usingDuck());
+        hints();
+    }
+
     /** The question on the clock: its prompt and complete code, and its five options. */
     private void showPaper(OpeningContent.QuestionView question, OpeningBattle.View view, boolean ripple) {
-        stage = Stage.QUESTION;
+        boolean running = view.phase() == OpeningBattle.Phase.QUESTION;
+        stage = running ? Stage.QUESTION : Stage.REVEAL;
         shown = question;
         turn.setVisible(false);
         turn.setManaged(false);
@@ -421,7 +457,6 @@ final class OpeningScreen extends Screen {
         questionTag.setText("QUESTION " + view.questionOrdinal() + " / 10");
         verdict.setText("");
         verdict.getStyleClass().removeAll("verdict-right", "verdict-wrong");
-        limit.setText("/ " + seconds(view.timeLimit()) + " s");
         time.getStyleClass().remove("overtime");
         prompt.setText(question.prompt());
         code.setText(question.code());
@@ -436,11 +471,18 @@ final class OpeningScreen extends Screen {
         explanation.setManaged(false);
         paper.setManaged(true);
         drawClock(view);
-        setAnswersEnabled(!view.usingDuck());
-        if (ripple) Ripple.open(paper, player()).play();
-        else {
+        // Nothing can be answered while the paper is still opening (the clock is not running yet).
+        setAnswersEnabled(running && !view.usingDuck());
+        if (ripple) {
+            Animation open = Ripple.open(paper, player());
+            int number = attackNumber;
+            String id = question.id();
+            open.setOnFinished(e -> revealed(id, number));   // the ripple cleans itself up separately
+            open.play();
+        } else {
             paper.setVisible(true);
             Motion.slideIn(paper, 0);
+            if (!running) revealed(question.id(), attackNumber);
         }
         hints();
         root().requestFocus();
@@ -530,7 +572,7 @@ final class OpeningScreen extends Screen {
         explanation.setManaged(true);
         Motion.slideIn(verdict, 0);
         (feedback.correct() ? Sfx.CONFIRM : Sfx.HIT).play(paper);
-        time.setText("—");
+        if (last != null) drawClock(last);   // the exam time stops here, and shows PAUSED
     }
 
     /**
@@ -599,7 +641,7 @@ final class OpeningScreen extends Screen {
 
     /** Uses the one duck: a big announcement; its HP arrives later, on the core's clock. */
     private void useDuck() {
-        if (stage != Stage.TURN && stage != Stage.QUESTION && stage != Stage.FEEDBACK) return;
+        if (stage != Stage.TURN && stage != Stage.QUESTION && stage != Stage.FEEDBACK) return;   // not while revealing
         if (last == null || last.ducksRemaining() == 0 || last.usingDuck()) {
             if (stage == Stage.TURN) commands.unlock();
             return;
@@ -665,15 +707,32 @@ final class OpeningScreen extends Screen {
         rise.play();
     }
 
-    /** The clock text and gauge, redrawn only when the shown tenth of a second changes. */
+    /**
+     * The exam's shared time: what is left of the total (the same in every phase; the core never
+     * refills it), and whether it is running now. Redrawn only when the shown tenth or the state
+     * changes.
+     */
     private void drawClock(OpeningBattle.View view) {
-        if (stage != Stage.QUESTION || view.phase() != OpeningBattle.Phase.QUESTION) return;
         String text = seconds(view.remaining());
+        String state = (view.clockRunning() ? "/ " : "/ ") + seconds(view.timeLimit()) + " s EXAM TIME"
+                + (view.clockRunning() ? "" : "  ·  PAUSED");
+        if (!state.equals(limit.getText())) {
+            limit.setText(state);
+            time.pseudoClassStateChanged(PAUSED, !view.clockRunning());
+        }
         if (text.equals(time.getText())) return;
-        double limitSeconds = view.timeLimit().toNanos() / 1e9;
+        double total = view.timeLimit().toNanos() / 1e9;
         double left = view.remaining().toNanos() / 1e9;
         time.setText(text);
-        gauge.show(limitSeconds <= 0 ? 1 : 1 - left / limitSeconds, false);
+        gauge.show(total <= 0 ? 1 : 1 - left / total, false);
+        if (stage == Stage.TURN) round.setText(roundLine());
+    }
+
+    /** The turn header: the round, the questions left and the exam time left (paused). */
+    private String roundLine() {
+        int answered = last.answers().size(), left = last.availableQuestions().size();
+        return "ROUND " + (answered + 1) + "  ·  " + left + (left == 1 ? " QUESTION LEFT" : " QUESTIONS LEFT")
+                + "  ·  EXAM TIME " + seconds(last.remaining()) + " s";
     }
 
     /** The duck chip; its style and text change only when they differ (no CSS pass every frame). */
@@ -832,7 +891,8 @@ final class OpeningScreen extends Screen {
     /** Keys for the battle; the turn menu handles its own arrows and Enter when it has focus. */
     private boolean key(KeyCode code) {
         if (code == KeyCode.H) {
-            if (stage != Stage.QUESTION) openLog();
+            // Not while a question is coming, opening or on the clock.
+            if (stage != Stage.ATTACK && stage != Stage.REVEAL && stage != Stage.QUESTION) openLog();
             return true;
         }
         if (code == KeyCode.R) {   // the rubber duck (D is an answer)
