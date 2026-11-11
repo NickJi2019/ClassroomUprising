@@ -6,7 +6,7 @@ import java.util.*;
 
 /** Special previous-semester exam. Mutations occur only on a GameController candidate copy. */
 public final class OpeningBattle {
-    public enum Phase { SELECT_QUESTION, QUESTION, DEFEAT, VICTORY }
+    public enum Phase { SELECT_QUESTION, QUESTION_REVEAL, QUESTION, DEFEAT, VICTORY }
     public enum DefeatReason { WRONG_ANSWER, TIMEOUT, PASS_OUT }
     public enum AnimationCue { DEFEAT, PASS_OUT, VICTORY }
     public record Feedback(String questionId, String selectedOption, boolean correct,
@@ -40,7 +40,7 @@ public final class OpeningBattle {
         b.duckStarted = duckStarted; b.questionStarted = questionStarted; b.activeQuestion = activeQuestion;
         b.answers.addAll(answers); b.ending = ending; return b;
     }
-    /** Ordinal means the order chosen by the player, not the PDF question number. */
+    /** Ordinal counts attacks, not PDF question numbers; the frontend fires in authored order. */
     public static Duration timeLimit(int ordinal) {
         if (ordinal < 1 || ordinal > 10) throw new IllegalArgumentException("Opening question ordinal must be 1..10.");
         return Duration.ofNanos(new BigDecimal("20000000000").multiply(new BigDecimal("0.9").pow(ordinal - 1)).longValueExact());
@@ -64,12 +64,22 @@ public final class OpeningBattle {
         }
         if (expired) lose(DefeatReason.TIMEOUT);
     }
-    void select(String id, long now) {
+    void hit(String id, long now) {
         live();
         if (phase != Phase.SELECT_QUESTION || usingDuck) throw new IllegalStateException("Finish the current action first.");
         content.question(id);
         if (answers.stream().anyMatch(a -> a.questionId().equals(id))) throw new IllegalArgumentException("Already answered.");
-        tick(now); activeQuestion = id; questionStarted = now; phase = Phase.QUESTION;
+        tick(now); activeQuestion = id; phase = Phase.QUESTION_REVEAL;
+        // This call is the bullet's impact. A submitted answer must never charge this HP again.
+        student = student.apply(new StatChange(-1, 0, 0, Collections.nCopies(6, 0.0)), 1, 1, false);
+        if (student.hp() <= 0) lose(DefeatReason.PASS_OUT);
+    }
+    /** Presentation completion, not impact: grant the full limit from this backend clock reading. */
+    void start(String id, long now) {
+        live();
+        if (phase != Phase.QUESTION_REVEAL || !Objects.equals(activeQuestion, id))
+            throw new IllegalStateException("Reveal the impacted question before starting its clock.");
+        tick(now); questionStarted = now; phase = Phase.QUESTION;
     }
     void answer(String id, String option, long now) {
         live();
@@ -80,10 +90,8 @@ public final class OpeningBattle {
         if (ending != null) return; // A late answer commits the timeout; it cannot undo it by throwing.
         if (usingDuck) throw new IllegalStateException("Duck use is still in progress.");
         boolean correct = q.answer().equals(option);
-        student = student.apply(new StatChange(-1, 0, 0, Collections.nCopies(6, 0.0)), 1, 1, false);
         answers.add(new Feedback(id, option, correct, q.answer(), q.explanation()));
-        if (student.hp() <= 0) lose(DefeatReason.PASS_OUT);
-        else if (!correct) lose(DefeatReason.WRONG_ANSWER);
+        if (!correct) lose(DefeatReason.WRONG_ANSWER);
         else if (answers.size() == 10) {
             phase = Phase.VICTORY;
             ending = new Ending(89, null, AnimationCue.VICTORY, content.victory());
@@ -91,6 +99,7 @@ public final class OpeningBattle {
     }
     void useDuck(long now) {
         live();
+        if (phase == Phase.QUESTION_REVEAL) throw new IllegalStateException("Wait until the question finishes revealing.");
         if (ducks == 0 || usingDuck) throw new IllegalStateException("No unused rubber duck remains.");
         tick(now);
         if (ending != null) return;
@@ -104,9 +113,10 @@ public final class OpeningBattle {
     /** Pure observation. Call advanceOpeningBattle first to settle deadlines/recovery. */
     View view(long now) {
         if (ending == null) elapsed(now, lastObserved);
-        int ordinal = Math.min(10, answers.size() + (phase == Phase.QUESTION || phase == Phase.SELECT_QUESTION ? 1 : 0));
-        // A timeout may precede submission; preserve the active question's ordinal at the ending.
-        if (ending != null && ending.reason() == DefeatReason.TIMEOUT) ordinal = answers.size() + 1;
+        int ordinal = Math.min(10, answers.size() + (ending == null ? 1 : 0));
+        // Timeout and a lethal impact precede submission; neither fabricates answer feedback.
+        if (ending != null && (ending.reason() == DefeatReason.TIMEOUT || ending.reason() == DefeatReason.PASS_OUT))
+            ordinal = answers.size() + 1;
         Duration limit = timeLimit(Math.max(1, ordinal));
         Duration remaining = phase == Phase.QUESTION ? Duration.ofNanos(Math.max(0, limit.toNanos() - elapsed(now, questionStarted))) : Duration.ZERO;
         Duration duckLeft = usingDuck ? Duration.ofNanos(Math.max(0, content.duckDuration().toNanos() - elapsed(now, duckStarted))) : Duration.ZERO;

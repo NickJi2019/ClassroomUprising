@@ -90,7 +90,7 @@ The team approved a separate, labelled Demo configuration to unblock frontend wo
 DemoProfile demo = DemoProfile.load();
 GameController game = demo.newGame(playerName, java.util.random.RandomGenerator.getDefault());
 // Display demo.label() visibly. Opening playback belongs to the frontend.
-// Play the opening via startOpeningBattle/startOpeningQuestion/answerOpeningQuestion.
+// Play the opening via startOpeningBattle/hitOpeningQuestion/startOpeningQuestion/answerOpeningQuestion.
 // See docs/frontend-opening-handoff.md for timer, duck and ending callbacks.
 // Only after a terminal result AND its ending playback:
 game.completeOpening();
@@ -193,8 +193,12 @@ Use `GameController.lessonChoice(lessonDay, optionId)` to guard stale-day callba
 
 ## Opening backend increment — 2026-11-10
 
-Opening HP starts at **9 with no upper cap**. Exactly one rubber duck is available; its isolated Demo action recovers 3 HP after 5 seconds while the active question clock continues. Opening SAN/XP are separately configured (SAN 1, Coding Vibe and six Knowledge values 0). Each answered question costs 1 HP, correctness is immediate, any wrong answer or timeout loses, and HP 0 passes out. Ten correct answers with positive HP win. Question limits are 20 seconds multiplied by 0.9 for each next answer ordinal. Both 67/89 endings lead to unchanged summer-school Day 1; neither grade enters the current GradeBook.
+Opening HP starts at **9 with no upper cap**. Exactly one rubber duck is available; its isolated Demo action recovers 3 HP after 5 seconds while the active question clock continues. Opening SAN/XP are separately configured (SAN 1, Coding Vibe and six Knowledge values 0). Each question impact costs 1 HP; HP 0 passes out immediately before reveal. The complete clock starts separately after the paper opens. Answer submission changes no HP, correctness is immediate, and any wrong answer or timeout loses. Ten correct answers with positive HP win. Question limits are 20 seconds multiplied by 0.9 for each next answer ordinal. Both 67/89 endings lead to unchanged summer-school Day 1; neither grade enters the current GradeBook.
 
 Backend state/content, verified question transcriptions and public API are delivered. **The current UI has not been migrated and this is not a playable opening demo yet.** Existing frontend tests using direct opening acknowledgement and old classroom `ask` IDs need Claude's migration. Full-suite failures are retained and reported, not hidden. Normal semester CombatSession/CombatRules, Main, dependencies, assets and save schema are unchanged.
 
 **Frontend integration (frontend request 32).** `OpeningScreen` plays the exam through thin `GameSession` wrappers: the story, a picker of unanswered questions (no clock while picking), each question with its full code and options A–E against the core's clock, the duck, immediate feedback, and each ending's animation, grade stamp and dialogue once before BEGIN SUMMER SCHOOL acknowledges it. The paragraph above describes the backend delivery before this.
+
+## Opening impact and fair clock — backend request 23
+
+Frontend request 33's visuals are preserved. The backend now splits `hitOpeningQuestion(id)` (HP -1, QUESTION_REVEAL or immediate PASS_OUT) from `startOpeningQuestion(id)` (full clock after reveal, no HP cost). The existing frontend must wire these two callbacks; its old single start call is rejected. Mr. Reward fires in authored order; no additional turn actions were added. See [current opening handoff](docs/frontend-opening-handoff.md) for migration and tests. Historical frontend harness/427-test results refer to request 33 before this rule change, not to the unmodified frontend consuming this new API contract.

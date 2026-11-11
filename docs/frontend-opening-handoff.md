@@ -1,106 +1,103 @@
-# Opening exam — backend contract for Claude
+# Opening exam handoff — impact, reveal, answer
 
-Date: 2026-11-10. Backend/content delivered; frontend and animation integration are still assigned to Claude. No UI, Main, FXML, CSS, asset or frontend-owned test was changed. This replaces the old predetermined-defeat opening, not the semester combat system.
+Updated 2026-11-10 for frontend request 33 and the user's subsequent timing decision. This is the current opening contract; it supersedes the earlier answer-cost/picker contract. Normal semester combat is unchanged.
 
-## Confirmed behavior
+## Changes confirmed for this increment
 
-- Previous-semester ICS4U Final, before summer-school Day 1. The player took ICS4U in Grade 11.
-- Ten difficult multiple-choice questions selected from the two supplied AP CSA PDFs. Each has five authored options. Selection is a reasoned difficulty judgment, not an official ranking; see `opening-question-sources.md`.
-- Initial HP **9**, **no HP upper cap**. The superseded caps 9/100 and unlimited-duck interpretation are not used.
-- One consumable **Ms Tang's rubber duck**. Separate Demo settings: +3 HP after 5 seconds, no SAN/XP change; the active question clock continues. Inventory is reserved immediately and never replenished during this opening.
-- Opening-only Demo SAN=1, Coding Vibe=0, six Knowledge values=0. These are centralized provisional values, not semester balancing. The ordinary Day 1 profile still starts at HP 50/SAN 60; display the opening view, not that future state, during the prologue.
-- Each valid submitted answer costs exactly 1 HP and reveals correctness immediately. Wrong answer ends the battle. HP reaching zero produces PASS_OUT, even when that answer was correct. If both occur together, PASS_OUT selects the animation and feedback still reports the wrong answer.
-- Hard question deadlines: `20 × 0.9^(ordinal−1)` seconds, where ordinal is answer order, not source number. Limits: 20, 18, 16.2, 14.58, 13.122, 11.8098, 10.62882, 9.565938, 8.6093442, 7.74840978. At the exact deadline, timeout wins. A timed-out non-submission does not consume answer HP.
-- Preserve the existing choice of unanswered-question order. One question runs at a time; switching/restarting it is rejected. The timer starts on `startOpeningQuestion`, stops when that answer settles, and the next timer starts only when the next question is explicitly selected. Selection/feedback screens have no question timer. There is no pause operation for an active question.
-- A duck may be used between questions or during one. Answer/start controls are disabled while its five-second action is pending. Timer polling settles healing and timeout in chronological order, including after a missed UI pulse; if healing and timeout coincide, timeout wins and no healing occurs.
-- Defeat: previous-semester grade **67**, Mr. Reward mocks the player, revenge motivates summer school. Victory: all ten correct while HP remains positive, grade **89**, Reward is astonished, the player feels it is still not good enough.
-- **Both** endings enter Day 1. Opening HP/SAN/XP, inventory and 67/89 never affect this summer's GradeBook, attendance, rewards or student attributes. No opening save or new save schema. Day 1–2 classroom penalties remain warning-only; that waiver does not cancel the expressly requested previous-semester defeat rules.
-- The normal 30-second soft timeout, weight curve, Dasher, Combo and pending grading/fatigue rules are unchanged and are not applied to this special 67/89 opening.
+1. **HP is lost on the question's impact**, not on answer submission. Each impact costs 1 HP exactly once. HP starts at 9 with no upper cap. If impact reduces it to 0, the battle immediately ends with PASS_OUT / 67, before reading or answering. The ninth unhealed hit therefore leaves **eight**, not nine, answer feedback records.
+2. **Impact and timer start are separate calls.** The user chose to start the full question limit only after the paper has completely opened. The 0.76-second ripple is not charged to the answer clock. Backend code does not hardcode animation duration: it waits for the real presentation-completion callback.
+3. **Mr. Reward fires in authored order.** The frontend uses `availableQuestions().getFirst()`. The backend still accepts explicit unanswered IDs for compatibility/test consumers; this is not a requirement to expose a player question picker.
+4. Between attacks, the existing turn actions remain FACE THE NEXT QUESTION, ITEM and LOG. Reading the log has no core mutation. Defend, hints, skips and further items are not introduced.
 
-## Minimal adapter API
-
-`DemoProfile.load()` loads `demo/demo.properties`, whose `opening.resource` selects `/demo/opening.properties`. `DemoProfile.newGame(...)` installs the opening content. No CLI flags, debug routes, frontend numeric defaults or new dependencies are needed.
-
-| Call | Result / use |
-| --- | --- |
-| `game.openingIntro()` | Immutable `List<String>` in existing `Speaker: line` convention. Show before combat. |
-| `game.startOpeningBattle()` | Creates the isolated battle once, after intro. No question timer yet. |
-| `game.openingBattle()` | Pure immutable `OpeningBattle.View`. It does not settle time-dependent events. |
-| `game.startOpeningQuestion(questionId)` | Starts one unanswered question and its backend monotonic timer. |
-| `game.answerOpeningQuestion(questionId, optionId)` | Validates ID and A–E option, checks deadline, settles HP/correctness/ending atomically. Read the view afterwards. |
-| `game.useOpeningDuck()` | Consumes the sole item and starts recovery delay, or settles an already-expired question. Read the view. |
-| `game.advanceOpeningBattle()` | Call on each UI timer pulse and when re-entering the screen, then read the view. Resolves timeout even with no answer click. Terminal calls are idempotent. |
-| `game.completeOpening()` | Only after battle is terminal and its ending presentation has finished. Clears ephemeral battle data and opens the unchanged Day 1 state. Early or repeated acknowledgement is rejected. |
-
-`View` exposes: `phase`, `student`, `ducksRemaining`, `usingDuck`, `duckRemaining`, `availableQuestions`, `activeQuestionId`, `questionOrdinal`, `timeLimit`, `remaining`, immutable `answers` feedback, nullable `ending`, and `finished()`.
-
-Question views carry `id`, `prompt`, separate multiline Java `code` and ordered `(id,text)` options. No answer key is in the pre-answer view. Some options contain multiple lines (recursive output / 5×5 grids): use a monospaced, scrollable layout and preserve newlines. 2014 Q22 includes the shared Book/AudioBook definitions; 2015 Q37 includes the shared binary-search method. Do not omit these context blocks.
-
-After a valid answer, `answers().getLast()` contains selected/correct option IDs, correctness and explanation. Keep the prior question view if showing feedback beside its original code. A late answer instead produces an ending without appending feedback; do not assume every button click creates an answer.
-
-`Ending` exposes `grade`, nullable `reason`, `animation` and authored `dialogue`. Defeat reasons: WRONG_ANSWER, TIMEOUT, PASS_OUT. Animation cues: DEFEAT, PASS_OUT, VICTORY. A terminal view is stable, not a stream of new animation events: play the ending once per frontend session, not on every pulse. Stop input and timer callbacks before calling `completeOpening`; cached late callbacks must not start a new opening.
-
-All mutations run on the existing GameController copy/commit boundary. Serialize them on the JavaFX thread and use existing adapter exception reporting/double-click protection. The frontend submits IDs, never elapsed time, correctness, HP costs or final grades. A pure getter showing zero remaining is not a settled timeout: call `advanceOpeningBattle()` first.
-
-### Integration sketch (event-driven, not a CLI)
-
-```java
-// After showing game.openingIntro():
-game.startOpeningBattle();
-// On the player's selection:
-game.startOpeningQuestion(questionId);
-// On each JavaFX timer pulse (also during the duck animation):
-game.advanceOpeningBattle();
-OpeningBattle.View view = game.openingBattle();
-// On answer click, if the current view permits input:
-game.answerOpeningQuestion(questionId, selectedOptionId);
-view = game.openingBattle();
-// If view.finished(), play view.ending().animation() and dialogue once.
-// Only in that presentation's completion callback:
-game.completeOpening();
-// Then use the existing Day 1 route. Do not run this entire sketch sequentially.
-```
-
-## Frontend migration and checks
-
-The current `OpeningScreen` still contains the old static failure SCRIPT and only calls `completeOpening()`. That bypass is intentionally rejected by the shipped Demo now. Replace the script/flow using the backend content, add thin GameSession wrappers, and retain the existing visual style. This backend delivery is not a playable/visually verified opening screen.
-
-The six-argument `ContentCatalog` constructor still serves explicit legacy fixtures without an opening scenario; those retain the old acknowledgement-only fixture behavior. Do not rebuild the shipped Demo through that constructor to bypass the exam. A custom catalog preserving Demo content must pass its `opening()` to the new seven-argument constructor.
-
-Frontend tests that directly call `completeOpening` on a freshly loaded Demo must perform a real opening defeat/victory first, using a fake monotonic clock where necessary. Existing `GameSessionCombatTest` copied catalogs omit opening content and still hit the prior classroom `ask`-success mismatch; they also need the already-delivered classroom contract migration. No test has been removed/disabled here.
-
-Human/UI acceptance:
-1. Intro → selected question shows full source code and all five options. HUD reads opening HP 9/SAN 1, not Day 1 stats.
-2. Wrong answer immediately disables input and plays defeat/67/mockery; correct answers show immediate feedback.
-3. Nine correct without the duck produces HP 0 and pass-out/67. One duck followed by ten correct leaves HP 2 and gives victory/89/"not good enough".
-4. No click until the deadline triggers defeat without a submit action. Each later selected question has the smaller limit. Opening a menu must not pause it.
-5. Duck inventory becomes zero on use, recovers only at five seconds, does not stop the question timer, and cannot heal after timeout. HP can rise above its starting value; no capped bar may imply a maximum.
-6. Each ending plays once; acknowledgement leads to the normal Day 1 review and existing day-end save. Continue from a saved day does not replay opening.
-7. Verify long questions/grids at the actual window size and with keyboard/mouse; no such rendering/input test is claimed by the backend tests.
-
-## Reusable Claude prompt
+## State and callback contract
 
 ```text
-Implement only the opening frontend and thin GameSession adapter described in
- docs/frontend-opening-handoff.md. Preserve all backend classes, story/question
-resources, normal combat logic, Main argument-free launch, existing FXML/CSS/art
-style and day-end saving contract. Replace OpeningScreen's hardcoded defeat with
-GameController.openingIntro, the OpeningBattle public API, and Ending cues/dialogue.
-Opening HP starts at 9 with NO cap; there is exactly ONE duck. Read every amount,
-clock value, answer result and grade from the backend. Do not treat normal combat
-or tutorial penalty waiver as this opening's rules. Poll the backend on timer
-pulses, serialize actions, reject double clicks/stale callbacks, show complete
-multiline code and A–E options, play defeat/pass-out/victory once, and acknowledge
-only after the ending presentation. Both branches go to Day 1. Migrate frontend
-tests via real backend transitions; also address the earlier classroom option
-handoff. Do not add a CLI, answer bypass or core mutation. Run tests and visually
-verify both endings, timers, duck and long-question layout; report actual results.
+SELECT_QUESTION
+  -- hitOpeningQuestion(id): HP -1 --> QUESTION_REVEAL
+  -- same hit when HP becomes 0 --> DEFEAT / PASS_OUT / 67
+QUESTION_REVEAL
+  -- startOpeningQuestion(sameId), after full reveal --> QUESTION
+QUESTION
+  -- answerOpeningQuestion(id, option): no HP change --> next turn / defeat / victory
+  -- deadline reached --> DEFEAT / TIMEOUT / 67
 ```
 
-### Observed backend verification
+| Operation | Contract |
+| --- | --- |
+| `openingIntro()` / `startOpeningBattle()` | Existing story and initial isolated state; no timer. |
+| **`hitOpeningQuestion(id)` — new** | Call once at bullet impact. Validate unused ID/current phase before charging 1 HP. Returns with QUESTION_REVEAL or terminal PASS_OUT. No question timer yet. |
+| **`startOpeningQuestion(id)` — changed** | Call once when that impacted question's paper is fully open. Requires QUESTION_REVEAL and matching ID. Starts the backend monotonic clock with the full limit; costs no HP. It no longer selects/impacts a question. |
+| `answerOpeningQuestion(id, optionId)` | Only in QUESTION and with a valid option. Settles deadline, then reveals correctness; does not charge HP. |
+| `advanceOpeningBattle()` | Existing pulse. Settles deadlines/recovery, but QUESTION_REVEAL has no running question clock. |
+| `openingBattle()` | Pure immutable view. `remaining()` is ZERO during QUESTION_REVEAL, meaning **not started**, not expired. Read `timeLimit()` for the upcoming budget. |
+| `useOpeningDuck()` | Existing one-use action between questions or during QUESTION. Rejected while the impact paper is still revealing; no item input belongs to that presentation stage. |
+| `completeOpening()` | Existing terminal-only acknowledgement after ending presentation; both branches enter fresh Day 1. |
 
-- Baseline full suite: 348 tests, 11 existing frontend failures.
-- Modified full suite: 400 tests, 380 passed, 20 frontend failures (9 GameSessionCombatTest, 8 GameSessionTest, 2 TutorialTipsTest, 1 ClockTimesTest).
-- Backend/core + public API contracts + unchanged entry + backend-owned lecture checks: 294 passed, including 52 new opening cases. Ten question snippets are exercised against their keys on JDK 21.
-- `installDist` succeeds; new classes and `/demo/opening.properties` are present in the packaged JAR. Both design diagrams render.
-- These results do not establish frontend playability or animation/layout/input correctness; that remains the integration task above.
+During QUESTION_REVEAL, `activeQuestionId`, `questionOrdinal`, `timeLimit`, full question data and post-hit HP are already available. No answer feedback is invented. Answering, a second hit, selecting another question, and a mismatched clock-start callback reject without mutation. Repeating clock start during QUESTION also rejects and **does not restart** its deadline. A stale callback after PASS_OUT/other terminal result rejects. Detached snapshots copy the pending-reveal state correctly.
+
+No new CLI, save field, dependency or frontend implementation is part of this backend increment. Saves remain day-end only; opening state is ephemeral.
+
+## Claude's precise frontend edits
+
+The request-33 screen currently calls `startOpeningQuestion` inside `impact()`. It must migrate these two callbacks; the old one-call flow is deliberately not silently supported because it would consume animation time again.
+
+1. Add a thin `GameSession.hitOpeningQuestion(String)` wrapper using the existing adapter exception mapping.
+2. In `OpeningScreen.impact`, call **hit**, read the view and update the HUD immediately. If terminal, begin the existing pass-out ending and return without opening paper or starting a timer.
+3. Otherwise render the impacted question and run `Ripple.open`. Keep answer/item inputs disabled during reveal. At animation completion, check the screen/session generation, active question ID and phase, then call **start** and refresh the view; enable input only when phase is QUESTION.
+4. Continue polling during reveal, but show “opening”/the full limit rather than zero as an expired clock. A question's `remaining` becomes its complete limit at the start call.
+5. Preserve request 33's ripple cleanup/status-listener fix. Attach the completion callback without changing its cleanup or the 760 ms open / 360 ms close visuals.
+6. Resuming QUESTION_REVEAL must not call hit again: complete/replay presentation and then start. Resuming QUESTION must not call start again: preserve the running backend timer. Ignore callbacks after leaving the screen or entering an ending.
+7. Correct/wrong submission continues to produce immediate feedback, but no second HP flash/drop. Timeout retains the impact's already-spent HP. Existing HUD change detection now gets the impact delta.
+
+### Event sketch (not a sequential program)
+
+```java
+// Bullet-impact callback:
+game.hitOpeningQuestion(questionId);
+OpeningBattle.View view = game.openingBattle();
+// Update HUD with view.student(). If finished: play ending, do not reveal/start.
+// Otherwise show the paper without answering yet, and run Ripple.open.
+
+// Paper-reveal completion callback, after checking the active screen/question:
+game.startOpeningQuestion(questionId);
+view = game.openingBattle(); // QUESTION, full remaining time, unchanged HP
+
+// Answer callback, only while QUESTION:
+game.answerOpeningQuestion(questionId, optionId);
+view = game.openingBattle(); // immediate feedback, unchanged HP
+```
+
+## Unchanged rules/data
+
+Ten sourced multiple-choice questions with five options each; full code and multiline options are in `/demo/opening.properties`. Keys/provenance are documented in `opening-question-sources.md`. Pre-answer views contain no keys. Deadlines remain `20 × 0.9^(attack ordinal−1)` seconds; exact-deadline submissions time out. The tenth question gets the full 7.74840978 seconds **after** its reveal.
+
+One Ms Tang rubber duck, Demo +3 HP after five seconds, no SAN/XP change; if a question clock is active it continues. Timeout wins if recovery and deadline coincide. No HP cap, including 100. Opening Demo SAN=1 and Coding Vibe/six Knowledge values=0. These do not change Day 1 profile values.
+
+Wrong answer/timeout/pass-out gives previous-semester grade67 with mockery and revenge motive. Ten correct while alive gives grade89 with astonishment and the player's dissatisfaction. Both proceed to Day1, with no opening grade/HP/XP/item carryover into current-term state. Normal CombatSession's soft timeout, fatigue/weights/Dasher/Combo policies remain independent. Day1–2 tutorial warning-only rules do not waive opening impact damage.
+
+## Tests and acceptance
+
+Backend tests exercise both callbacks, impact-only damage, invalid/repeated/stale calls, no reveal deadline, full limits after 760 ms and longer reveals, lethal ninth/tenth hits, timeout retaining spent HP, one duck, unchanged endings and day-end persistence. The public consumer test uses authored-order impacts → reveal completion → answers, without frontend timing arithmetic.
+
+Frontend-owned fixtures need the same hit → start → answer sequence. In particular, `OpeningPlay.enterDayOne`, its key probes, and `OpeningFlowTest.right` currently call start without hit. They should check terminal state after hit before starting/answering. The pass-out test must expect eight correct records then a ninth lethal hit. Do not weaken the backend state guards or add a skip to keep old fixtures green.
+
+Frontend runtime acceptance: verify red HP effects exactly on impact, no second drop on answer, no visible countdown during ripple, a full first/last limit after ripple, repeated completion callbacks never reset time, immediate lethal-hit shatter, duck and both Day1 branches. Earlier request-33 frame measurements/screenshots are frontend-reported evidence for that revision, not verification of this new split callback wiring.
+
+## Prompt to Claude
+
+```text
+Integrate docs/frontend-opening-handoff.md's latest split lifecycle only.
+Preserve backend, normal combat, visuals, ripple cleanup, assets and no-CLI launch.
+Add GameSession.hitOpeningQuestion; call it at bullet impact. If it returns a
+terminal view, play PASS_OUT immediately. Otherwise reveal the paper, then call
+startOpeningQuestion from the real reveal-completion callback. Keep answers/items
+locked during QUESTION_REVEAL. Show full timeLimit without treating remaining=0
+as a timeout. Guard generation/question/phase so late or duplicate callbacks never
+restart clocks or hit again. Answering now costs no HP. Keep authored firing order.
+Migrate frontend-owned tests through real hit/start/answer transitions; expect eight
+answers before an unhealed ninth-hit pass-out. Test and visually inspect red effects,
+full timing after ripple, repeated callbacks, duck, shatter and both Day1 branches.
+Do not change core rules or add CLI/debug/skip routes. Report observed results.
+```
+
+Observed verification for this increment: baseline request33 **427/427 passed**. The modified full run reports **430 cases / 410 passed / 20 failures** in unchanged frontend tests: GameSessionTest10, LessonDecisionFlowTest6, TutorialTipsTest2, ClockTimesTest1, and OpeningFlowTest initializationError1. OpeningFlowTest's failed shared setup replaces its six test cases with one initializationError in the JUnit report; this explains the total instead of 435 (427 + 8 new backend cases). No test was removed or disabled. Backend/core/public-contract/entry/backend-owned lecture subset: **302 passed**; installDist succeeds. Full-suite green and runtime callback acceptance require Claude's frontend migration.

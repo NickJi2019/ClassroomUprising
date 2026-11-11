@@ -5,6 +5,7 @@ public final class OpeningTestSupport {
     private OpeningTestSupport() { }
     public static void enterDayOne(GameController game) {
         game.startOpeningBattle();
+        game.hitOpeningQuestion("csa2014-q15");
         game.startOpeningQuestion("csa2014-q15");
         game.answerOpeningQuestion("csa2014-q15", "B");
         if (game.openingBattle().ending() == null || game.openingBattle().ending().grade() != 67)

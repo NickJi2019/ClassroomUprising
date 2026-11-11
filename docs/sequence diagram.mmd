@@ -24,25 +24,32 @@ sequenceDiagram
         Game-->>Caller: Authored previous-semester dialogue
         Caller->>Game: startOpeningBattle()
         Game->>Opening: Initial HP 9 with no cap, low SAN/XP, one duck
-        loop Choose unanswered questions until ending
-            Caller->>Game: startOpeningQuestion(id)
-            Game->>Opening: Start hard deadline for this answer ordinal
-            opt Use the sole duck
-                Caller->>Game: useOpeningDuck()
-                Game->>Opening: Reserve item and recovery delay, clock continues
-            end
-            loop Frontend timer pulses
-                Caller->>Game: advanceOpeningBattle()
-                Game->>Opening: Settle recovery or timeout in time order
-            end
-            opt Answer before timeout
-                Caller->>Game: answerOpeningQuestion(id, optionId)
-                Game->>Opening: Validate option, deduct 1 HP, immediately judge
+        loop Mr. Reward fires next authored question until ending
+            Caller->>Game: hitOpeningQuestion(id) at bullet impact
+            Game->>Opening: Charge 1 HP once, enter QUESTION_REVEAL or immediate PASS_OUT
+            alt Impact depleted HP
+                Game-->>Caller: Immediate PASS_OUT, no reveal or answer clock
+            else Player survives impact
+                Caller->>Caller: Fully reveal question paper with no question clock
+                Caller->>Game: startOpeningQuestion(id) on reveal completion
+                Game->>Opening: Start full hard deadline, no HP change
+                opt Use the sole duck during the question
+                    Caller->>Game: useOpeningDuck()
+                    Game->>Opening: Reserve item and recovery delay, clock continues
+                end
+                loop Frontend timer pulses
+                    Caller->>Game: advanceOpeningBattle()
+                    Game->>Opening: Settle recovery or timeout in time order
+                end
+                opt Answer before timeout
+                    Caller->>Game: answerOpeningQuestion(id, optionId)
+                    Game->>Opening: Validate option and immediately judge, no HP change
+                end
             end
             Caller->>Game: openingBattle()
             Game-->>Caller: Immutable feedback and possible ending
         end
-        Note over Caller,Opening: Wrong or timeout loses, HP zero passes out, ten correct with HP left wins
+        Note over Caller,Opening: Wrong or timeout loses, lethal hit passes out before any answer, ten correct wins
         Game-->>Caller: 67 defeat or 89 victory, animation cue and authored dialogue
         Caller->>Caller: Play ending once (Claude frontend integration pending)
         Caller->>Game: completeOpening()

@@ -80,9 +80,16 @@ public final class GameController {
         return s.openingBattle;
     }
     public OpeningBattle.View openingBattle() { return opening(state).view(nanoClock.getAsLong()); }
+    /** Bullet impact: charge HP once without starting a clock, or immediately pass out at zero HP. */
+    public Result hitOpeningQuestion(String questionId) {
+        return change("Opening question impact resolved; read the battle view.", s -> {
+            opening(s).hit(questionId, nanoClock.getAsLong()); return List.of();
+        });
+    }
+    /** Call after the impacted question's paper is fully revealed. Never charges HP or resets a clock. */
     public Result startOpeningQuestion(String questionId) {
-        return change("Opening question started.", s -> {
-            opening(s).select(questionId, nanoClock.getAsLong()); return List.of();
+        return change("Opening question clock started.", s -> {
+            opening(s).start(questionId, nanoClock.getAsLong()); return List.of();
         });
     }
     public Result answerOpeningQuestion(String questionId, String optionId) {

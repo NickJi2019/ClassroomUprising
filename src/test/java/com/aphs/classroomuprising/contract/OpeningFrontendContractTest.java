@@ -18,12 +18,22 @@ class OpeningFrontendContractTest {
                 "csa2014-q40","C","csa2015-q20","E","csa2015-q26","E","csa2015-q31","E","csa2015-q37","D","csa2015-q38","E");
         var questions = game.openingBattle().availableQuestions();
         for (var q : questions) {
+            double hpBefore = game.openingBattle().student().hp();
+            game.hitOpeningQuestion(q.id());
+            assertEquals(hpBefore - 1, game.openingBattle().student().hp());
+            assertEquals(OpeningBattle.Phase.QUESTION_REVEAL, game.openingBattle().phase());
+            clock.addAndGet(Duration.ofMillis(760).toNanos());
+            game.advanceOpeningBattle();
+            assertEquals(Duration.ZERO, game.openingBattle().remaining());
             game.startOpeningQuestion(q.id());
+            assertEquals(game.openingBattle().timeLimit(), game.openingBattle().remaining());
             if (game.openingBattle().questionOrdinal() == 1) {
                 game.useOpeningDuck(); clock.addAndGet(Duration.ofSeconds(5).toNanos()); game.advanceOpeningBattle();
-                assertEquals(12, game.openingBattle().student().hp());
+                assertEquals(11, game.openingBattle().student().hp());
             }
+            double hpAfterHit = game.openingBattle().student().hp();
             game.answerOpeningQuestion(q.id(), answers.get(q.id()));
+            assertEquals(hpAfterHit, game.openingBattle().student().hp());
             var feedback = game.openingBattle().answers().getLast(); assertTrue(feedback.correct());
             assertEquals(q.id(), feedback.questionId()); assertFalse(feedback.explanation().isBlank());
         }
