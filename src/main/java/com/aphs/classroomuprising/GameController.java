@@ -86,7 +86,7 @@ public final class GameController {
             opening(s).hit(questionId, nanoClock.getAsLong()); return List.of();
         });
     }
-    /** Call after the impacted question's paper is fully revealed. Never charges HP or resets a clock. */
+    /** Call after reveal to resume the shared exam budget. Never charges HP or resets remaining time. */
     public Result startOpeningQuestion(String questionId) {
         return change("Opening question clock started.", s -> {
             opening(s).start(questionId, nanoClock.getAsLong()); return List.of();

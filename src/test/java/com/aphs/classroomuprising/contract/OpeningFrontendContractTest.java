@@ -17,6 +17,7 @@ class OpeningFrontendContractTest {
         var answers = Map.of("csa2014-q15","A","csa2014-q22","B","csa2014-q23","B","csa2014-q39","D",
                 "csa2014-q40","C","csa2015-q20","E","csa2015-q26","E","csa2015-q31","E","csa2015-q37","D","csa2015-q38","E");
         var questions = game.openingBattle().availableQuestions();
+        Duration expectedLeft = Duration.ofMinutes(3);
         for (var q : questions) {
             double hpBefore = game.openingBattle().student().hp();
             game.hitOpeningQuestion(q.id());
@@ -24,19 +25,28 @@ class OpeningFrontendContractTest {
             assertEquals(OpeningBattle.Phase.QUESTION_REVEAL, game.openingBattle().phase());
             clock.addAndGet(Duration.ofMillis(760).toNanos());
             game.advanceOpeningBattle();
-            assertEquals(Duration.ZERO, game.openingBattle().remaining());
+            assertEquals(expectedLeft, game.openingBattle().remaining());
+            assertFalse(game.openingBattle().clockRunning());
             game.startOpeningQuestion(q.id());
-            assertEquals(game.openingBattle().timeLimit(), game.openingBattle().remaining());
+            assertEquals(Duration.ofMinutes(3), game.openingBattle().timeLimit());
+            assertEquals(expectedLeft, game.openingBattle().remaining());
+            assertTrue(game.openingBattle().clockRunning());
             if (game.openingBattle().questionOrdinal() == 1) {
                 game.useOpeningDuck(); clock.addAndGet(Duration.ofSeconds(5).toNanos()); game.advanceOpeningBattle();
                 assertEquals(11, game.openingBattle().student().hp());
+                expectedLeft = expectedLeft.minusSeconds(5);
             }
+            clock.addAndGet(Duration.ofSeconds(10).toNanos());
+            expectedLeft = expectedLeft.minusSeconds(10);
             double hpAfterHit = game.openingBattle().student().hp();
             game.answerOpeningQuestion(q.id(), answers.get(q.id()));
             assertEquals(hpAfterHit, game.openingBattle().student().hp());
+            assertEquals(expectedLeft, game.openingBattle().remaining());
+            assertFalse(game.openingBattle().clockRunning());
             var feedback = game.openingBattle().answers().getLast(); assertTrue(feedback.correct());
             assertEquals(q.id(), feedback.questionId()); assertFalse(feedback.explanation().isBlank());
         }
+        assertEquals(Duration.ofSeconds(75), expectedLeft);
         var ending = game.openingBattle().ending();
         assertEquals(OpeningBattle.AnimationCue.VICTORY, ending.animation()); assertEquals(89, ending.grade());
         assertFalse(ending.dialogue().isEmpty()); assertFalse(game.snapshot().openingCompleted());

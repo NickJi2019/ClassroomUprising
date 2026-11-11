@@ -743,7 +743,9 @@ classDiagram
         +victory() List~String~
     }
     class OpeningBattle {
+        +totalTimeLimit() Duration$
         +timeLimit(int ordinal) Duration$
+        -long spentNanos
         ~copy() OpeningBattle
         ~view(long now) OpeningView
         ~tick(long now) void
@@ -755,6 +757,7 @@ classDiagram
         +int ducksRemaining
         +boolean usingDuck
         +Duration remaining
+        +clockRunning() boolean
         +List~Feedback~ answers
         +OpeningEnding ending
     }
@@ -771,5 +774,5 @@ classDiagram
     OpeningBattle --> OpeningContent : authored keys and story
     OpeningBattle ..> OpeningView : immutable observation
     OpeningView --> OpeningEnding
-    note for OpeningBattle "Initial HP 9, no upper cap, one duck.<br/>One HP per impact, immediate zero-HP pass-out.<br/>QUESTION_REVEAL has no answer clock.<br/>Full clock starts after reveal, answers cost no HP.<br/>Hard deadline 20 seconds times 0.9 per ordinal.<br/>Both endings enter unchanged Day 1."
+    note for OpeningBattle "Initial HP 9, no upper cap, one duck.<br/>One HP per impact, immediate zero-HP pass-out.<br/>QUESTION_REVEAL has no answer clock.<br/>Shared budget resumes after reveal, answers cost no HP.<br/>Ten questions share 180 seconds of answering time.<br/>Turns and animations pause it, no per-question reset.<br/>Both endings enter unchanged Day 1."
     note for OpeningEnding "67 defeat or pass-out, 89 victory.<br/>Cues and dialogue only, frontend animation pending.<br/>Never inserted into this term's GradeBook."

@@ -1,11 +1,11 @@
 package com.aphs.classroomuprising;
 
-import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.*;
 
 /** Special previous-semester exam. Mutations occur only on a GameController candidate copy. */
 public final class OpeningBattle {
+    private static final Duration TOTAL_TIME_LIMIT = Duration.ofMinutes(3);
     public enum Phase { SELECT_QUESTION, QUESTION_REVEAL, QUESTION, DEFEAT, VICTORY }
     public enum DefeatReason { WRONG_ANSWER, TIMEOUT, PASS_OUT }
     public enum AnimationCue { DEFEAT, PASS_OUT, VICTORY }
@@ -20,13 +20,15 @@ public final class OpeningBattle {
                        Duration remaining, List<Feedback> answers, Ending ending) {
         public View { availableQuestions = List.copyOf(availableQuestions); answers = List.copyOf(answers); }
         public boolean finished() { return ending != null; }
+        /** Only the fully revealed question spends the shared exam budget. */
+        public boolean clockRunning() { return phase == Phase.QUESTION; }
     }
     private final OpeningContent content;
     private StudentState student;
     private Phase phase = Phase.SELECT_QUESTION;
     private int ducks = 1;
     private boolean usingDuck;
-    private long duckStarted, questionStarted, lastObserved;
+    private long duckStarted, questionStarted, lastObserved, spentNanos;
     private String activeQuestion;
     private final List<Feedback> answers = new ArrayList<>();
     private Ending ending;
@@ -38,12 +40,14 @@ public final class OpeningBattle {
         var b = new OpeningBattle(content, lastObserved);
         b.student = student; b.phase = phase; b.ducks = ducks; b.usingDuck = usingDuck;
         b.duckStarted = duckStarted; b.questionStarted = questionStarted; b.activeQuestion = activeQuestion;
+        b.spentNanos = spentNanos;
         b.answers.addAll(answers); b.ending = ending; return b;
     }
-    /** Ordinal counts attacks, not PDF question numbers; the frontend fires in authored order. */
+    public static Duration totalTimeLimit() { return TOTAL_TIME_LIMIT; }
+    /** Compatibility accessor: every ordinal refers to the same total budget, not a fresh allowance. */
     public static Duration timeLimit(int ordinal) {
         if (ordinal < 1 || ordinal > 10) throw new IllegalArgumentException("Opening question ordinal must be 1..10.");
-        return Duration.ofNanos(new BigDecimal("20000000000").multiply(new BigDecimal("0.9").pow(ordinal - 1)).longValueExact());
+        return totalTimeLimit();
     }
     private long elapsed(long now, long start) {
         long value = now - start; // nanoTime subtraction remains correct across signed wraparound
@@ -54,15 +58,16 @@ public final class OpeningBattle {
     void tick(long now) {
         if (ending != null) return;
         elapsed(now, lastObserved); lastObserved = now;
-        boolean expired = phase == Phase.QUESTION && elapsed(now, questionStarted) >= timeLimit(answers.size() + 1).toNanos();
+        long budgetAtStart = TOTAL_TIME_LIMIT.toNanos() - spentNanos;
+        boolean expired = phase == Phase.QUESTION && elapsed(now, questionStarted) >= budgetAtStart;
         // Settle events in their actual order, even if the frontend missed several timer ticks.
         boolean recovered = usingDuck && elapsed(now, duckStarted) >= content.duckDuration().toNanos();
         if (recovered && (!expired || content.duckDuration().toNanos()
-                < timeLimit(answers.size() + 1).toNanos() - elapsed(duckStarted, questionStarted))) {
+                < budgetAtStart - elapsed(duckStarted, questionStarted))) {
             student = student.apply(new StatChange(content.duckRecovery(), 0, 0, Collections.nCopies(6, 0.0)), 1, 1, false);
             usingDuck = false; // HP has no gameplay cap (neither 9 nor 100).
         }
-        if (expired) lose(DefeatReason.TIMEOUT);
+        if (expired) { spentNanos = TOTAL_TIME_LIMIT.toNanos(); lose(DefeatReason.TIMEOUT); }
     }
     void hit(String id, long now) {
         live();
@@ -74,7 +79,7 @@ public final class OpeningBattle {
         student = student.apply(new StatChange(-1, 0, 0, Collections.nCopies(6, 0.0)), 1, 1, false);
         if (student.hp() <= 0) lose(DefeatReason.PASS_OUT);
     }
-    /** Presentation completion, not impact: grant the full limit from this backend clock reading. */
+    /** Presentation completion resumes the remaining shared budget, never grants a new allowance. */
     void start(String id, long now) {
         live();
         if (phase != Phase.QUESTION_REVEAL || !Objects.equals(activeQuestion, id))
@@ -89,6 +94,7 @@ public final class OpeningBattle {
         tick(now);
         if (ending != null) return; // A late answer commits the timeout; it cannot undo it by throwing.
         if (usingDuck) throw new IllegalStateException("Duck use is still in progress.");
+        spentNanos += elapsed(now, questionStarted); // tick proved this answer is within the remaining budget
         boolean correct = q.answer().equals(option);
         answers.add(new Feedback(id, option, correct, q.answer(), q.explanation()));
         if (!correct) lose(DefeatReason.WRONG_ANSWER);
@@ -117,8 +123,10 @@ public final class OpeningBattle {
         // Timeout and a lethal impact precede submission; neither fabricates answer feedback.
         if (ending != null && (ending.reason() == DefeatReason.TIMEOUT || ending.reason() == DefeatReason.PASS_OUT))
             ordinal = answers.size() + 1;
-        Duration limit = timeLimit(Math.max(1, ordinal));
-        Duration remaining = phase == Phase.QUESTION ? Duration.ofNanos(Math.max(0, limit.toNanos() - elapsed(now, questionStarted))) : Duration.ZERO;
+        Duration limit = totalTimeLimit();
+        long left = limit.toNanos() - spentNanos;
+        if (phase == Phase.QUESTION) left = Math.max(0, left - elapsed(now, questionStarted));
+        Duration remaining = Duration.ofNanos(left); // retained during turns/reveal and frozen at an ending
         Duration duckLeft = usingDuck ? Duration.ofNanos(Math.max(0, content.duckDuration().toNanos() - elapsed(now, duckStarted))) : Duration.ZERO;
         var available = content.questions().stream().filter(q -> answers.stream().noneMatch(a -> a.questionId().equals(q.id()))).toList();
         return new View(phase, student, ducks, usingDuck, duckLeft, available, activeQuestion,

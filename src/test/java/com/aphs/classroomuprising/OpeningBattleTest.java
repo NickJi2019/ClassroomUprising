@@ -57,7 +57,7 @@ class OpeningBattleTest {
         game.hitOpeningQuestion(id(8));
         var v = game.openingBattle(); assertEquals(0, v.student().hp()); assertEquals(8, v.answers().size());
         assertEquals(id(8), v.activeQuestionId()); assertEquals(9, v.questionOrdinal());
-        assertEquals(OpeningBattle.timeLimit(9), v.timeLimit()); assertEquals(Duration.ZERO, v.remaining());
+        assertEquals(Duration.ofMinutes(3), v.timeLimit()); assertEquals(Duration.ofMinutes(3), v.remaining());
         assertThrows(IllegalStateException.class, () -> game.answerOpeningQuestion(id(8), "D"));
         assertThrows(IllegalStateException.class, game::useOpeningDuck);
         assertEquals(v, game.openingBattle());
@@ -93,35 +93,45 @@ class OpeningBattleTest {
         resumed.beginNextDay(); assertEquals(2, resumed.snapshot().day());
     }
     @ParameterizedTest @ValueSource(ints={1,2,3,4,5,6,7,8,9,10})
-    void everyOrdinalHasExactNinetyPercentLimitAndHardDeadline(int ordinal) {
-        long[] limits = {20_000_000_000L,18_000_000_000L,16_200_000_000L,14_580_000_000L,
-                13_122_000_000L,11_809_800_000L,10_628_820_000L,9_565_938_000L,8_609_344_200L,7_748_409_780L};
+    void anyQuestionExpiresAtTheSharedBudgetBoundaryNotItsOrdinal(int ordinal) {
         start(); duck();
-        for (int i = 0; i < ordinal - 1; i++) correct(i);
+        for (int i = 0; i < ordinal - 1; i++) {
+            reveal(id(i)); clock.addAndGet(7_000_000_000L);
+            game.answerOpeningQuestion(id(i), demo.content().opening().question(id(i)).answer());
+        }
         reveal(id(ordinal - 1));
-        assertEquals(Duration.ofNanos(limits[ordinal - 1]), game.openingBattle().timeLimit());
-        clock.addAndGet(limits[ordinal - 1] - 1); game.advanceOpeningBattle(); assertFalse(game.openingBattle().finished());
+        long remaining = (180L - 7L * (ordinal - 1)) * 1_000_000_000L;
+        assertEquals(Duration.ofMinutes(3), OpeningBattle.totalTimeLimit());
+        assertEquals(Duration.ofMinutes(3), OpeningBattle.timeLimit(ordinal));
+        assertEquals(Duration.ofMinutes(3), game.openingBattle().timeLimit());
+        assertEquals(Duration.ofNanos(remaining), game.openingBattle().remaining());
+        clock.addAndGet(remaining - 1); game.advanceOpeningBattle(); assertFalse(game.openingBattle().finished());
         clock.incrementAndGet(); game.advanceOpeningBattle();
         assertEquals(OpeningBattle.DefeatReason.TIMEOUT, game.openingBattle().ending().reason());
-        assertEquals(ordinal - 1, game.openingBattle().answers().size()); // Timeout is not a submitted answer.
+        assertEquals(Duration.ZERO, game.openingBattle().remaining()); assertFalse(game.openingBattle().clockRunning());
+        assertEquals(ordinal - 1, game.openingBattle().answers().size());
         assertEquals(ordinal, game.openingBattle().questionOrdinal());
     }
-    @Test void answerOneNanosecondBeforeDeadlineSucceedsAndFeedbackReadingStartsNoNextTimer() {
-        start(); reveal(id(0)); clock.set(19_999_999_999L);
+    @Test void oneRemainingNanosecondCarriesAcrossFeedbackAndTheNextReveal() {
+        start(); reveal(id(0)); clock.set(179_999_999_999L);
         game.answerOpeningQuestion(id(0), "A"); assertTrue(game.openingBattle().answers().getFirst().correct());
+        assertEquals(Duration.ofNanos(1), game.openingBattle().remaining());
         clock.addAndGet(Duration.ofDays(1).toNanos()); game.advanceOpeningBattle();
         assertEquals(OpeningBattle.Phase.SELECT_QUESTION, game.openingBattle().phase());
-        reveal(id(1)); assertEquals(Duration.ofSeconds(18), game.openingBattle().remaining());
+        assertEquals(Duration.ofNanos(1), game.openingBattle().remaining());
+        reveal(id(1)); assertEquals(Duration.ofNanos(1), game.openingBattle().remaining());
+        clock.incrementAndGet(); game.advanceOpeningBattle();
+        assertEquals(OpeningBattle.DefeatReason.TIMEOUT, game.openingBattle().ending().reason());
     }
     @Test void lateSubmissionCommitsTimeoutInsteadOfThrowingAndRollingItBack() {
-        start(); reveal(id(0)); clock.set(20_000_000_000L);
+        start(); reveal(id(0)); clock.set(180_000_000_000L);
         game.answerOpeningQuestion(id(0), "A"); var v = game.openingBattle();
         assertEquals(OpeningBattle.DefeatReason.TIMEOUT, v.ending().reason()); assertEquals(8, v.student().hp());
         assertTrue(v.answers().isEmpty());
     }
     @Test void coreRetainsExplicitQuestionIdCompatibilityWithoutRequiringAPlayerPicker() {
         start(); correct(9); reveal(id(0));
-        assertEquals(2, game.openingBattle().questionOrdinal()); assertEquals(Duration.ofSeconds(18), game.openingBattle().timeLimit());
+        assertEquals(2, game.openingBattle().questionOrdinal()); assertEquals(Duration.ofMinutes(3), game.openingBattle().timeLimit());
         game.answerOpeningQuestion(id(0), "A");
         var before = game.openingBattle(); assertThrows(IllegalArgumentException.class, () -> reveal(id(9)));
         assertEquals(before, game.openingBattle());
@@ -134,7 +144,7 @@ class OpeningBattleTest {
         assertThrows(IllegalStateException.class, () -> game.answerOpeningQuestion(id(0), "A"));
         clock.set(4_999_999_999L); game.advanceOpeningBattle(); assertEquals(8, game.openingBattle().student().hp());
         clock.incrementAndGet(); game.advanceOpeningBattle(); var v = game.openingBattle();
-        assertEquals(11, v.student().hp()); assertEquals(Duration.ofSeconds(15), v.remaining());
+        assertEquals(11, v.student().hp()); assertEquals(Duration.ofSeconds(175), v.remaining());
         assertFalse(v.usingDuck()); assertEquals(1, v.student().san()); assertEquals(0, v.student().codingVibe());
         assertEquals(Collections.nCopies(6, 0.0), v.student().unitKnowledge());
         assertThrows(IllegalStateException.class, game::useOpeningDuck);
@@ -163,23 +173,23 @@ class OpeningBattleTest {
         assertThrows(IllegalStateException.class, () -> b.answer(id(9), wrong ? "A" : "E", 5_000_000_000L));
         assertEquals(v, b.view(5_000_000_000L));
     }
-    @ParameterizedTest @ValueSource(longs={15_000_000_000L,16_000_000_000L})
+    @ParameterizedTest @ValueSource(longs={175_000_000_000L,176_000_000_000L})
     void timeoutAtOrBeforeRecoveryWinsAndCannotBeResurrected(long useAt) {
         start(); reveal(id(0)); clock.set(useAt); game.useOpeningDuck();
-        clock.set(25_000_000_000L); game.advanceOpeningBattle();
+        clock.set(185_000_000_000L); game.advanceOpeningBattle();
         var v = game.openingBattle(); assertEquals(8, v.student().hp()); assertFalse(v.usingDuck());
         assertEquals(OpeningBattle.DefeatReason.TIMEOUT, v.ending().reason());
         game.advanceOpeningBattle(); assertEquals(v, game.openingBattle());
         assertThrows(IllegalStateException.class, game::useOpeningDuck);
     }
     @Test void missedTimerPulseStillAppliesHealingThatFinishedBeforeTimeout() {
-        start(); reveal(id(0)); clock.set(14_000_000_000L); game.useOpeningDuck();
-        clock.set(25_000_000_000L); game.advanceOpeningBattle();
+        start(); reveal(id(0)); clock.set(174_000_000_000L); game.useOpeningDuck();
+        clock.set(185_000_000_000L); game.advanceOpeningBattle();
         assertEquals(11, game.openingBattle().student().hp());
         assertEquals(OpeningBattle.DefeatReason.TIMEOUT, game.openingBattle().ending().reason());
     }
     @Test void duckClickAtDeadlineCommitsTimeoutAndDoesNotConsumeUnusedItem() {
-        start(); reveal(id(0)); clock.set(20_000_000_000L); game.useOpeningDuck();
+        start(); reveal(id(0)); clock.set(180_000_000_000L); game.useOpeningDuck();
         assertEquals(1, game.openingBattle().ducksRemaining()); assertTrue(game.openingBattle().finished());
     }
     @Test void invalidStaleAndRepeatedOperationsAreAtomicAndEndingDoesNotRepeat() {
@@ -215,14 +225,15 @@ class OpeningBattleTest {
         start(); game.hitOpeningQuestion(id(0));
         var impact = game.openingBattle();
         assertEquals(8, impact.student().hp()); assertEquals(OpeningBattle.Phase.QUESTION_REVEAL, impact.phase());
-        assertEquals(Duration.ZERO, impact.remaining()); assertEquals(Duration.ofSeconds(20), impact.timeLimit());
+        assertEquals(Duration.ofMinutes(3), impact.remaining()); assertEquals(Duration.ofMinutes(3), impact.timeLimit());
+        assertFalse(impact.clockRunning());
         assertTrue(impact.answers().isEmpty());
         clock.addAndGet(revealNanos); game.advanceOpeningBattle();
         assertFalse(game.openingBattle().finished()); assertEquals(8, game.openingBattle().student().hp());
-        assertEquals(Duration.ZERO, game.openingBattle().remaining());
+        assertEquals(Duration.ofMinutes(3), game.openingBattle().remaining());
         game.startOpeningQuestion(id(0));
-        assertEquals(Duration.ofSeconds(20), game.openingBattle().remaining());
-        clock.addAndGet(19_999_999_999L); game.answerOpeningQuestion(id(0), "A");
+        assertEquals(Duration.ofMinutes(3), game.openingBattle().remaining());
+        clock.addAndGet(179_999_999_999L); game.answerOpeningQuestion(id(0), "A");
         assertEquals(8, game.openingBattle().student().hp()); assertTrue(game.openingBattle().answers().getLast().correct());
     }
     @Test void noStartWithoutImpactAndNoAnswerDuckOrDuplicateHitDuringReveal() {
@@ -242,19 +253,19 @@ class OpeningBattleTest {
     @Test void repeatedPresentationCompletionCannotRestartClockOrApplyDamage() {
         start(); game.hitOpeningQuestion(id(0)); clock.set(760_000_000L); game.startOpeningQuestion(id(0));
         clock.addAndGet(3_000_000_000L); var before = game.openingBattle();
-        assertEquals(Duration.ofSeconds(17), before.remaining());
+        assertEquals(Duration.ofSeconds(177), before.remaining());
         assertThrows(IllegalStateException.class, () -> game.startOpeningQuestion(id(0)));
         assertThrows(IllegalStateException.class, () -> game.hitOpeningQuestion(id(0)));
         assertEquals(before, game.openingBattle());
-        clock.addAndGet(17_000_000_000L); game.advanceOpeningBattle();
+        clock.addAndGet(177_000_000_000L); game.advanceOpeningBattle();
         assertEquals(OpeningBattle.DefeatReason.TIMEOUT, game.openingBattle().ending().reason());
         assertEquals(8, game.openingBattle().student().hp()); assertTrue(game.openingBattle().answers().isEmpty());
     }
     @Test void firstDeadlineIsMeasuredFromRevealCompletionNotImpact() {
         start(); game.hitOpeningQuestion(id(0)); clock.set(760_000_000L); game.startOpeningQuestion(id(0));
-        clock.set(20_000_000_000L); game.advanceOpeningBattle();
+        clock.set(180_000_000_000L); game.advanceOpeningBattle();
         assertFalse(game.openingBattle().finished()); assertEquals(Duration.ofMillis(760), game.openingBattle().remaining());
-        clock.set(20_760_000_000L); game.advanceOpeningBattle();
+        clock.set(180_760_000_000L); game.advanceOpeningBattle();
         assertEquals(OpeningBattle.DefeatReason.TIMEOUT, game.openingBattle().ending().reason());
     }
     @Test void pendingRevealCopiesKeepTheirQuestionButNotSharedMutation() {
@@ -263,8 +274,8 @@ class OpeningBattleTest {
         game.startOpeningQuestion(id(0));
         assertEquals(OpeningBattle.Phase.QUESTION_REVEAL, other.openingBattle().phase());
         clock.set(760_000_000L); other.startOpeningQuestion(id(0));
-        assertEquals(Duration.ofSeconds(20), other.openingBattle().remaining());
-        assertEquals(Duration.ofMillis(19240), game.openingBattle().remaining());
+        assertEquals(Duration.ofMinutes(3), other.openingBattle().remaining());
+        assertEquals(Duration.ofMillis(179240), game.openingBattle().remaining());
         assertEquals(8, other.openingBattle().student().hp());
     }
     @Test void invalidImpactAndRegressedClockNeverSpendHp() {
@@ -276,12 +287,75 @@ class OpeningBattleTest {
         clock.set(0); assertEquals(before, game.openingBattle());
         game.hitOpeningQuestion(id(0)); assertEquals(8, game.openingBattle().student().hp());
     }
-    @Test void lastQuestionAlsoKeepsItsFullLimitAfterReveal() {
+    @Test void lastQuestionCanUseTheEntireUnspentBudgetRatherThanTheOldShrinkingLimit() {
         start(); duck(); for (int i = 0; i < 9; i++) correct(i);
         game.hitOpeningQuestion(id(9)); assertEquals(2, game.openingBattle().student().hp());
         clock.addAndGet(760_000_000L); game.advanceOpeningBattle(); game.startOpeningQuestion(id(9));
-        assertEquals(Duration.ofNanos(7_748_409_780L), game.openingBattle().remaining());
-        clock.addAndGet(7_748_409_779L); game.answerOpeningQuestion(id(9), "E");
+        assertEquals(Duration.ofMinutes(3), game.openingBattle().remaining());
+        clock.addAndGet(179_999_999_999L); game.answerOpeningQuestion(id(9), "E");
         assertEquals(89, game.openingBattle().ending().grade()); assertEquals(2, game.openingBattle().student().hp());
+    }
+    @Test void thirtySecondsUsedOnFirstQuestionLeaves150ThroughTurnsAndReveal() {
+        start(); assertEquals(Duration.ofMinutes(3), game.openingBattle().remaining());
+        assertFalse(game.openingBattle().clockRunning());
+        clock.addAndGet(Duration.ofHours(1).toNanos()); game.advanceOpeningBattle();
+        reveal(id(0)); clock.addAndGet(Duration.ofSeconds(30).toNanos());
+        game.answerOpeningQuestion(id(0), "A");
+        assertEquals(Duration.ofSeconds(150), game.openingBattle().remaining());
+        clock.addAndGet(Duration.ofHours(1).toNanos()); game.advanceOpeningBattle();
+        game.hitOpeningQuestion(id(1)); clock.addAndGet(Duration.ofMillis(760).toNanos()); game.advanceOpeningBattle();
+        assertEquals(Duration.ofSeconds(150), game.openingBattle().remaining()); assertFalse(game.openingBattle().clockRunning());
+        game.startOpeningQuestion(id(1)); assertEquals(Duration.ofSeconds(150), game.openingBattle().remaining());
+        clock.addAndGet(Duration.ofSeconds(40).toNanos()); game.answerOpeningQuestion(id(1), "B");
+        assertEquals(Duration.ofSeconds(110), game.openingBattle().remaining());
+    }
+    @Test void pulsesAndPureReadsDoNotChargeElapsedTimeMoreThanOnce() {
+        start(); reveal(id(0));
+        for (int second = 1; second <= 30; second++) {
+            clock.set(second * 1_000_000_000L); game.advanceOpeningBattle(); game.advanceOpeningBattle();
+            assertEquals(Duration.ofSeconds(180 - second), game.openingBattle().remaining());
+            assertEquals(game.openingBattle(), game.openingBattle());
+        }
+        game.answerOpeningQuestion(id(0), "A"); assertEquals(Duration.ofSeconds(150), game.openingBattle().remaining());
+        game.advanceOpeningBattle(); assertEquals(Duration.ofSeconds(150), game.openingBattle().remaining());
+    }
+    @Test void betweenQuestionDuckDoesNotSpendBudgetButActiveQuestionDuckDoes() {
+        start(); reveal(id(0)); clock.addAndGet(30_000_000_000L); game.answerOpeningQuestion(id(0), "A");
+        game.useOpeningDuck(); clock.addAndGet(5_000_000_000L); game.advanceOpeningBattle();
+        assertEquals(Duration.ofSeconds(150), game.openingBattle().remaining());
+        assertEquals(11, game.openingBattle().student().hp());
+        // The existing active-question duck test asserts 180 -> 175 during its same five seconds.
+        reveal(id(1)); assertEquals(Duration.ofSeconds(150), game.openingBattle().remaining());
+    }
+    @Test void recoveryExactlyAtRemainingSharedDeadlineLosesEvenOnALaterQuestion() {
+        start(); reveal(id(0)); clock.addAndGet(175_000_000_000L); game.answerOpeningQuestion(id(0), "A");
+        reveal(id(1)); game.useOpeningDuck(); clock.addAndGet(5_000_000_000L); game.advanceOpeningBattle();
+        var v = game.openingBattle(); assertEquals(OpeningBattle.DefeatReason.TIMEOUT, v.ending().reason());
+        assertEquals(7, v.student().hp()); assertEquals(Duration.ZERO, v.remaining()); assertEquals(1, v.answers().size());
+    }
+    @Test void snapshotCopiesRetainSpentBudgetWithoutSharingFutureCharges() {
+        start(); reveal(id(0)); clock.addAndGet(30_000_000_000L); game.answerOpeningQuestion(id(0), "A");
+        var other = new GameController(game.snapshot(), demo.rules(), demo.content(), new Random(42), CombatRules.pending(), clock::get);
+        reveal(id(1)); clock.addAndGet(10_000_000_000L); game.answerOpeningQuestion(id(1), "B");
+        assertEquals(Duration.ofSeconds(140), game.openingBattle().remaining());
+        assertEquals(Duration.ofSeconds(150), other.openingBattle().remaining());
+        other.hitOpeningQuestion(id(1)); other.startOpeningQuestion(id(1));
+        assertEquals(Duration.ofSeconds(150), other.openingBattle().remaining());
+    }
+    @Test void wrongAnswerFreezesUnusedBudgetAndEndingPulsesNeverSpendIt() {
+        start(); reveal(id(0)); clock.set(30_000_000_000L); game.answerOpeningQuestion(id(0), "B");
+        var ended = game.openingBattle(); assertEquals(Duration.ofSeconds(150), ended.remaining());
+        assertFalse(ended.clockRunning());
+        clock.addAndGet(Duration.ofDays(1).toNanos()); game.advanceOpeningBattle(); assertEquals(ended, game.openingBattle());
+    }
+    @Test void staleCallbacksCannotResetASharedBudgetPartlyUsedOnAnotherQuestion() {
+        start(); reveal(id(0)); clock.set(30_000_000_000L); game.answerOpeningQuestion(id(0), "A");
+        game.hitOpeningQuestion(id(1)); var before = game.openingBattle();
+        assertThrows(IllegalStateException.class, () -> game.startOpeningQuestion(id(0)));
+        assertThrows(IllegalStateException.class, () -> game.answerOpeningQuestion(id(0), "A"));
+        assertEquals(before, game.openingBattle());
+        game.startOpeningQuestion(id(1)); clock.addAndGet(10_000_000_000L); before = game.openingBattle();
+        assertThrows(IllegalStateException.class, () -> game.startOpeningQuestion(id(1)));
+        assertEquals(before, game.openingBattle()); assertEquals(Duration.ofSeconds(140), before.remaining());
     }
 }

@@ -32,18 +32,18 @@ sequenceDiagram
             else Player survives impact
                 Caller->>Caller: Fully reveal question paper with no question clock
                 Caller->>Game: startOpeningQuestion(id) on reveal completion
-                Game->>Opening: Start full hard deadline, no HP change
+                Game->>Opening: Resume leftover shared 180-second budget, no HP change
                 opt Use the sole duck during the question
                     Caller->>Game: useOpeningDuck()
                     Game->>Opening: Reserve item and recovery delay, clock continues
                 end
                 loop Frontend timer pulses
                     Caller->>Game: advanceOpeningBattle()
-                    Game->>Opening: Settle recovery or timeout in time order
+                    Game->>Opening: Settle recovery or shared budget exhaustion in time order
                 end
                 opt Answer before timeout
                     Caller->>Game: answerOpeningQuestion(id, optionId)
-                    Game->>Opening: Validate option and immediately judge, no HP change
+                    Game->>Opening: Record elapsed answering time once, pause budget, judge, no HP change
                 end
             end
             Caller->>Game: openingBattle()
