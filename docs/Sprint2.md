@@ -6,11 +6,11 @@ assignment: [Software Development Project](assignment.md)
 
 ## **Design updates since Sprint 1**
 
-[Sprint1.md](Sprint1.md) is preserved byte-for-byte from its first Git version, `c14a5e09eb649c1439428dbccd1ac3e4a4fcb94b` (2026-11-06). It records the original proposal, feasibility study and early IPO, not the current approved rule register.
+[Sprint1.md](Sprint1.md) preserves the text of its first Git version, `c14a5e09eb649c1439428dbccd1ac3e4a4fcb94b` (2026-11-06); only its two Mermaid link targets now point to the archived Sprint 1 diagrams. It records the original proposal, feasibility study and early IPO, not the current approved rule register.
 
 This document carries forward the updated design section from `73b7a04`: the 40-day calendar, confirmed rules R01–R16, revised IPO, pending decisions T01–T14, approved Demo exception and normal-semester combat increment. Moving these sections does not introduce new gameplay rules or mark pending features complete.
 
-The linked Mermaid files remain the current Sprint 2 class and sequence diagrams; their earlier versions remain in Git. The initial Sprint 1 document and its original links are left intact. [Implementation status](implementation-status.md) records implementation boundaries; [midterm audit evidence](midterm-audit-evidence.md) remains separate from this design update and is not a completed audit report.
+The two diagrams in `sprint1/` are byte-for-byte snapshots from `c14a5e0` and remain the Sprint 1 originals. The two diagrams in `sprint2/` carry forward the latest versions from `a4ed1aa` without content changes and are maintained with this Sprint 2 design. Future implementation updates belong in `sprint2/`; do not overwrite `sprint1/`. The former shared diagram paths are removed so the two Sprints no longer reference the same files. [Implementation status](implementation-status.md) records implementation boundaries; [midterm audit evidence](midterm-audit-evidence.md) remains separate from this design update and is not a completed audit report.
 
 ## **Design Documents**
 
@@ -99,11 +99,11 @@ The playable semester has 40 days. The opening plays the previous semester's dif
 
 ### **Class diagram**
 
-Mermaid file: [class diagram.mmd](class%20diagram.mmd). It shows implemented core classes, JavaFX screens/controllers and their presentation helpers, including the opening ending page, shared input/feedback components and explicit policy boundaries. Presentation helpers do not own grades, HP or exam deadlines. Methods accepting evaluated scores or effect inputs do not imply an automatic grader or approved numerical policy. See implementation-status.md for undelivered features.
+Mermaid file: [class diagram.mmd](sprint2/class%20diagram.mmd). It shows implemented core classes, JavaFX screens/controllers and their presentation helpers, including the opening ending page, shared input/feedback components and explicit policy boundaries. Presentation helpers do not own grades, HP or exam deadlines. Methods accepting evaluated scores or effect inputs do not imply an automatic grader or approved numerical policy. See implementation-status.md for undelivered features.
 
 ### **Sequence diagram**
 
-Mermaid file: [sequence diagram.mmd](sequence%20diagram.mmd). It traces the implemented opening screen/session/core calls, continuous-clock timeout handling, the independent ending page and Day 1 entry, followed by classroom settlement and core assessment/day-end operations. The later core paths abbreviate frontend forwarding calls. Normal-semester combat, grading and ending policies retain their explicit TBD boundaries. Diagram rendering alone does not establish working gameplay; executed tests are recorded separately.
+Mermaid file: [sequence diagram.mmd](sprint2/sequence%20diagram.mmd). It traces the implemented opening screen/session/core calls, continuous-clock timeout handling, the independent ending page and Day 1 entry, followed by classroom settlement and core assessment/day-end operations. The later core paths abbreviate frontend forwarding calls. Normal-semester combat, grading and ending policies retain their explicit TBD boundaries. Diagram rendering alone does not establish working gameplay; executed tests are recorded separately.
 
 ### Approved Demo configuration exception (2026-11-09)
 

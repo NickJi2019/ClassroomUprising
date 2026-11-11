@@ -127,7 +127,7 @@ Several risks may affect the project’s development. The battle system could be
 | **9\. Start a scheduled Lab/Test encounter** | Current date and ICS period; event schedule; required-story completion; mental state, knowledge, and HP/grade; unlocked assessment content | Confirm that the encounter is due and unfinished. Complete prerequisite scenes. Initialize the Lab/Test challenge and its turn state using the current student state. Pause the ordinary daily routine until the assessment ends. | Lab/Test battle screen; assessment objectives, challenge state, current HP/grade, and available actions. |
 
 ### **Class diagram**
-mermaid file: [class diagram.md](/docs/class%20diagram.mmd)
+mermaid file: [class diagram.md](sprint1/class%20diagram.mmd)
 
 ### **Sequence Diagram**
-mermaid file: [sequence diagram.mmd](/docs/sequence%20diagram.mmd)
+mermaid file: [sequence diagram.mmd](sprint1/sequence%20diagram.mmd)
