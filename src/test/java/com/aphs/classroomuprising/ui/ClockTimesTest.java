@@ -87,7 +87,7 @@ class ClockTimesTest {
         var session = GameSession.newGame(DemoProfile.load(), "Tester", new Random(3), temp.resolve("save.properties"));
         assertFalse(ClockTimes.animates(null, 1, session.view()), "before the opening there is nothing to animate from");
 
-        session.completeOpening();
+        OpeningPlay.enterDayOne(session);
         var classroom = session.view();
         assertFalse(ClockTimes.animates(null, 1, classroom), "first screen of a day uses the wipe");
         assertFalse(ClockTimes.animates(DayPeriod.ICS_CLASS, 1, classroom), "same period: no time change");

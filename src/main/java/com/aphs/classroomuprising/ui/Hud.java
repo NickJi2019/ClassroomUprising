@@ -34,6 +34,8 @@ public class Hud extends AnchorPane {
     private boolean xpOpen;
     private final Label demo = new Label();
     private final KeyHints hints = new KeyHints();
+    private VBox date;
+    private HBox stats;
     /** The hints the screen asked for; while the XP panel is open the plate says how to close it. */
     private KeyHints.Hint[] screenHints = {KeyHints.Hint.of("ESC", "MENU")};
 
@@ -62,7 +64,7 @@ public class Hud extends AnchorPane {
         pips.setAlignment(Pos.CENTER_LEFT);
         HBox timeRow = new HBox(10, pips, period);
         timeRow.setAlignment(Pos.CENTER_LEFT);
-        VBox date = new VBox(4, dayTag, course, timeRow);
+        date = new VBox(4, dayTag, course, timeRow);
         AnchorPane.setLeftAnchor(date, 36.0);
         AnchorPane.setTopAnchor(date, 26.0);
 
@@ -74,7 +76,7 @@ public class Hud extends AnchorPane {
         xpChip.addEventHandler(javafx.scene.input.MouseEvent.MOUSE_CLICKED, e -> {
             if (e.getButton() == javafx.scene.input.MouseButton.PRIMARY) toggleXp();
         });
-        HBox stats = new HBox(12, chip("HP", "stat-hp", hp), chip("SAN", "stat-san", san), xpChip);
+        stats = new HBox(12, chip("HP", "stat-hp", hp), chip("SAN", "stat-san", san), xpChip);
         stats.setAlignment(Pos.CENTER_RIGHT);
         AnchorPane.setRightAnchor(stats, 36.0);
         AnchorPane.setTopAnchor(stats, 30.0);
@@ -136,8 +138,30 @@ public class Hud extends AnchorPane {
         if (shown != null) show(shown, demo.getText());
     }
 
+    /**
+     * The opening exam's own stats (last semester's student), with no date or time of day: the
+     * prologue is not a school day. HP has no maximum, so it stays a plain number.
+     */
+    void showStudent(com.aphs.classroomuprising.StudentState student, String demoLabel) {
+        date.setVisible(false);
+        hp.setText(StatDelta.number(student.hp()));
+        san.set(Stats.sanFraction(student.san()));
+        xp.setText(StatDelta.number(Stats.xp(student)));
+        xpParts.show(student);
+        demo.setText(demoLabel);
+    }
+
+    /** Hides or shows the three stat chips (the opening's story has none yet). */
+    void setStatsVisible(boolean visible) {
+        if (stats.isVisible() == visible) return;
+        stats.setVisible(visible);
+        if (visible) Motion.slideIn(stats, 0);
+        else collapse();
+    }
+
     public void show(GameState state, String demoLabel) {
         shown = state;
+        date.setVisible(true);
         day.setText("DAY %02d".formatted(state.day()));
         course.setText(UiText.courseLine(state.currentCourse(), courseTitle) + "  ·  %d DAYS LEFT".formatted(40 - state.day()));
         period.setText(UiText.period(state.period()));

@@ -9,6 +9,7 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.URL;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -37,11 +38,8 @@ class CharacterArtTest {
         assertTrue(reward.contains(LessonMenu.ASKING));
         for (LessonDecision.Outcome outcome : LessonDecision.Outcome.values())
             assertTrue(reward.contains(LessonMenu.reaction(outcome)), outcome.name());
-        for (DialogueScript.Line line : DialogueScript.parse(OpeningScreen.SCRIPT, "Narrator")) {
-            if (line.expression() == null) continue;
-            var character = manifest.characterNamed(line.speaker()).orElseThrow(() -> new AssertionError(line.speaker()));
-            assertTrue(character.expressions().containsKey(line.expression()), line.speaker() + "[" + line.expression() + "]");
-        }
+        for (String expression : List.of(OpeningScreen.ARRIVES, OpeningScreen.MOCKS, OpeningScreen.ASTONISHED))
+            assertTrue(reward.contains(expression), "opening: " + expression);
     }
 
     @Test void theTitleCardArtIsDelivered() throws IOException {

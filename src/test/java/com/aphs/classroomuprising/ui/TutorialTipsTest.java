@@ -17,7 +17,7 @@ class TutorialTipsTest {
     @Test void tipsAppearOnlyDuringTheTutorialAfterTheOpening() throws IOException {
         GameSession session = GameSession.newGame(DemoProfile.load(), "Tester", new Random(1), Path.of("unused"));
         assertTrue(TutorialTips.at(TutorialTips.Moment.LESSON_CHOICE, session.view()).isEmpty(), "not before the opening");
-        session.completeOpening();
+        OpeningPlay.enterDayOne(session);
         assertTrue(TutorialTips.at(TutorialTips.Moment.LESSON_CHOICE, session.view()).isPresent());
 
         for (int day = 1; day <= 2; day++) {
@@ -32,7 +32,7 @@ class TutorialTipsTest {
 
     @Test void everyMomentHasItsOwnTipAndNoAmounts() throws IOException {
         GameSession session = GameSession.newGame(DemoProfile.load(), "Tester", new Random(1), Path.of("unused"));
-        session.completeOpening();
+        OpeningPlay.enterDayOne(session);
         var ids = new HashSet<String>();
         for (TutorialTips.Moment moment : TutorialTips.Moment.values()) {
             TutorialTips.Tip tip = TutorialTips.at(moment, session.view()).orElseThrow();

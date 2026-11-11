@@ -6,6 +6,8 @@ import com.aphs.classroomuprising.ContentCatalog;
 import com.aphs.classroomuprising.DemoProfile;
 import com.aphs.classroomuprising.GameController;
 import com.aphs.classroomuprising.GameState;
+import com.aphs.classroomuprising.OpeningBattle;
+import com.aphs.classroomuprising.OpeningContent;
 import com.aphs.classroomuprising.PendingRuleException;
 import com.aphs.classroomuprising.RuleValues;
 import com.aphs.classroomuprising.SaveManager;
@@ -89,7 +91,42 @@ public final class GameSession {
 
     // ---- player actions -------------------------------------------------------------
 
+    /**
+     * Acknowledges the opening once its exam has ended and the ending has been shown; Day 1
+     * opens with this summer's own stats. The core refuses it before the exam has ended.
+     */
     public Outcome completeOpening() { return change(game::completeOpening); }
+
+    // ---- opening exam (previous semester; never touches this summer's stats or grades) ----
+
+    /** The authored story before the exam, in "Speaker: line" form. */
+    public List<String> openingIntro() { return game.openingIntro(); }
+
+    /** Whether this content has the opening exam (legacy fixture catalogues only acknowledge the opening). */
+    public boolean hasOpeningExam() { return profile.content().hasOpeningBattle(); }
+
+    /** The exam's authored amounts for display (initial stats, the duck); the battle applies them. */
+    public OpeningContent openingContent() { return profile.content().opening(); }
+
+    /** Creates the exam after the intro; no question clock runs yet. */
+    public Outcome startOpeningBattle() { return change(game::startOpeningBattle); }
+
+    /** The exam as it stands. Pure: call {@link #advanceOpeningBattle()} first to settle time. */
+    public Fetch<OpeningBattle.View> openingBattle() { return fetch(game::openingBattle); }
+
+    /** Starts one unanswered question and its clock (the core times it). */
+    public Outcome startOpeningQuestion(String questionId) { return change(() -> game.startOpeningQuestion(questionId)); }
+
+    /** Answers the running question with one of its option IDs; read the view for the result. */
+    public Outcome answerOpeningQuestion(String questionId, String optionId) {
+        return change(() -> game.answerOpeningQuestion(questionId, optionId));
+    }
+
+    /** Uses the one rubber duck (its recovery arrives later, on the core's clock). */
+    public Outcome useOpeningDuck() { return change(game::useOpeningDuck); }
+
+    /** Settles what time has decided (a deadline, the duck's recovery); call on every timer pulse. */
+    public Outcome advanceOpeningBattle() { return change(game::advanceOpeningBattle); }
 
     /**
      * Returns today's Lesson. {@code showLesson()} records that the content was shown, so it

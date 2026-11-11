@@ -171,6 +171,54 @@
 
 /* ---------- opening / day cards ---------- */
 .opening-sub { -fx-font-size: 18px; -fx-text-fill: -cu-red; }
+/* Opening exam: the paper, its options, the verdict, the duck and the ending. */
+.exam-paper {
+    -fx-background-color: rgba(11, 15, 42, 0.88);
+    -fx-border-color: -cu-caret transparent transparent transparent;
+    -fx-border-width: 3 0 0 0;
+    -fx-padding: 14 20 16 20;
+}
+.exam-next-clock { -fx-font-size: 13px; -fx-text-fill: -cu-caret; }
+.exam-verdict { -fx-font-size: 24px; }
+.exam-verdict.verdict-right { -fx-text-fill: -cu-green; }
+.exam-verdict.verdict-wrong { -fx-text-fill: -cu-red; }
+.exam-prompt { -fx-font-size: 17px; -fx-text-fill: -cu-text; -fx-line-spacing: 2px; }
+.exam-scroll, .exam-scroll > .viewport { -fx-background-color: transparent; -fx-background: transparent; }
+.exam-scroll { -fx-padding: 0; -fx-background-insets: 0; }
+.exam-scroll .scroll-bar { -fx-background-color: -cu-deep; }
+.exam-scroll .scroll-bar .thumb { -fx-background-color: -cu-line; -fx-background-radius: 0; }
+.exam-scroll .scroll-bar .increment-button, .exam-scroll .scroll-bar .decrement-button { -fx-padding: 0; -fx-background-color: transparent; }
+.exam-scroll .scroll-bar .increment-arrow, .exam-scroll .scroll-bar .decrement-arrow { -fx-shape: ""; -fx-padding: 0; }
+.exam-scroll .corner { -fx-background-color: transparent; }
+.exam-code { -fx-font-size: 13px; -fx-text-fill: -cu-soft; -fx-background-color: -cu-deep; -fx-padding: 10 14 10 14; -fx-line-spacing: 1px; }
+.exam-option { -fx-background-color: rgba(20, 26, 61, 0.9); -fx-border-color: -cu-line; -fx-border-width: 0 0 0 4; -fx-padding: 8 12 8 10; -fx-cursor: hand; }
+.exam-option:highlight { -fx-border-color: -cu-caret; -fx-background-color: #232B5E; }
+.exam-option:right { -fx-border-color: -cu-green; -fx-background-color: rgba(61, 220, 151, 0.16); }
+.exam-option:wrong { -fx-border-color: -cu-red; -fx-background-color: rgba(255, 77, 109, 0.18); }
+.exam-option-tag { -fx-padding: 0 12 0 10; }
+.exam-option-tag > .slant-bg { -fx-fill: -cu-soft; }
+.exam-option:highlight .exam-option-tag > .slant-bg { -fx-fill: -cu-caret; }
+.exam-option:right .exam-option-tag > .slant-bg { -fx-fill: -cu-green; }
+.exam-option:wrong .exam-option-tag > .slant-bg { -fx-fill: -cu-red; }
+.exam-option-letter { -fx-font-size: 17px; -fx-text-fill: -cu-ink; }
+.exam-option-text { -fx-font-size: 14px; -fx-text-fill: -cu-text; }
+.exam-explanation { -fx-font-size: 14px; -fx-text-fill: -cu-soft; -fx-background-color: -cu-deep; -fx-padding: 10 14 10 14; }
+.duck-chip { -fx-padding: 3 20 3 18; }
+.duck-chip > .slant-bg { -fx-fill: rgba(11, 15, 42, 0.82); -fx-stroke: -cu-caret; -fx-stroke-width: 1.5; }
+.duck-name { -fx-font-size: 16px; -fx-text-fill: -cu-caret; }
+.duck-state { -fx-font-size: 14px; -fx-text-fill: -cu-text; }
+.duck-chip.duck-ready:hover > .slant-bg { -fx-fill: rgba(255, 210, 63, 0.22); }
+.duck-chip.duck-working > .slant-bg { -fx-fill: -cu-caret; }
+.duck-chip.duck-working .duck-name, .duck-chip.duck-working .duck-state { -fx-text-fill: -cu-ink; }
+.duck-chip.duck-used > .slant-bg { -fx-stroke: -cu-line; }
+.duck-chip.duck-used .duck-name, .duck-chip.duck-used .duck-state { -fx-text-fill: -cu-dim; }
+.pass-out { -fx-background-color: radial-gradient(center 50% 50%, radius 75%, rgba(0, 0, 0, 0.75) 30%, #000000 100%); }
+.grade-stamp { -fx-padding: 4 34 8 28; }
+.grade-word { -fx-font-size: 18px; }
+.grade-number { -fx-font-size: 96px; }
+.hp-pop { -fx-font-size: 22px; }
+.hp-pop-up { -fx-text-fill: -cu-green; }
+.hp-pop-down { -fx-text-fill: -cu-red; }
 /* Right padding exceeds the slant offset (height x 0.25) so the flip faces never cut the edge. */
 .intro-tag { -fx-padding: 0 72 0 34; }
 .intro-day-word { -fx-font-size: 54px; -fx-padding: 0 0 34 0; }

@@ -41,7 +41,7 @@ class LessonDecisionFlowTest {
     /** A session in ICS class on {@code day} with the lecture shown, earlier days spent quietly. */
     private GameSession inClass(int day) {
         GameSession session = fresh();
-        assertTrue(session.completeOpening().ok());
+        OpeningPlay.enterDayOne(session);
         for (int d = 1; d < day; d++) {
             assertTrue(session.openLesson().ok());
             assertTrue(session.lessonChoice(d, lesson(d).decision().skip().id()).ok());

@@ -34,14 +34,15 @@ class GameSessionTest {
     }
 
     @Test void openingIsRecordedOnlyOnce() {
-        assertTrue(session.completeOpening().ok());
+        assertInstanceOf(Outcome.Rejected.class, session.completeOpening(), "not before the exam has ended");
+        OpeningPlay.enterDayOne(session);
         Outcome again = session.completeOpening();
         assertInstanceOf(Outcome.Rejected.class, again);
         assertTrue(session.view().openingCompleted());
     }
 
     @Test void lessonContentIsMarkedShownOnceAndRereadWithoutChange() {
-        session.completeOpening();
+        OpeningPlay.enterDayOne(session);
         Fetch<?> first = session.openLesson();
         assertTrue(first.ok());
         assertTrue(session.view().lessonShown());
@@ -52,7 +53,7 @@ class GameSessionTest {
     }
 
     @Test void aLessonChoiceSettlesOnceAndARepeatChangesNothing() {
-        session.completeOpening();
+        OpeningPlay.enterDayOne(session);
         session.openLesson();
         Outcome first = session.lessonChoice(1, appropriate(1));
         Outcome.Done done = assertInstanceOf(Outcome.Done.class, first);
@@ -65,7 +66,7 @@ class GameSessionTest {
     }
 
     @Test void choiceBeforeTheLessonIsShownIsRefused() {
-        session.completeOpening();
+        OpeningPlay.enterDayOne(session);
         String before = signature(session.view());
         assertInstanceOf(Outcome.Rejected.class, session.lessonChoice(1, appropriate(1)));
         assertEquals(before, signature(session.view()));
@@ -89,7 +90,7 @@ class GameSessionTest {
     }
 
     @Test void saveIsRefusedBeforeTheDayEnds() {
-        session.completeOpening();
+        OpeningPlay.enterDayOne(session);
         Outcome outcome = session.saveDayEnd();
         assertInstanceOf(Outcome.Rejected.class, outcome);
         assertFalse(Files.exists(save));
@@ -128,7 +129,7 @@ class GameSessionTest {
     }
 
     @Test void theDay5LabCombatReportsItsPendingRuleAndChangesNothing() {
-        session.completeOpening();
+        OpeningPlay.enterDayOne(session);
         for (int day = 1; day <= 4; day++) playOrdinaryDay();
         GameState day5 = session.view();
         assertEquals(5, day5.day());
@@ -151,7 +152,7 @@ class GameSessionTest {
     }
 
     private void toAfterSchool() {
-        session.completeOpening();
+        OpeningPlay.enterDayOne(session);
         session.openLesson();
         session.lessonChoice("quiet");
         session.otherClasses(false);

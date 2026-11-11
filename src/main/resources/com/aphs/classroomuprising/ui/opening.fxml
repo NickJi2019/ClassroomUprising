@@ -1,19 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Pane?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 <?import com.aphs.classroomuprising.ui.ChoiceList?>
 <?import com.aphs.classroomuprising.ui.DialogueBox?>
+<?import com.aphs.classroomuprising.ui.Hud?>
 <?import com.aphs.classroomuprising.ui.Slant?>
+<?import com.aphs.classroomuprising.ui.TimeGauge?>
 <?import com.aphs.classroomuprising.ui.scene.SceneView?>
 
+<!-- The previous-semester final: story, then the exam (pick a question, answer it against its
+     clock), then the ending. Only one of picker / paper is shown at a time. -->
 <StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" styleClass="screen, opening">
     <SceneView fx:id="scene"/>
     <AnchorPane pickOnBounds="false">
+        <Region styleClass="scrim-bottom" mouseTransparent="true" prefHeight="300.0"
+                AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.bottomAnchor="0.0"/>
+        <Region fx:id="examScrim" styleClass="scrim-left" mouseTransparent="true" prefWidth="760.0" visible="false"
+                AnchorPane.leftAnchor="0.0" AnchorPane.topAnchor="0.0" AnchorPane.bottomAnchor="0.0"/>
+
         <HBox spacing="14" alignment="CENTER_LEFT" AnchorPane.leftAnchor="40.0" AnchorPane.topAnchor="30.0">
             <Slant styleClass="tag-danger">
                 <Label text="LAST SEMESTER" styleClass="display, tag-label"/>
@@ -21,13 +32,63 @@
             <Label text="ICS4U FINAL EXAM  //  MR. REWARD" styleClass="display, opening-sub"/>
         </HBox>
 
-        <Region styleClass="scrim-bottom" mouseTransparent="true" prefHeight="300.0"
-                AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.bottomAnchor="0.0"/>
+        <!-- Between questions: any unanswered question, in any order. No clock runs here. -->
+        <VBox fx:id="picker" spacing="10" prefWidth="560.0" visible="false" managed="false"
+              AnchorPane.leftAnchor="40.0" AnchorPane.topAnchor="96.0">
+            <HBox spacing="14" alignment="BASELINE_LEFT">
+                <Label fx:id="progress" styleClass="display, section-label"/>
+                <Label fx:id="nextClock" styleClass="mono, exam-next-clock"/>
+            </HBox>
+            <ChoiceList fx:id="questions" stagger="12.0"/>
+        </VBox>
 
-        <VBox fx:id="notice" maxWidth="460.0" AnchorPane.leftAnchor="40.0" AnchorPane.topAnchor="90.0"/>
+        <!-- One question: its prompt and full code on the left, the five options on the right. -->
+        <VBox fx:id="paper" spacing="10" styleClass="exam-paper" visible="false" managed="false"
+              AnchorPane.leftAnchor="40.0" AnchorPane.rightAnchor="40.0"
+              AnchorPane.topAnchor="88.0" AnchorPane.bottomAnchor="48.0">
+            <HBox spacing="14" alignment="BASELINE_LEFT">
+                <Slant styleClass="tag-caret">
+                    <Label fx:id="questionTag" styleClass="display, tag-label"/>
+                </Slant>
+                <Label fx:id="verdict" styleClass="display, exam-verdict"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Label fx:id="time" styleClass="mono, combat-time"/>
+                <Label fx:id="limit" styleClass="mono, combat-limit"/>
+            </HBox>
+            <TimeGauge fx:id="gauge"/>
+            <HBox spacing="18" VBox.vgrow="ALWAYS">
+                <VBox spacing="10" HBox.hgrow="ALWAYS" prefWidth="600.0">
+                    <Label fx:id="prompt" styleClass="exam-prompt" wrapText="true" minHeight="-Infinity"/>
+                    <ScrollPane fx:id="codeScroll" styleClass="exam-scroll" VBox.vgrow="ALWAYS">
+                        <Label fx:id="code" styleClass="mono, exam-code"/>
+                    </ScrollPane>
+                </VBox>
+                <VBox spacing="10" prefWidth="430.0" minWidth="430.0" maxWidth="430.0">
+                    <ScrollPane fx:id="optionScroll" styleClass="exam-scroll" fitToWidth="true" VBox.vgrow="ALWAYS">
+                        <VBox fx:id="options" spacing="8"/>
+                    </ScrollPane>
+                    <Label fx:id="explanation" styleClass="exam-explanation" wrapText="true" minHeight="-Infinity"
+                           visible="false" managed="false"/>
+                </VBox>
+            </HBox>
+        </VBox>
+
+        <!-- Ms Tang's rubber duck: one, between questions or during one. -->
+        <Slant fx:id="duck" styleClass="duck-chip" visible="false"
+               AnchorPane.leftAnchor="290.0" AnchorPane.bottomAnchor="6.0">
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Label text="DUCK" styleClass="display, duck-name"/>
+                <Label fx:id="duckLabel" styleClass="display, duck-state"/>
+            </HBox>
+        </Slant>
+
+        <VBox fx:id="notice" maxWidth="520.0" AnchorPane.leftAnchor="40.0" AnchorPane.topAnchor="96.0"/>
         <ChoiceList fx:id="actions" alignment="TOP_RIGHT" AnchorPane.rightAnchor="60.0" AnchorPane.topAnchor="250.0"/>
 
         <DialogueBox fx:id="dialogue" prefHeight="150.0"
                      AnchorPane.leftAnchor="230.0" AnchorPane.rightAnchor="40.0" AnchorPane.bottomAnchor="36.0"/>
     </AnchorPane>
+    <Hud fx:id="hud"/>
+    <Region fx:id="blackout" styleClass="pass-out" mouseTransparent="true" opacity="0.0"/>
+    <Pane fx:id="effects" mouseTransparent="true"/>
 </StackPane>
