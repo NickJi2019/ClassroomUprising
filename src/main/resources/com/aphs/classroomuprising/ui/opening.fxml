@@ -16,7 +16,7 @@
 <?import com.aphs.classroomuprising.ui.scene.SceneView?>
 
 <!-- The previous-semester final: story, then the exam in rounds (your turn, then Mr. Reward fires
-     a question at you, you answer it against its clock and fire back), then the ending. -->
+     a question at you, you answer it against the exam clock and fire back), then the ending. -->
 <StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" styleClass="screen, opening">
     <SceneView fx:id="scene"/>
     <AnchorPane pickOnBounds="false">
@@ -32,7 +32,7 @@
             <Label text="ICS4U FINAL EXAM  //  MR. REWARD" styleClass="display, opening-sub"/>
         </HBox>
 
-        <!-- The player's turn, between Mr. Reward's attacks: what to do next. No clock runs here. -->
+        <!-- The player's turn, between Mr. Reward's attacks: what to do next. -->
         <VBox fx:id="turn" spacing="12" prefWidth="620.0" visible="false" managed="false"
               AnchorPane.leftAnchor="48.0" AnchorPane.topAnchor="150.0">
             <HBox spacing="16" alignment="BASELINE_LEFT">
@@ -53,11 +53,7 @@
                     <Label fx:id="questionTag" styleClass="display, tag-label"/>
                 </Slant>
                 <Label fx:id="verdict" styleClass="display, exam-verdict"/>
-                <Region HBox.hgrow="ALWAYS"/>
-                <Label fx:id="time" styleClass="mono, combat-time"/>
-                <Label fx:id="limit" styleClass="mono, combat-limit"/>
             </HBox>
-            <TimeGauge fx:id="gauge"/>
             <HBox spacing="18" VBox.vgrow="ALWAYS">
                 <VBox spacing="10" HBox.hgrow="ALWAYS" prefWidth="600.0">
                     <Label fx:id="prompt" styleClass="exam-prompt" wrapText="true" minHeight="-Infinity"/>
@@ -91,5 +87,22 @@
                      AnchorPane.leftAnchor="230.0" AnchorPane.rightAnchor="40.0" AnchorPane.bottomAnchor="36.0"/>
     </AnchorPane>
     <Hud fx:id="hud"/>
+    <!-- The exam's time (one budget for all ten questions, kept by the core), shown all through
+         the battle: in your turn, during his attacks and on the paper alike. Drawn above the HUD,
+         like its stat chips, so the HUD's hit flash and top scrim never tint it. -->
+    <Pane mouseTransparent="true">
+        <Slant fx:id="examClock" styleClass="stat-chip, exam-clock" visible="false" layoutX="488.0" layoutY="20.0">
+            <VBox spacing="3">
+                <HBox spacing="10" alignment="BASELINE_LEFT">
+                    <Label text="EXAM TIME" styleClass="display, exam-clock-label"/>
+                    <Label fx:id="time" styleClass="mono, exam-clock-time"/>
+                    <Label fx:id="limit" styleClass="mono, combat-limit"/>
+                    <Label fx:id="clockState" text="PAUSED" styleClass="display, exam-clock-state"
+                           visible="false" managed="false"/>
+                </HBox>
+                <TimeGauge fx:id="gauge" prefWidth="290.0"/>
+            </VBox>
+        </Slant>
+    </Pane>
     <Pane fx:id="effects" mouseTransparent="true"/>
 </StackPane>

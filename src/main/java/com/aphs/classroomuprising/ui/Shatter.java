@@ -27,8 +27,9 @@ import java.util.Random;
 
 /**
  * The screen breaking like glass when the player is defeated: a picture of the whole screen
- * cracks into shards around the point of impact, flashes, shakes, then the shards fall away into
- * darkness, inner ones first. Presentation only.
+ * cracks into shards around the point of impact, flashes, shakes, then the shards fall away,
+ * inner ones first, revealing what lies behind them (the full-screen defeat card). Presentation
+ * only.
  */
 final class Shatter {
     private static final double W = ClassroomApp.WIDTH, H = ClassroomApp.HEIGHT;
@@ -39,19 +40,19 @@ final class Shatter {
     private Shatter() {}
 
     /**
-     * @param layer   a full-canvas pane on top of everything (the shards and the dark go here)
+     * @param layer   a full-canvas pane on top of everything (what lies behind and the shards go here)
      * @param screen  what breaks (the screen's root)
      * @param at      the point of impact
-     * @param fallen  runs when the shards are gone, while the screen is still dark behind them
-     * @return the crack and the fall; when it finishes the dark fades and is removed
+     * @param behind  what the falling shards reveal (full-canvas); it stays when they are gone
+     * @param fallen  runs when the shards are gone
+     * @return the crack and the fall
      */
-    static Animation play(Pane layer, Node screen, Point2D at, Runnable fallen) {
+    static Animation play(Pane layer, Node screen, Point2D at, Node behind, Runnable fallen) {
         SnapshotParameters area = new SnapshotParameters();
         area.setViewport(new Rectangle2D(0, 0, W, H));
         Image picture = screen.snapshot(area, null);
         Random random = new Random(11);
 
-        Rectangle dark = new Rectangle(W, H, Color.web("#05060F"));
         // While it cracks the screen is still one piece: its picture with the crack lines on it
         // (cheap to draw). The shards replace it when they start to fall.
         javafx.scene.image.ImageView whole = new javafx.scene.image.ImageView(picture);
@@ -63,7 +64,7 @@ final class Shatter {
         shards.setVisible(false);
         Rectangle flash = new Rectangle(W, H, Color.WHITE);
         flash.setOpacity(0);
-        layer.getChildren().addAll(dark, shards, cracked, flash);
+        layer.getChildren().addAll(behind, shards, cracked, flash);
 
         // The crack pattern: rays out of the impact, crossed by jagged rings.
         double[] angles = new double[RAYS];
@@ -119,9 +120,7 @@ final class Shatter {
             layer.getChildren().removeAll(shards, flash);
             fallen.run();
         });
-        Timeline lift = new Timeline(new KeyFrame(Duration.millis(520), new KeyValue(dark.opacityProperty(), 0, Interpolator.EASE_IN)));
-        lift.setOnFinished(e -> layer.getChildren().remove(dark));
-        return new SequentialTransition(breaking, hold, apart, lift);
+        return new SequentialTransition(breaking, hold, apart);
     }
 
     /** One shard falls: away from the impact, then down, turning and fading; inner ones go first. */

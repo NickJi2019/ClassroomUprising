@@ -110,6 +110,9 @@
 .stat-name { -fx-font-size: 13px; }
 .stat-value { -fx-font-size: 24px; }
 .stat-hp { -fx-text-fill: -cu-green; }
+/* Low HP: the HP chip turns red and its number blinks with the pulse (on every screen). */
+.stat-chip.hp-low > .slant-bg { -fx-stroke: -cu-red; -fx-stroke-width: 2; }
+.stat-value.hp-low { -fx-text-fill: -cu-red; }
 .stat-san { -fx-text-fill: -cu-violet; }
 .stat-vibe { -fx-text-fill: -cu-cyan; }
 .stat-xp { -fx-text-fill: -cu-cyan; }
@@ -179,6 +182,13 @@
     -fx-padding: 14 20 16 20;
 }
 .exam-next-clock { -fx-font-size: 13px; -fx-text-fill: -cu-caret; }
+/* The exam's time, at the top all through the battle (a stat chip, two rows). */
+.exam-clock { -fx-padding: 4 30 7 28; }
+.exam-clock-label { -fx-font-size: 15px; -fx-text-fill: -cu-caret; }
+.exam-clock-time { -fx-font-size: 26px; -fx-text-fill: -cu-text; }
+.exam-clock-time:paused { -fx-text-fill: -cu-dim; }
+.exam-clock-time.overtime { -fx-text-fill: -cu-red; }
+.exam-clock-state { -fx-font-size: 13px; -fx-text-fill: -cu-dim; }
 .exam-verdict { -fx-font-size: 24px; }
 .exam-verdict.verdict-right { -fx-text-fill: -cu-green; }
 .exam-verdict.verdict-wrong { -fx-text-fill: -cu-red; }
@@ -212,6 +222,13 @@
 .duck-chip.duck-working .duck-name, .duck-chip.duck-working .duck-state { -fx-text-fill: -cu-ink; }
 .duck-chip.duck-used > .slant-bg { -fx-stroke: -cu-line; }
 .duck-chip.duck-used .duck-name, .duck-chip.duck-used .duck-state { -fx-text-fill: -cu-dim; }
+/* The full-screen card behind the broken glass. */
+.defeat-card { -fx-background-color: radial-gradient(center 50% 45%, radius 75%, #5A0F22 0%, #22050E 55%, #07020A 100%); }
+.defeat-band { -fx-padding: 0 60 6 48; }
+.defeat-band > .slant-bg { -fx-fill: -cu-red; }
+.defeat-word { -fx-font-size: 150px; -fx-text-fill: -cu-ink; }
+.defeat-kicker { -fx-font-size: 16px; -fx-text-fill: -cu-soft; }
+.defeat-reason { -fx-font-size: 30px; -fx-text-fill: -cu-text; }
 .grade-stamp { -fx-padding: 4 34 8 28; }
 .grade-word { -fx-font-size: 18px; }
 .grade-number { -fx-font-size: 96px; }

@@ -37,8 +37,15 @@ public class Hud extends AnchorPane {
     private VBox date;
     private HBox stats;
     private Slant hpChip;
-    /** Edges of the screen pulsing red while HP is low. */
+    /**
+     * Edges of the screen pulsing red while HP is low. Not part of the HUD: a battle screen lays it
+     * under its own UI ({@link #edgePulse}); other screens never show it.
+     */
     private final javafx.scene.layout.Region lowHp = new javafx.scene.layout.Region();
+    /** What a battle screen lays down: a layer holding the pulse (the screen change fades and moves its layers). */
+    private final javafx.scene.layout.Pane edgeLayer = new javafx.scene.layout.Pane(lowHp);
+    /** The low-HP pulse (0 when HP is not low): the edge pulse and the blinking HP number follow it together. */
+    private final javafx.beans.property.DoubleProperty lowHpLevel = new javafx.beans.property.SimpleDoubleProperty(0);
     private final javafx.animation.Timeline lowHpPulse;
     /** The whole screen flashing red when HP drops. */
     private final javafx.scene.layout.Region hurtFlash = new javafx.scene.layout.Region();
@@ -105,6 +112,10 @@ public class Hud extends AnchorPane {
         AnchorPane.setRightAnchor(hints, 18.0);
         AnchorPane.setBottomAnchor(hints, 4.0);
 
+        lowHp.setManaged(false);
+        lowHp.resize(ClassroomApp.WIDTH, ClassroomApp.HEIGHT);
+        edgeLayer.setMouseTransparent(true);
+        edgeLayer.setPickOnBounds(false);
         for (javafx.scene.layout.Region layer : List.of(lowHp, hurtFlash)) {
             layer.setMouseTransparent(true);
             layer.setOpacity(0);
@@ -119,21 +130,40 @@ public class Hud extends AnchorPane {
         lowHp.getStyleClass().add("low-hp-vignette");
         hurtFlash.getStyleClass().add("hurt-flash");
         lowHpPulse = new javafx.animation.Timeline(
-                new javafx.animation.KeyFrame(javafx.util.Duration.ZERO, new javafx.animation.KeyValue(lowHp.opacityProperty(), 0.25)),
+                new javafx.animation.KeyFrame(javafx.util.Duration.ZERO, new javafx.animation.KeyValue(lowHpLevel, 0.25)),
                 new javafx.animation.KeyFrame(javafx.util.Duration.millis(520),
-                        new javafx.animation.KeyValue(lowHp.opacityProperty(), 0.85, javafx.animation.Interpolator.EASE_OUT)),
+                        new javafx.animation.KeyValue(lowHpLevel, 0.85, javafx.animation.Interpolator.EASE_OUT)),
                 new javafx.animation.KeyFrame(javafx.util.Duration.millis(1150),
-                        new javafx.animation.KeyValue(lowHp.opacityProperty(), 0.25, javafx.animation.Interpolator.EASE_IN)));
+                        new javafx.animation.KeyValue(lowHpLevel, 0.25, javafx.animation.Interpolator.EASE_IN)));
         lowHpPulse.setCycleCount(javafx.animation.Animation.INDEFINITE);
+        lowHp.opacityProperty().bind(lowHpLevel);
+        // The HP number blinks with the pulse: brightest red when the edges are.
+        lowHpLevel.addListener((obs, was, now) ->
+                hp.setOpacity(now.doubleValue() <= 0 ? 1 : 0.4 + 0.6 * (now.doubleValue() - 0.25) / 0.6));
+        // A HUD that has left the window stops pulsing (a running timeline would keep it alive and
+        // keep the screen repainting).
+        sceneProperty().addListener((obs, was, now) -> {
+            if (now == null) lowHpPulse.stop();
+            else if (hpLow()) lowHpPulse.play();
+        });
 
-        // The edge pulse and the hit flash lie under the stats, so the numbers stay readable.
-        getChildren().addAll(lowHp, hurtFlash, date, stats, xpParts, demo, hints);
+        // The hit flash lies under the stats, so the numbers stay readable.
+        getChildren().addAll(hurtFlash, date, stats, xpParts, demo, hints);
     }
+
+    /**
+     * The red pulse at the screen's edges while HP is low, for a battle screen to lay under its
+     * own UI (above the scene). Screens that are not battles leave it out, so they never show it;
+     * the HP number blinks on every screen.
+     */
+    javafx.scene.Node edgePulse() { return edgeLayer; }
+
+    private boolean hpLow() { return shownHp != null && shownHp < Stats.LOW_HP; }
 
     /** Called when HP drops, so the screen can shake the player's character. */
     void setOnHurt(Runnable action) { onHurt = action; }
 
-    /** Whether the low-HP edge pulse is running (for checks). */
+    /** Whether the low-HP pulse is running: the HP number blinking, and the edges where a battle shows them (for checks). */
     boolean lowHpWarning() { return lowHpPulse.getStatus() == javafx.animation.Animation.Status.RUNNING; }
 
     /** Whether the SAN bar is twitching (for checks). */
@@ -141,18 +171,26 @@ public class Hud extends AnchorPane {
 
     /**
      * The status effects for the HP and SAN now shown: a drop in HP flashes the screen red, jolts
-     * the HP chip and tells the screen ({@link #setOnHurt}); low HP pulses the edges red; very low
-     * SAN makes the SAN bar twitch. They only show what the core already changed.
+     * the HP chip and tells the screen ({@link #setOnHurt}); low HP turns the HP chip red and
+     * blinks its number (and pulses the edges red in a battle, {@link #edgePulse}); very low SAN
+     * makes the SAN bar twitch. They only show what the core already changed.
      */
     private void effects(double hpNow, double sanNow) {
         if (shownHp != null && hpNow < shownHp - 1e-9) hurt();
         shownHp = hpNow;
-        boolean low = hpNow < Stats.LOW_HP;
-        if (low && lowHpPulse.getStatus() != javafx.animation.Animation.Status.RUNNING) lowHpPulse.play();
-        if (!low && lowHpPulse.getStatus() == javafx.animation.Animation.Status.RUNNING) {
-            lowHpPulse.stop();
-            lowHp.setOpacity(0);
+        boolean low = hpLow();
+        if (low != hp.getStyleClass().contains("hp-low")) {
+            if (low) {
+                hp.getStyleClass().add("hp-low");
+                hpChip.getStyleClass().add("hp-low");
+            } else {
+                hp.getStyleClass().remove("hp-low");
+                hpChip.getStyleClass().remove("hp-low");
+            }
         }
+        if (low && lowHpPulse.getStatus() != javafx.animation.Animation.Status.RUNNING && getScene() != null) lowHpPulse.play();
+        if (!low && lowHpPulse.getStatus() == javafx.animation.Animation.Status.RUNNING) lowHpPulse.stop();
+        if (!low) lowHpLevel.set(0);
         san.setDistressed(sanNow < Stats.LOW_SAN);
     }
 
@@ -224,6 +262,13 @@ public class Hud extends AnchorPane {
         xpParts.show(student);
         demo.setText(demoLabel);
         effects(student.hp(), student.san());
+    }
+
+    /** No date and no stats (a story scene outside the game's days, such as the opening's ending). */
+    void showWithoutStats(String demoLabel) {
+        date.setVisible(false);
+        stats.setVisible(false);
+        demo.setText(demoLabel);
     }
 
     /** Hides or shows the three stat chips (the opening's story has none yet). */

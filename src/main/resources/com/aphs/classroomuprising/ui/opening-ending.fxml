@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import com.aphs.classroomuprising.ui.ChoiceList?>
+<?import com.aphs.classroomuprising.ui.DialogueBox?>
+<?import com.aphs.classroomuprising.ui.Hud?>
+<?import com.aphs.classroomuprising.ui.Slant?>
+<?import com.aphs.classroomuprising.ui.scene.SceneView?>
+
+<!-- After last semester's exam (no battle any more): its grade, and what Mr. Reward and the player
+     say about it, then on to summer school. -->
+<StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" styleClass="screen, opening">
+    <SceneView fx:id="scene"/>
+    <AnchorPane pickOnBounds="false">
+        <Region styleClass="scrim-bottom" mouseTransparent="true" prefHeight="300.0"
+                AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.bottomAnchor="0.0"/>
+        <HBox spacing="14" alignment="CENTER_LEFT" AnchorPane.leftAnchor="40.0" AnchorPane.topAnchor="30.0">
+            <Slant styleClass="tag-danger">
+                <Label text="LAST SEMESTER" styleClass="display, tag-label"/>
+            </Slant>
+            <Label fx:id="heading" styleClass="display, opening-sub"/>
+        </HBox>
+        <VBox fx:id="notice" maxWidth="520.0" AnchorPane.leftAnchor="40.0" AnchorPane.topAnchor="96.0"/>
+        <ChoiceList fx:id="actions" alignment="TOP_RIGHT" AnchorPane.rightAnchor="60.0" AnchorPane.topAnchor="250.0"/>
+        <DialogueBox fx:id="dialogue" prefHeight="150.0"
+                     AnchorPane.leftAnchor="230.0" AnchorPane.rightAnchor="40.0" AnchorPane.bottomAnchor="36.0"/>
+    </AnchorPane>
+    <Hud fx:id="hud"/>
+    <Pane fx:id="effects" mouseTransparent="true"/>
+</StackPane>

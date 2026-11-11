@@ -12,18 +12,19 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
+import javafx.scene.shape.StrokeType;
 import javafx.util.Duration;
 
 /**
- * A panel opening out of a point (or closing into one) as a ripple: two flat-coloured
- * silhouettes of the panel (an opaque rectangle) run ahead of it in wide rings, cyan outside,
- * caret inside, and the panel follows them. Closing runs the other way: the panel turns into its coloured silhouettes,
+ * A panel opening out of a point (or closing into one) as a ripple: two flat-coloured rings,
+ * cyan outside, caret inside, run ahead of it inside its rectangle (its two-tone silhouette),
+ * and the live panel follows them. Closing runs the other way: the panel gives way to the rings,
  * which shrink into the point.
  */
 final class Ripple {
     /** How wide each coloured ring is. */
     private static final double BAND = 110;
-    private static final Color OUTER = Color.web("#5CE1E6"), INNER = Color.web("#FFD23F");
+    private static final Color OUTER = Color.web("#5CE1E6", 0.92), INNER = Color.web("#FFD23F", 0.92);
 
     private Ripple() {}
 
@@ -38,11 +39,12 @@ final class Ripple {
     }
 
     /**
-     * The live panel is revealed (or hidden) by a growing circle; two flat-coloured discs lie
-     * under it, larger than its circle and clipped to the panel's rectangle, so they show as rings
-     * ahead of its edge: the panel's two-tone silhouette (the panel is an opaque rectangle). Discs
-     * and a rectangle clip are drawn by the graphics card; nothing is snapshot or recoloured, and
-     * the panel itself is never swapped for a picture, so nothing jumps when the ripple ends.
+     * The live panel is revealed (or hidden) by a growing circle, and two rings run just outside
+     * it, clipped to the panel's rectangle. The rings are rings, not discs, so nothing lies under
+     * the revealed panel: what shows inside the circle is the panel exactly as it stays when the
+     * ripple ends (it is translucent, so a disc under it would tint it until the end). Nothing
+     * is snapshot or recoloured, and the panel is never swapped for a picture. The rings are
+     * stroked circles and the outer clip a rectangle, all drawn by the graphics card.
      */
     private static Animation run(Region panel, Point2D at, boolean opening, Duration time) {
         Pane parent = (Pane) panel.getParent();
@@ -52,10 +54,9 @@ final class Ripple {
         parent.layout();
         double w = panel.getWidth(), h = panel.getHeight();
         double cx = at.getX() - panel.getLayoutX(), cy = at.getY() - panel.getLayoutY();
-        Circle outer = new Circle(cx, cy, 0, OUTER), inner = new Circle(cx, cy, 0, INNER);
+        Circle outer = ring(cx, cy, OUTER), inner = ring(cx, cy, INNER);
         javafx.scene.Group rings = new javafx.scene.Group(outer, inner);
         rings.setClip(new javafx.scene.shape.Rectangle(0, 0, w, h));
-        rings.setOpacity(0.92);
         rings.setManaged(false);
         rings.setMouseTransparent(true);
         // Placed by its origin (relocate would place a group by its content's bounds, which start at the impact).
@@ -71,8 +72,8 @@ final class Ripple {
         DoubleProperty front = new SimpleDoubleProperty();
         front.addListener((obs, was, now) -> {
             double r = now.doubleValue();
-            outer.setRadius(Math.max(0, r));
-            inner.setRadius(Math.max(0, r - BAND));
+            span(outer, r - BAND - 1, r);            // overlaps the inner ring by a pixel: no seam
+            span(inner, r - 2 * BAND, r - BAND);
             faceClip.setRadius(Math.max(0, r - 2 * BAND));
         });
         front.set(opening ? 0 : reach);
@@ -87,5 +88,23 @@ final class Ripple {
             if (!opening) panel.setVisible(false);
         });
         return wave;
+    }
+
+    private static Circle ring(double cx, double cy, Color color) {
+        Circle ring = new Circle(cx, cy, 0);
+        ring.setFill(null);
+        ring.setStroke(color);
+        ring.setStrokeType(StrokeType.CENTERED);
+        ring.setVisible(false);
+        return ring;
+    }
+
+    /** Makes {@code ring} cover the radii from {@code from} to {@code to} (a disc while {@code from} is 0). */
+    private static void span(Circle ring, double from, double to) {
+        from = Math.max(0, from);
+        to = Math.max(0, to);
+        ring.setVisible(to > from);
+        ring.setRadius((from + to) / 2);
+        ring.setStrokeWidth(to - from);
     }
 }

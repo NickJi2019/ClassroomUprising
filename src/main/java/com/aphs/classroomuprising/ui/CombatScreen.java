@@ -132,6 +132,8 @@ final class CombatScreen extends Screen {
         root.getChildren().add(1, new Backdrop(
                 new Backdrop.Glyph(UiText.course(plan.course()), 640, 300, 200, true),
                 new Backdrop.Glyph("while (t <= 30) answer();", 560, 590, 40, false)));
+        // A battle: the low-HP edge pulse lies over the scene, under every panel.
+        root.getChildren().add(2, hud.edgePulse());
         title.setText(UiText.courseLine(plan));
         flags.setText(flagLine());
         cutins.setClip(new Rectangle(ClassroomApp.WIDTH, ClassroomApp.HEIGHT));
