@@ -212,11 +212,32 @@
 .duck-chip.duck-working .duck-name, .duck-chip.duck-working .duck-state { -fx-text-fill: -cu-ink; }
 .duck-chip.duck-used > .slant-bg { -fx-stroke: -cu-line; }
 .duck-chip.duck-used .duck-name, .duck-chip.duck-used .duck-state { -fx-text-fill: -cu-dim; }
-.pass-out { -fx-background-color: radial-gradient(center 50% 50%, radius 75%, rgba(0, 0, 0, 0.75) 30%, #000000 100%); }
 .grade-stamp { -fx-padding: 4 34 8 28; }
 .grade-word { -fx-font-size: 18px; }
 .grade-number { -fx-font-size: 96px; }
 .hp-pop { -fx-font-size: 22px; }
+/* Opening battle: your turn, the question bullets, your bullet, the item banner. */
+.turn-tag { -fx-padding: 4 26 4 22; }
+.turn-tag-label { -fx-font-size: 30px; -fx-text-fill: -cu-ink; }
+.bullet-strip { -fx-padding: 4 22 4 8; }
+.bullet-strip > .slant-bg { -fx-fill: rgba(11, 15, 42, 0.92); -fx-stroke-width: 2; }
+.bullet-number-tag { -fx-padding: 0 12 0 10; }
+/* Mr. Reward's questions are red; the player's answers fly back in the theme colour. */
+.bullet-reward > .slant-bg { -fx-stroke: -cu-red; -fx-fill: rgba(42, 8, 20, 0.92); }
+.bullet-reward .bullet-number-tag > .slant-bg { -fx-fill: -cu-red; }
+.bullet-player > .slant-bg { -fx-stroke: -cu-caret; }
+.bullet-player .bullet-number-tag > .slant-bg { -fx-fill: -cu-caret; }
+.bullet-number { -fx-font-size: 15px; -fx-text-fill: -cu-ink; }
+.bullet-text { -fx-font-size: 16px; -fx-text-fill: -cu-text; }
+.item-banner-box { -fx-fill: rgba(11, 15, 42, 0.96); -fx-stroke: -cu-caret; -fx-stroke-width: 4; }
+.item-banner-shard { -fx-fill: -cu-red; }
+.item-banner-medal { -fx-background-color: -cu-ink; -fx-background-radius: 59; -fx-border-color: -cu-caret; -fx-border-width: 4; -fx-border-radius: 59; }
+.item-banner-name { -fx-font-size: 44px; -fx-text-fill: -cu-text; }
+.item-banner-detail { -fx-font-size: 16px; -fx-text-fill: -cu-soft; }
+.item-banner-sweep { -fx-fill: rgba(255, 255, 255, 0.35); }
+/* Status effects (HUD): the screen's edges pulse red at low HP; the whole screen flashes red when HP drops. */
+.low-hp-vignette { -fx-background-color: radial-gradient(center 50% 50%, radius 72%, transparent 58%, rgba(255, 77, 109, 0.55) 86%, rgba(200, 20, 50, 0.85) 100%); }
+.hurt-flash { -fx-background-color: rgba(255, 60, 90, 0.42); }
 .hp-pop-up { -fx-text-fill: -cu-green; }
 .hp-pop-down { -fx-text-fill: -cu-red; }
 /* Right padding exceeds the slant offset (height x 0.25) so the flip faces never cut the edge. */

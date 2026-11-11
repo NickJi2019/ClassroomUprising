@@ -120,6 +120,22 @@ public class SceneView extends StackPane {
         }
     }
 
+    /** A character on screen is struck: it jolts and flashes red. Unknown ids are ignored. */
+    public void hit(String characterId) {
+        CharacterView view = cast.get(characterId);
+        if (view != null) view.hit();
+    }
+
+    /**
+     * Roughly the middle of a character's body (chest height), in this view's coordinates; empty
+     * when that character is not on screen. Used to aim effects at a character.
+     */
+    public Optional<javafx.geometry.Point2D> centreOf(String characterId) {
+        CharacterView view = cast.get(characterId);
+        if (view == null) return Optional.empty();
+        return Optional.of(characters.localToParent(view.getLayoutX(), view.getLayoutY() - view.height() * 0.6));
+    }
+
     /** The manifest id for a dialogue speaker name, if that speaker has art. */
     public Optional<String> characterFor(String speakerName) {
         return assets.manifest().characterNamed(speakerName).map(AssetManifest.CharacterSpec::id);

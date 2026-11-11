@@ -99,6 +99,30 @@ final class CharacterView extends Group {
                 new KeyValue(scaleYProperty(), focused ? 1 : 0.985, SETTLE))).play();
     }
 
+    /**
+     * Struck: the figure jolts side to side and flashes red for a moment. Presentation only;
+     * it changes nothing about the character.
+     */
+    void hit() {
+        javafx.geometry.Bounds b = figure.getLayoutBounds();
+        javafx.scene.effect.Blend red = new javafx.scene.effect.Blend(javafx.scene.effect.BlendMode.SRC_ATOP, shade,
+                new javafx.scene.effect.ColorInput(b.getMinX(), b.getMinY(), b.getWidth(), b.getHeight(),
+                        javafx.scene.paint.Color.web("#FF4D6D")));
+        red.setOpacity(0.75);
+        figure.setEffect(red);
+        Timeline flash = new Timeline(new KeyFrame(Duration.millis(320), new KeyValue(red.opacityProperty(), 0, Interpolator.EASE_OUT)));
+        flash.setOnFinished(e -> figure.setEffect(shade));
+        flash.play();
+        Timeline jolt = new Timeline();
+        double[] xs = {-18, 14, -10, 7, -3, 0};
+        for (int i = 0; i < xs.length; i++)
+            jolt.getKeyFrames().add(new KeyFrame(Duration.millis(40 * (i + 1)), new KeyValue(translateXProperty(), xs[i])));
+        jolt.play();
+    }
+
+    /** The height of the art on screen. */
+    double height() { return spec.height(); }
+
     /** Slides in from one side and fades up. */
     Animation enter(boolean fromLeft, Duration delay) {
         figure.setOpacity(0);

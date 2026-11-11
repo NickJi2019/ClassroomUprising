@@ -75,7 +75,7 @@ final class CutIn {
 
         // In: the band opens in hard steps, the shard lags, the words overshoot and settle.
         Timeline in = new Timeline(
-                new KeyFrame(Duration.millis(150), new KeyValue(bandGrow.xProperty(), 1, MotionTokens.steps(5))),
+                new KeyFrame(Duration.millis(150), new KeyValue(bandGrow.xProperty(), 1, MotionTokens.OUT)),
                 new KeyFrame(Duration.millis(70), new KeyValue(shardGrow.xProperty(), 0)),
                 new KeyFrame(Duration.millis(250), new KeyValue(shardGrow.xProperty(), 1, MotionTokens.OUT)),
                 new KeyFrame(Duration.millis(90), new KeyValue(words.translateXProperty(), 260),

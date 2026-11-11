@@ -54,7 +54,7 @@ Seven cut-out photos of the teacher, delivered by the team on 2026-11-10, placed
 | --- | --- | --- | --- |
 | `neutral`, `speechless` | `neutral.png` | speechless | Lectures and anything without a tag |
 | `smile` | `smile.png` | smiling, eyes closed | Available to dialogue tags |
-| `stern`, `tough` | `stern.png` | finger to lips, squinting | Available to dialogue tags |
+| `stern`, `tough` | `stern.png` | finger to lips, squinting | Struck by the player's right answer in the opening battle; available to dialogue tags |
 | `gotcha` | `gotcha.png` | pointing, full figure | Asking the class a question; the opening's first line |
 | `ridicule` | `ridicule.png` | laughing and pointing | Reply to an inappropriate response; the opening's "see you this summer" |
 | `staring` | `staring.png` | wide-eyed stare | Astonished when the player wins the opening exam (no longer used after a quiet class) |
@@ -145,7 +145,7 @@ Page 9 carries a small photo of a TV character (a pun on "Data"); replace or rem
 ## Interface sounds
 
 - One line per sound: `sfx.<name> = audio/sfx/confirm.wav`. Use short **WAV** files (16-bit, 44.1 kHz, mono is fine), under about half a second, starting immediately with no silence at the front.
-- Sounds in use: `cursor` (cursor moves), `confirm` (option chosen), `menu-open`, `menu-close` (Esc menu), `dialogue` (next dialogue line), `slide` (lecture slide changes), `tip` (tip card appears), `transition` (screen change), `clock` (time-of-day clock starts), `cutin` (combat call-out), `hit` (an answer cost HP).
+- Sounds in use: `cursor` (cursor moves), `confirm` (option chosen), `menu-open`, `menu-close` (Esc menu), `dialogue` (next dialogue line), `slide` (lecture slide changes), `tip` (tip card appears), `transition` (screen change), `clock` (time-of-day clock starts), `cutin` (combat call-out, item banner), `hit` (HP lost), `shatter` (the screen breaks like glass when the player is defeated in the opening exam: a sharp crack, a ringing break and falling shards; synthesized here in the spirit of the glass-break sound the team asked for, not copied from any game; replace it with a licensed recording by saving `shatter.wav`).
 - The bundled files are simple synthesized placeholders made for this project; replace them by saving files with the same names. Keep `cursor` and `dialogue` very quiet and short: they play often.
 
 ## Naming
@@ -172,7 +172,7 @@ Lower-case letters, digits, `-` and `_` only; images `.png`, `.jpg` or `.jpeg`, 
 | `ui/clock-face.png`, `ui/clock-hour-hand.png`, `ui/clock-minute-hand.png` | optional, missing (drawn by the game) |
 | `slides/gr11-review/*.png` (12 slides, see Lecture slides) | delivered (from the class deck) |
 | `audio/bgm/title.mp3`, `opening.mp3`, `school-day.mp3`, `after-school.mp3`, `night.mp3`, `combat.mp3` | missing (no music plays) |
-| `audio/sfx/*.wav` (11 sounds, see Interface sounds) | synthesized placeholders |
+| `audio/sfx/*.wav` (12 sounds, see Interface sounds) | synthesized placeholders |
 
 The photos were taken at school by the team, cropped to 16:9 and saved without their camera metadata (the originals carry GPS positions). The Student Hub photo is an iPhone HEIC whose pixels are stored sideways with no rotation flag; it was turned upright, converted from Display P3 to sRGB, and a 16:9 band was cut from the portrait frame (seasonal decorations, fireplace screen, shelves, sofa and games table). They are 1920×1080, below the 2560×1440 asked for above, because the originals are 2000 pixels wide; they look slightly soft on high-density screens. Students appear in the lab photo; the team confirmed on 2026-11-10 that they agreed to be shown in the game.
 

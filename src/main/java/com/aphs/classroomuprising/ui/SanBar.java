@@ -14,7 +14,8 @@ import javafx.util.Duration;
 /**
  * SAN as a slanted bar in ten segments, with no number: the fill is the share of a full bar
  * ({@link Stats#sanFraction}). Changes slide to the new length. Below a quarter it turns red,
- * as a warning to the eye only.
+ * as a warning to the eye only. When SAN is very low ({@link #setDistressed}) the bar twitches:
+ * it jitters, flickers and now and then jerks sideways, at uneven moments.
  */
 final class SanBar extends Pane {
     private static final PseudoClass LOW = PseudoClass.getPseudoClass("low");
@@ -27,6 +28,13 @@ final class SanBar extends Pane {
     private Timeline moving;
     private boolean placed;
     private double target;
+    private final java.util.Random nerves = new java.util.Random();
+    private long nextTwitch;
+    private final javafx.animation.AnimationTimer twitch = new javafx.animation.AnimationTimer() {
+        @Override
+        public void handle(long now) { twitch(now); }
+    };
+    private boolean distressed;
 
     SanBar(double width, double height) {
         this.width = width;
@@ -63,6 +71,37 @@ final class SanBar extends Pane {
         moving = new Timeline(new KeyFrame(Duration.millis(420), new KeyValue(fraction, target, MotionTokens.OUT)));
         moving.play();
     }
+
+    /** Very low SAN: the bar twitches until it is called with false. */
+    void setDistressed(boolean on) {
+        if (on == distressed) return;
+        distressed = on;
+        if (on) {
+            nextTwitch = 0;
+            twitch.start();
+        } else {
+            twitch.stop();
+            setTranslateX(0);
+            setTranslateY(0);
+            setOpacity(1);
+            setSkewless();
+        }
+    }
+
+    boolean distressed() { return distressed; }
+
+    private void twitch(long now) {
+        if (now < nextTwitch) return;
+        boolean jerk = nerves.nextInt(9) == 0;   // now and then a bigger spasm
+        double reach = jerk ? 7 : 1.6;
+        setTranslateX((nerves.nextDouble() * 2 - 1) * reach);
+        setTranslateY((nerves.nextDouble() * 2 - 1) * (jerk ? 3 : 1));
+        setOpacity(nerves.nextInt(5) == 0 ? 0.35 + nerves.nextDouble() * 0.3 : 1);
+        getTransforms().setAll(new javafx.scene.transform.Shear(jerk ? (nerves.nextDouble() - 0.5) * 0.5 : 0, 0));
+        nextTwitch = now + (jerk ? 90 : 40 + nerves.nextInt(110)) * 1_000_000L;
+    }
+
+    private void setSkewless() { getTransforms().clear(); }
 
     /** The share shown once any slide has finished. */
     double share() { return target; }

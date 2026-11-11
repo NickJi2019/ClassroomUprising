@@ -94,10 +94,6 @@
 
         <ChoiceList fx:id="commands" alignment="TOP_RIGHT" stagger="16.0"
                     AnchorPane.rightAnchor="40.0" AnchorPane.bottomAnchor="30.0"/>
-        <!-- Inside the anchor pane: the router fades a screen's direct children in to full opacity. -->
-        <Region fx:id="hitFlash" styleClass="hit-flash" mouseTransparent="true" opacity="0.0"
-                AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0"
-                AnchorPane.topAnchor="0.0" AnchorPane.bottomAnchor="0.0"/>
     </AnchorPane>
     <Hud fx:id="hud"/>
     <Pane fx:id="cutins" mouseTransparent="true"/>

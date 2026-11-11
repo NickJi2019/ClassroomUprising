@@ -3,6 +3,7 @@ package com.aphs.classroomuprising.ui;
 import com.aphs.classroomuprising.OpeningBattle;
 import com.aphs.classroomuprising.OpeningContent;
 import com.aphs.classroomuprising.ui.scene.SceneView;
+import javafx.animation.Animation;
 import javafx.animation.AnimationTimer;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
@@ -10,6 +11,7 @@ import javafx.animation.PauseTransition;
 import javafx.animation.Timeline;
 import javafx.css.PseudoClass;
 import javafx.fxml.FXML;
+import javafx.geometry.Point2D;
 import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.control.Label;
@@ -27,31 +29,35 @@ import javafx.util.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.IntStream;
 
 /**
  * The previous semester's ICS4U final, before summer school: the authored story, then the
- * exam, then one of its endings, then Day 1.
+ * exam as a turn-based battle, then one of its endings, then Day 1.
  *
- * <p>The exam belongs to the core ({@code OpeningBattle}): this screen only sends the player's
- * choices (which question, which option, the duck) and draws the view it reads back. The core
- * times every question, judges every answer, applies HP and decides the ending; nothing here
- * computes a deadline, a result or a grade. While the exam runs, a timer asks the core to settle
- * time ({@link GameSession#advanceOpeningBattle()}) every {@link #PULSE_NANOS} and redraws the
- * clock from the view. There is no pause: no menu opens over the exam, and the log is closed
- * while a question is on the clock.</p>
+ * <p>The battle: the ten questions spring out of Mr. Reward and hang in an arc in front of him
+ * ({@link Danmaku}). Then rounds: <b>your turn</b> (face the next question, use an item, read the
+ * log; no clock runs), then <b>his attack</b>: the next question flies at you; where it lands it
+ * opens into the question paper as a two-tone ripple ({@link Ripple}). You answer against its
+ * clock; the verdict shows at once; then the paper folds back into you and flies at him as your
+ * bullet: it lands when you were right and fizzles when you were wrong. Then your turn again.</p>
  *
- * <p>Order: pick any unanswered question (no clock while picking), answer it (A–E then Enter, or
- * a click) before its clock runs out, see at once whether it was right, then pick the next. The
- * duck (R or a click on it) can be used between questions or during one; while it works,
- * answering and picking wait. When the
- * core reports an ending, input stops, its animation and authored dialogue play once, and only
- * then may the player go on to Day 1.</p>
+ * <p>The exam itself belongs to the core ({@code OpeningBattle}): this screen sends the
+ * player's moves (start the next question, an option, the duck) and draws the view it reads
+ * back. The core times every question, judges every answer, applies HP and decides the ending;
+ * nothing here computes a deadline, a result or a grade. Mr. Reward fires the questions in their
+ * authored order (the first unanswered one). While the exam runs, a timer asks the core to settle
+ * time ({@link GameSession#advanceOpeningBattle()}) every {@link #PULSE_NANOS}. Status effects
+ * (the HUD's red flash, the edge pulse at low HP, the twitching SAN bar) follow the HP and SAN
+ * the core reports. A defeat breaks the screen like glass ({@link Shatter}); the duck's banner
+ * stays in front until the duck has worked ({@link ItemBanner}). There is no pause: no menu opens over the exam, and the log is closed while
+ * a question is on the clock.</p>
  */
 final class OpeningScreen extends Screen {
-    private enum Stage { INTRO, PICK, QUESTION, FEEDBACK, ENDING, DONE }
+    private enum Stage { INTRO, FAN_OUT, TURN, ATTACK, QUESTION, FEEDBACK, COUNTER, ENDING, DONE }
 
-    /** Mr. Reward as he steps in, when he mocks a defeat, and when the player wins. */
-    static final String ARRIVES = "gotcha", MOCKS = "ridicule", ASTONISHED = "staring";
+    /** Mr. Reward as he steps in and throws, when he is hit, when he mocks a defeat, and when the player wins. */
+    static final String ARRIVES = "gotcha", STRUCK = "stern", MOCKS = "ridicule", ASTONISHED = "staring";
 
     /** How often the core is asked to settle time (deadline, duck) while the exam runs. */
     static final long PULSE_NANOS = 100_000_000L;
@@ -59,6 +65,8 @@ final class OpeningScreen extends Screen {
     private static final PseudoClass CHOSEN = PseudoClass.getPseudoClass("chosen");
     private static final PseudoClass RIGHT = PseudoClass.getPseudoClass("right");
     private static final PseudoClass WRONG = PseudoClass.getPseudoClass("wrong");
+    /** Where the two stand when no art is delivered. */
+    private static final Point2D PLAYER_FALLBACK = new Point2D(256, 430), REWARD_FALLBACK = new Point2D(947, 330);
 
     @FXML private SceneView scene;
     @FXML private DialogueBox dialogue;
@@ -66,10 +74,9 @@ final class OpeningScreen extends Screen {
     @FXML private VBox notice;
     @FXML private Hud hud;
     @FXML private Region examScrim;
-    @FXML private VBox picker;
-    @FXML private Label progress;
-    @FXML private Label nextClock;
-    @FXML private ChoiceList questions;
+    @FXML private VBox turn;
+    @FXML private Label round;
+    @FXML private ChoiceList commands;
     @FXML private VBox paper;
     @FXML private Label questionTag;
     @FXML private Label verdict;
@@ -84,10 +91,10 @@ final class OpeningScreen extends Screen {
     @FXML private Label explanation;
     @FXML private Slant duck;
     @FXML private Label duckLabel;
-    @FXML private Region blackout;
     @FXML private Pane effects;
 
     private DialogueLog log;
+    private final Danmaku danmaku = new Danmaku();
     private Stage stage = Stage.INTRO;
     /** The latest view read from the core. */
     private OpeningBattle.View last;
@@ -95,6 +102,11 @@ final class OpeningScreen extends Screen {
     private OpeningContent.QuestionView shown;
     private final List<HBox> rows = new ArrayList<>();
     private int highlighted = -1;
+    /** The duck's announcement, in front while the duck works (null when none is up). */
+    private ItemBanner duckBanner;
+    /** The item list is open in the turn menu. */
+    private boolean itemMenu;
+    private String shownCountdown;
     /** An answer was just shown: the ending waits a moment so it can be read. */
     private boolean feedbackJustShown;
     private boolean endingPlayed;
@@ -116,6 +128,9 @@ final class OpeningScreen extends Screen {
         root.getChildren().add(1, new Backdrop(
                 new Backdrop.Glyph("FINAL EXAM", 330, 120, 150, true),
                 new Backdrop.Glyph("return grade;", 60, 520, 64, false)));
+        // The bullets fly over the scene but under the panels: the question paper covers the
+        // ones still waiting, and the turn menu stays readable.
+        root.getChildren().add(root.getChildren().indexOf(paper.getParent()), danmaku);
         dialogue.setOnLine(line -> scene.speak(line.characterId(), line.expression()));
         log = new DialogueLog(ctx.assets());
         root.getChildren().add(log);
@@ -128,12 +143,14 @@ final class OpeningScreen extends Screen {
             if (key(e.getCode())) e.consume();
         });
         paper.addEventHandler(MouseEvent.MOUSE_CLICKED, e -> {
-            if (stage == Stage.FEEDBACK && e.getButton() == MouseButton.PRIMARY) showPicker();
+            if (stage == Stage.FEEDBACK && e.getButton() == MouseButton.PRIMARY) fireBack();
         });
         duck.setCursor(javafx.scene.Cursor.HAND);
         duck.addEventHandler(MouseEvent.MOUSE_CLICKED, e -> {
             if (e.getButton() == MouseButton.PRIMARY) useDuck();
         });
+        // A hit that costs HP shakes the player's character as well as the HUD.
+        hud.setOnHurt(() -> scene.hit("student"));
         // The code box fills its area when the code is short and scrolls when it is long.
         code.minWidthProperty().bind(javafx.beans.binding.Bindings.createDoubleBinding(
                 () -> codeScroll.getViewportBounds().getWidth(), codeScroll.viewportBoundsProperty()));
@@ -156,7 +173,6 @@ final class OpeningScreen extends Screen {
             offerDayOne();
             return;
         }
-        hud.showStudent(ctx.session().openingContent().initialStudent(), ctx.demoLabel());
         Fetch<OpeningBattle.View> running = ctx.session().openingBattle();
         if (running.ok()) {
             resume(running.value());
@@ -174,9 +190,16 @@ final class OpeningScreen extends Screen {
         stage = Stage.DONE;
     }
 
-    /** Esc: closes the log (its large slide first). There is no menu before the game starts. */
+    /** Esc: out of the item list, or closes the log. There is no menu before the game starts. */
     @Override
-    protected boolean back() { return log != null && log.back(); }
+    protected boolean back() {
+        if (log != null && log.back()) return true;
+        if (stage == Stage.TURN && itemMenu) {
+            showTurn();
+            return true;
+        }
+        return false;
+    }
 
     @Override
     protected boolean isPlaying() {
@@ -187,13 +210,13 @@ final class OpeningScreen extends Screen {
     protected void focus() {
         if (log != null && log.isOpen()) log.requestFocus();
         else if (actions.hasChoices()) actions.requestFocus();
-        else if (stage == Stage.PICK && questions.hasChoices()) questions.requestFocus();
+        else if (stage == Stage.TURN && commands.hasChoices()) commands.requestFocus();
         else root().requestFocus();
     }
 
-    // ---- the exam ---------------------------------------------------------------------
+    // ---- the battle -------------------------------------------------------------------
 
-    /** After the story: the core creates the exam (no clock yet) and the player picks a question. */
+    /** After the story: the core creates the exam (no clock yet) and the questions fan out of him. */
     private void startExam() {
         if (stage != Stage.INTRO) return;
         Outcome started = ctx.session().startOpeningBattle();
@@ -202,36 +225,55 @@ final class OpeningScreen extends Screen {
             return;
         }
         read();
-        hud.showStudent(last.student(), ctx.demoLabel());
-        hud.setStatsVisible(true);
-        duck.setVisible(true);
-        Motion.slideIn(duck, 0);
-        showPicker();
+        showStats();
+        dialogue.setVisible(false);
         lastPulse = 0;
         clock.start();
+        fanOut();
     }
 
     /** Back into a running exam (the screen was rebuilt): the core's view says where it stands. */
     private void resume(OpeningBattle.View view) {
         last = view;
-        hud.showStudent(view.student(), ctx.demoLabel());
-        hud.setStatsVisible(true);
-        duck.setVisible(true);
+        showStats();
         dialogue.setVisible(false);
         if (view.finished()) {
             beginEnding();
             return;
         }
+        clock.start();
         if (view.phase() == OpeningBattle.Phase.QUESTION) {
             view.availableQuestions().stream().filter(q -> q.id().equals(view.activeQuestionId())).findFirst()
-                    .ifPresent(q -> showPaper(q, view));
+                    .ifPresent(q -> showPaper(q, view, false));
         } else {
-            showPicker();
+            fanOut();
         }
-        clock.start();
     }
 
-    /** Every frame while the exam runs: settle time now and then, read the view, redraw the clock. */
+    private void showStats() {
+        hud.showStudent(last.student(), ctx.demoLabel());
+        hud.setStatsVisible(true);
+        duck.setVisible(true);
+        Motion.slideIn(duck, 0);
+        drawDuck(last);
+    }
+
+    /** The unanswered questions burst out of Mr. Reward and hang in an arc, in firing order. */
+    private void fanOut() {
+        stage = Stage.FAN_OUT;
+        hints();
+        int answered = last.answers().size();
+        List<String> ids = last.availableQuestions().stream().map(OpeningContent.QuestionView::id).toList();
+        List<String> numbers = IntStream.range(0, ids.size()).mapToObj(i -> "Q" + (answered + i + 1)).toList();
+        List<String> lines = last.availableQuestions().stream().map(q -> excerpt(q.prompt())).toList();
+        scene.speak("reward", ARRIVES);
+        Sfx.CUTIN.play(danmaku);
+        Animation out = danmaku.fanOut(ids, numbers, lines, reward());
+        out.setOnFinished(e -> { if (stage == Stage.FAN_OUT) showTurn(); });
+        out.play();
+    }
+
+    /** Every frame while the exam runs: settle time now and then, read the view, redraw. */
     private void pulse(long now) {
         if (stage == Stage.ENDING || stage == Stage.DONE || stage == Stage.INTRO || last == null) return;
         if (now - lastPulse >= PULSE_NANOS) {
@@ -240,17 +282,25 @@ final class OpeningScreen extends Screen {
         }
         OpeningBattle.View before = last;
         OpeningBattle.View view = read();
-        if (view.student().hp() > before.student().hp()) recovered(before, view);
+        if (view.student().hp() != before.student().hp()) {
+            hud.showStudent(view.student(), ctx.demoLabel());
+            if (view.student().hp() > before.student().hp()) recovered(before, view);
+        }
         if (view.finished()) {
-            beginEnding();
+            if (stage == Stage.QUESTION) timeUp();
+            else if (stage != Stage.FEEDBACK && stage != Stage.COUNTER) beginEnding();
             return;
         }
         drawClock(view);
         drawDuck(view);
+        if (duckBanner != null && view.usingDuck()) duckBanner.update(duckDetail(view));
         if (before.usingDuck() != view.usingDuck() || before.ducksRemaining() != view.ducksRemaining()) {
-            setInputEnabled(!view.usingDuck());
+            setAnswersEnabled(!view.usingDuck());
             hints();
         }
+        // When the duck finishes the menu is rebuilt, so the cursor rests on facing the next question.
+        if (stage == Stage.TURN && before.usingDuck() && !view.usingDuck()) showTurn();
+        else if (stage == Stage.TURN && view.usingDuck()) refreshTurn();
     }
 
     private OpeningBattle.View read() {
@@ -259,52 +309,113 @@ final class OpeningScreen extends Screen {
         return last;
     }
 
-    /** Between questions: the unanswered ones, in any order. No clock runs while picking. */
-    private void showPicker() {
+    // ---- your turn ----------------------------------------------------------------------
+
+    /** Between his attacks: face the next question, use an item, or read the log. No clock runs. */
+    private void showTurn() {
         if (last == null || last.finished()) return;
-        stage = Stage.PICK;
+        stage = Stage.TURN;
+        itemMenu = false;
         shown = null;
-        rows.clear();
         paper.setVisible(false);
         paper.setManaged(false);
-        dialogue.setVisible(false);
         examScrim.setVisible(true);
         notice(notice, null);
-        int answered = last.answers().size();
-        progress.setText("QUESTION " + (answered + 1) + " / " + (answered + last.availableQuestions().size())
-                + "  ·  CHOOSE ANY");
-        nextClock.setText("CLOCK " + seconds(last.timeLimit()) + " s  ·  STARTS WHEN YOU PICK");
-        questions.setChoices(last.availableQuestions().stream()
-                .map(q -> ChoiceList.Choice.of(excerpt(q.prompt()), null, () -> start(q.id()))).toList());
-        picker.setVisible(true);
-        picker.setManaged(true);
-        Motion.slideIn(picker, 0);
-        setInputEnabled(!last.usingDuck());
-        drawDuck(last);
+        int answered = last.answers().size(), left = last.availableQuestions().size();
+        round.setText("ROUND " + (answered + 1) + "  ·  " + left + (left == 1 ? " QUESTION LEFT" : " QUESTIONS LEFT"));
+        commands.setChoices(turnChoices());
+        turn.setVisible(true);
+        turn.setManaged(true);
+        Motion.slideIn(turn, 0);
         hints();
-        questions.requestFocus();
+        commands.requestFocus();
     }
 
-    private void start(String questionId) {
-        if (stage != Stage.PICK) return;
-        Outcome outcome = ctx.session().startOpeningQuestion(questionId);
-        if (!outcome.ok()) {
-            notice(notice, Diagnostic.of(outcome));
-            questions.unlock();
+    private List<ChoiceList.Choice> turnChoices() {
+        String face = last.usingDuck()
+                ? "The duck is working  ·  " + seconds(last.duckRemaining()) + " s"
+                : "Q" + (last.answers().size() + 1) + " comes at you  ·  " + seconds(last.timeLimit()) + " s on the clock";
+        String item = last.ducksRemaining() > 0 ? "Ms Tang's rubber duck ×" + last.ducksRemaining() : "No items left";
+        return List.of(
+                ChoiceList.Choice.of("FACE THE NEXT QUESTION", face, this::attack).enabled(!last.usingDuck()),
+                ChoiceList.Choice.of("ITEM", item, this::showItems).enabled(last.ducksRemaining() > 0 && !last.usingDuck()),
+                ChoiceList.Choice.of("LOG", "Everything said so far", () -> {
+                    openLog();
+                    commands.unlock();
+                }));
+    }
+
+    /** The turn menu's text follows the duck's countdown (each tenth of a second); the cursor stays. */
+    private void refreshTurn() {
+        if (itemMenu) {
+            if (last.ducksRemaining() == 0) showTurn();
+            return;
+        }
+        String countdown = seconds(last.duckRemaining());
+        if (countdown.equals(shownCountdown)) return;
+        shownCountdown = countdown;
+        commands.update(turnChoices());
+    }
+
+    private void showItems() {
+        itemMenu = true;
+        OpeningContent content = ctx.session().openingContent();
+        commands.setChoices(List.of(
+                ChoiceList.Choice.of("MS TANG'S RUBBER DUCK", "HP " + StatDelta.signed(content.duckRecovery()) + " after "
+                        + seconds(content.duckDuration()) + " s  ·  ×" + last.ducksRemaining(), this::useDuck).tone("caret"),
+                ChoiceList.Choice.of("BACK", "Esc", this::showTurn).tone("cyan")));
+        hints();
+        commands.requestFocus();
+    }
+
+    // ---- his attack -------------------------------------------------------------------
+
+    /** Mr. Reward fires the next question in order; where it lands the question opens. */
+    private void attack() {
+        if (stage != Stage.TURN || last.usingDuck() || last.availableQuestions().isEmpty()) {
+            commands.unlock();
+            return;
+        }
+        stage = Stage.ATTACK;
+        turn.setVisible(false);
+        turn.setManaged(false);
+        commands.setChoices(List.of());
+        hints();
+        String id = last.availableQuestions().getFirst().id();
+        scene.speak("reward", ARRIVES);
+        Point2D target = player();
+        danmaku.fire(id, target, () -> impact(id, target)).play();
+    }
+
+    /**
+     * The question lands on the player: the character is struck, the core starts the question
+     * (and its clock), and the paper opens out of the impact.
+     */
+    private void impact(String questionId, Point2D at) {
+        if (stage != Stage.ATTACK) return;
+        scene.hit("student");
+        Outcome started = ctx.session().startOpeningQuestion(questionId);
+        if (!started.ok()) {
+            notice(notice, Diagnostic.of(started));
+            showTurn();
             return;
         }
         OpeningBattle.View view = read();
+        hud.showStudent(view.student(), ctx.demoLabel());
+        if (view.finished()) {
+            beginEnding();
+            return;
+        }
         view.availableQuestions().stream().filter(q -> q.id().equals(questionId)).findFirst()
-                .ifPresent(q -> showPaper(q, view));
+                .ifPresent(q -> showPaper(q, view, true));
     }
 
     /** The question on the clock: its prompt and complete code, and its five options. */
-    private void showPaper(OpeningContent.QuestionView question, OpeningBattle.View view) {
+    private void showPaper(OpeningContent.QuestionView question, OpeningBattle.View view, boolean ripple) {
         stage = Stage.QUESTION;
         shown = question;
-        picker.setVisible(false);
-        picker.setManaged(false);
-        questions.setChoices(List.of());
+        turn.setVisible(false);
+        turn.setManaged(false);
         examScrim.setVisible(true);
         notice(notice, null);
         questionTag.setText("QUESTION " + view.questionOrdinal() + " / 10");
@@ -323,11 +434,14 @@ final class OpeningScreen extends Screen {
         highlighted = -1;
         explanation.setVisible(false);
         explanation.setManaged(false);
-        paper.setVisible(true);
         paper.setManaged(true);
-        Motion.slideIn(paper, 0);
         drawClock(view);
-        setInputEnabled(!view.usingDuck());
+        setAnswersEnabled(!view.usingDuck());
+        if (ripple) Ripple.open(paper, player()).play();
+        else {
+            paper.setVisible(true);
+            Motion.slideIn(paper, 0);
+        }
         hints();
         root().requestFocus();
     }
@@ -368,7 +482,7 @@ final class OpeningScreen extends Screen {
         }
     }
 
-    /** Sends the answer; the core judges it, takes the HP and may end the exam. */
+    /** Sends the answer; the core judges it, applies HP and may end the exam. */
     private void answer(int index) {
         if (stage != Stage.QUESTION || shown == null || last == null || last.usingDuck()) return;
         if (index < 0 || index >= shown.options().size()) return;
@@ -386,12 +500,14 @@ final class OpeningScreen extends Screen {
             showFeedback(view.answers().getLast(), change);
             if (change != 0) popHp(change);
         }
-        if (view.finished()) {
-            beginEnding();
-            return;
-        }
         stage = Stage.FEEDBACK;
         hints();
+        if (view.finished()) {
+            // The verdict stays readable for a moment, then the exam ends its own way.
+            PauseTransition read = new PauseTransition(Duration.millis(1400));
+            read.setOnFinished(e -> { if (stage == Stage.FEEDBACK) fireBack(); });
+            read.play();
+        }
     }
 
     /** Right or wrong, at once: the chosen and the correct option marked, and why. */
@@ -417,10 +533,77 @@ final class OpeningScreen extends Screen {
         time.setText("—");
     }
 
-    /** Uses the one duck: its HP arrives later, on the core's clock; the question clock keeps running. */
+    /**
+     * The paper folds back into the player and flies at Mr. Reward as the player's bullet: it
+     * lands when the answer was right and fizzles when it was wrong. A player who passed out
+     * fires nothing. Then the next turn, or the ending.
+     */
+    private void fireBack() {
+        if (stage != Stage.FEEDBACK || last == null) return;
+        stage = Stage.COUNTER;
+        hints();
+        OpeningBattle.Feedback answer = last.answers().isEmpty() ? null : last.answers().getLast();
+        boolean passedOut = last.finished() && last.ending().animation() == OpeningBattle.AnimationCue.PASS_OUT;
+        Animation fold = Ripple.close(paper, player());
+        fold.setOnFinished(e -> {
+            paper.setManaged(false);
+            if (answer == null || passedOut) {
+                afterCounter();
+                return;
+            }
+            String number = "Q" + last.answers().size();
+            String line = shown == null ? "" : excerpt(shown.prompt());
+            danmaku.counter(player(), reward(), number, line, answer.correct(), landed -> {
+                if (landed) {
+                    scene.hit("reward");
+                    scene.speak("reward", STRUCK);
+                } else {
+                    scene.speak("reward", MOCKS);
+                }
+                PauseTransition settle = new PauseTransition(Duration.millis(420));
+                settle.setOnFinished(f -> afterCounter());
+                settle.play();
+            }).play();
+        });
+        fold.play();
+    }
+
+    private void afterCounter() {
+        if (stage != Stage.COUNTER) return;
+        if (last.finished()) beginEnding();
+        else showTurn();
+    }
+
+    /** No answer before the deadline: the paper folds away and the exam is over. */
+    private void timeUp() {
+        stage = Stage.COUNTER;
+        dropDuckBanner();
+        clock.stop();
+        setAnswersEnabled(false);
+        time.setText("0.0");
+        time.getStyleClass().add("overtime");
+        gauge.show(1, true);
+        verdict.setText("TIME UP");
+        verdict.getStyleClass().add("verdict-wrong");
+        hints();
+        PauseTransition read = new PauseTransition(Duration.millis(700));
+        read.setOnFinished(e -> {
+            Animation fold = Ripple.close(paper, player());
+            fold.setOnFinished(f -> afterCounter());
+            fold.play();
+        });
+        read.play();
+    }
+
+    // ---- the duck ---------------------------------------------------------------------
+
+    /** Uses the one duck: a big announcement; its HP arrives later, on the core's clock. */
     private void useDuck() {
-        if (stage != Stage.PICK && stage != Stage.QUESTION && stage != Stage.FEEDBACK) return;
-        if (last == null || last.ducksRemaining() == 0 || last.usingDuck()) return;
+        if (stage != Stage.TURN && stage != Stage.QUESTION && stage != Stage.FEEDBACK) return;
+        if (last == null || last.ducksRemaining() == 0 || last.usingDuck()) {
+            if (stage == Stage.TURN) commands.unlock();
+            return;
+        }
         Outcome outcome = ctx.session().useOpeningDuck();
         if (!outcome.ok()) {
             notice(notice, Diagnostic.of(outcome));
@@ -428,20 +611,37 @@ final class OpeningScreen extends Screen {
         }
         OpeningBattle.View view = read();
         if (view.finished()) {
-            beginEnding();
+            if (stage == Stage.QUESTION) timeUp();
+            else beginEnding();
             return;
         }
-        Sfx.CONFIRM.play(duck);
-        CutIn.play(effects, 560, "QUACK", "MS TANG'S RUBBER DUCK  ·  HOLD ON", "cyan");
+        duckBanner = ItemBanner.show(effects, "ITEM", "MS TANG'S RUBBER DUCK", duckDetail(view), ItemBanner.duck());
         drawDuck(view);
-        setInputEnabled(false);
+        setAnswersEnabled(false);
+        if (stage == Stage.TURN) showTurn();
         hints();
     }
 
+    /** What the duck is doing, for its banner: the HP it will give and when (the question clock keeps running). */
+    private String duckDetail(OpeningBattle.View view) {
+        OpeningContent content = ctx.session().openingContent();
+        return "HP " + StatDelta.signed(content.duckRecovery()) + " in " + seconds(view.duckRemaining()) + " s"
+                + (stage == Stage.QUESTION ? "  ·  the clock keeps running" : "");
+    }
+
+    /** The duck's HP arrived: its banner, up all this time, shows the result and leaves. */
     private void recovered(OpeningBattle.View before, OpeningBattle.View after) {
-        hud.showStudent(after.student(), ctx.demoLabel());
-        popHp(after.student().hp() - before.student().hp());
+        double change = after.student().hp() - before.student().hp();
+        popHp(change);
+        if (duckBanner == null) duckBanner = ItemBanner.show(effects, "EFFECT", "", "", ItemBanner.duck());
+        duckBanner.finish("EFFECT", "HP " + StatDelta.signed(change), "Ms Tang's rubber duck worked", Duration.millis(650));
+        duckBanner = null;
         Sfx.CONFIRM.play(duck);
+    }
+
+    private void dropDuckBanner() {
+        if (duckBanner != null) duckBanner.dismiss();
+        duckBanner = null;
     }
 
     /**
@@ -465,33 +665,41 @@ final class OpeningScreen extends Screen {
         rise.play();
     }
 
+    /** The clock text and gauge, redrawn only when the shown tenth of a second changes. */
     private void drawClock(OpeningBattle.View view) {
         if (stage != Stage.QUESTION || view.phase() != OpeningBattle.Phase.QUESTION) return;
+        String text = seconds(view.remaining());
+        if (text.equals(time.getText())) return;
         double limitSeconds = view.timeLimit().toNanos() / 1e9;
         double left = view.remaining().toNanos() / 1e9;
-        time.setText(seconds(view.remaining()));
+        time.setText(text);
         gauge.show(limitSeconds <= 0 ? 1 : 1 - left / limitSeconds, false);
     }
 
+    /** The duck chip; its style and text change only when they differ (no CSS pass every frame). */
     private void drawDuck(OpeningBattle.View view) {
-        duck.getStyleClass().removeAll("duck-ready", "duck-working", "duck-used");
+        String state, text;
         if (view.usingDuck()) {
-            duck.getStyleClass().add("duck-working");
-            duckLabel.setText("WORKING  " + seconds(view.duckRemaining()) + " s");
+            state = "duck-working";
+            text = "WORKING  " + seconds(view.duckRemaining()) + " s";
         } else if (view.ducksRemaining() > 0) {
-            duck.getStyleClass().add("duck-ready");
+            state = "duck-ready";
             OpeningContent content = ctx.session().openingContent();
-            duckLabel.setText("×" + view.ducksRemaining() + "  ·  HP " + StatDelta.signed(content.duckRecovery())
-                    + " AFTER " + seconds(content.duckDuration()) + " s");
+            text = "×" + view.ducksRemaining() + "  ·  HP " + StatDelta.signed(content.duckRecovery())
+                    + " AFTER " + seconds(content.duckDuration()) + " s";
         } else {
-            duck.getStyleClass().add("duck-used");
-            duckLabel.setText("USED");
+            state = "duck-used";
+            text = "USED";
         }
+        if (!duck.getStyleClass().contains(state)) {
+            duck.getStyleClass().removeAll("duck-ready", "duck-working", "duck-used");
+            duck.getStyleClass().add(state);
+        }
+        if (!text.equals(duckLabel.getText())) duckLabel.setText(text);
     }
 
-    /** While the duck works, nothing can be answered or started. */
-    private void setInputEnabled(boolean enabled) {
-        questions.setDisable(!enabled);
+    /** While the duck works, nothing can be answered. */
+    private void setAnswersEnabled(boolean enabled) {
         options.setDisable(!enabled);
         options.setOpacity(enabled ? 1 : 0.45);
     }
@@ -504,16 +712,14 @@ final class OpeningScreen extends Screen {
         endingPlayed = true;
         stage = Stage.ENDING;
         clock.stop();
-        setInputEnabled(false);
-        questions.setChoices(List.of());
+        dropDuckBanner();
+        setAnswersEnabled(false);
+        commands.setChoices(List.of());
+        turn.setVisible(false);
+        danmaku.clear();
         hints();
         OpeningBattle.Ending ending = last.ending();
-        if (ending.reason() == OpeningBattle.DefeatReason.TIMEOUT) {
-            time.setText("0.0");
-            time.getStyleClass().add("overtime");
-            gauge.show(1, true);
-        }
-        PauseTransition lead = new PauseTransition(Duration.millis(feedbackJustShown ? 1400 : 500));
+        PauseTransition lead = new PauseTransition(Duration.millis(feedbackJustShown && paper.isVisible() ? 1400 : 300));
         lead.setOnFinished(e -> { if (stage == Stage.ENDING) playEnding(ending); });
         lead.play();
     }
@@ -526,20 +732,9 @@ final class OpeningScreen extends Screen {
                 CutIn.play(effects, 300, "ALL TEN CORRECT", "MR. REWARD DID NOT SEE THAT COMING", "caret");
                 hold = 1700;
             }
-            case PASS_OUT -> {
-                Sfx.HIT.play(effects);
-                Timeline faint = new Timeline(
-                        new KeyFrame(Duration.ZERO, new KeyValue(blackout.opacityProperty(), 0)),
-                        new KeyFrame(Duration.millis(900), new KeyValue(blackout.opacityProperty(), 0.93, MotionTokens.steps(6))));
-                faint.setOnFinished(e -> CutIn.play(effects, 300, "PASSED OUT", "HP 0  ·  THE PAGE WENT DARK", "danger"));
-                faint.play();
-                hold = 2700;
-            }
             default -> {
-                Sfx.HIT.play(effects);
-                scene.speak("reward", MOCKS);
-                CutIn.play(effects, 300, "DEFEAT", reason(ending.reason()), "danger");
-                hold = 1700;
+                defeated(ending);
+                return;
             }
         }
         PauseTransition wait = new PauseTransition(Duration.millis(hold));
@@ -547,19 +742,41 @@ final class OpeningScreen extends Screen {
         wait.play();
     }
 
-    /** The grade stays on screen while the authored ending is told. */
-    private void endingStory(OpeningBattle.Ending ending) {
+    /**
+     * Defeated (a wrong answer, the clock, or HP 0): the screen breaks like glass around the
+     * player and falls away; behind it the exam is gone and the room is dim; then the call-out.
+     */
+    private void defeated(OpeningBattle.Ending ending) {
+        boolean passedOut = ending.animation() == OpeningBattle.AnimationCue.PASS_OUT;
+        Animation breaking = Shatter.play(effects, root(), player(), () -> {
+            clearExam();
+            scene.setDim(passedOut ? 0.55 : 0.3);
+            scene.speak("reward", MOCKS);
+        });
+        breaking.setOnFinished(e -> {
+            if (stage != Stage.ENDING) return;
+            if (passedOut) CutIn.play(effects, 300, "PASSED OUT", "HP 0  ·  THE PAGE WENT DARK", "danger");
+            else CutIn.play(effects, 300, "DEFEAT", reason(ending.reason()), "danger");
+            PauseTransition wait = new PauseTransition(Duration.millis(1700));
+            wait.setOnFinished(f -> { if (stage == Stage.ENDING) endingStory(ending); });
+            wait.play();
+        });
+        breaking.play();
+    }
+
+    /** The exam's panels leave the screen (the story of the ending is told over the room). */
+    private void clearExam() {
         paper.setVisible(false);
         paper.setManaged(false);
-        picker.setVisible(false);
-        picker.setManaged(false);
+        turn.setVisible(false);
+        turn.setManaged(false);
         examScrim.setVisible(false);
         duck.setVisible(false);
-        if (ending.animation() == OpeningBattle.AnimationCue.PASS_OUT) {
-            scene.speak("reward", MOCKS);
-            Timeline wake = new Timeline(new KeyFrame(Duration.millis(700), new KeyValue(blackout.opacityProperty(), 0.5)));
-            wake.play();
-        }
+    }
+
+    /** The grade stays on screen while the authored ending is told. */
+    private void endingStory(OpeningBattle.Ending ending) {
+        clearExam();
         stampGrade(ending);
         dialogue.setVisible(true);
         dialogue.play(ctx.script(String.join("\n", ending.dialogue())), this::offerDayOne);
@@ -584,8 +801,8 @@ final class OpeningScreen extends Screen {
         stamp.setScaleY(2.2);
         stamp.setOpacity(0);
         Timeline land = new Timeline(new KeyFrame(Duration.millis(260),
-                new KeyValue(stamp.scaleXProperty(), 1, MotionTokens.steps(4)),
-                new KeyValue(stamp.scaleYProperty(), 1, MotionTokens.steps(4)),
+                new KeyValue(stamp.scaleXProperty(), 1, MotionTokens.OUT),
+                new KeyValue(stamp.scaleYProperty(), 1, MotionTokens.OUT),
                 new KeyValue(stamp.opacityProperty(), 1)));
         land.setOnFinished(e -> Sfx.HIT.play(effects));
         land.play();
@@ -612,7 +829,7 @@ final class OpeningScreen extends Screen {
 
     // ---- input, hints, story helpers --------------------------------------------------
 
-    /** Keys for the exam; the lists handle their own arrows and Enter when they have focus. */
+    /** Keys for the battle; the turn menu handles its own arrows and Enter when it has focus. */
     private boolean key(KeyCode code) {
         if (code == KeyCode.H) {
             if (stage != Stage.QUESTION) openLog();
@@ -623,7 +840,7 @@ final class OpeningScreen extends Screen {
             return true;
         }
         if (stage == Stage.FEEDBACK && (code == KeyCode.ENTER || code == KeyCode.SPACE)) {
-            showPicker();
+            if (!last.finished()) fireBack();
             return true;
         }
         if (stage != Stage.QUESTION || shown == null) return false;
@@ -645,10 +862,11 @@ final class OpeningScreen extends Screen {
                 list.add(KeyHints.Hint.of("HOLD ENTER / MOUSE", "FAST"));
                 list.add(KeyHints.Hint.of("H", "LOG"));
             }
-            case PICK -> {
+            case TURN -> {
                 list.add(KeyHints.Hint.of("↑↓", "CHOOSE"));
-                list.add(KeyHints.Hint.of("ENTER", "START"));
-                if (duckReady) list.add(KeyHints.Hint.of("R", "DUCK"));
+                list.add(KeyHints.Hint.of("ENTER", "SELECT"));
+                if (itemMenu) list.add(KeyHints.Hint.of("ESC", "BACK"));
+                else if (duckReady) list.add(KeyHints.Hint.of("R", "DUCK"));
                 list.add(KeyHints.Hint.of("H", "LOG"));
             }
             case QUESTION -> {
@@ -658,19 +876,27 @@ final class OpeningScreen extends Screen {
                 list.add(KeyHints.Hint.note("CLOCK RUNNING  ·  NO PAUSE"));
             }
             case FEEDBACK -> {
-                list.add(KeyHints.Hint.of("ENTER", "NEXT QUESTION"));
-                if (duckReady) list.add(KeyHints.Hint.of("R", "DUCK"));
-                list.add(KeyHints.Hint.of("H", "LOG"));
+                if (last != null && !last.finished()) {
+                    list.add(KeyHints.Hint.of("ENTER", "FIRE BACK"));
+                    if (duckReady) list.add(KeyHints.Hint.of("R", "DUCK"));
+                    list.add(KeyHints.Hint.of("H", "LOG"));
+                }
             }
             case ENDING -> {
                 if (dialogue.isVisible() && !dialogue.isFinished() && !actions.hasChoices())
                     list.add(KeyHints.Hint.of("HOLD ENTER / MOUSE", "FAST"));
                 list.add(KeyHints.Hint.of("H", "LOG"));
             }
-            case DONE -> { }
+            case FAN_OUT, ATTACK, COUNTER, DONE -> { }
         }
         hud.setHints(list.toArray(KeyHints.Hint[]::new));
     }
+
+    /** Where the player's character is struck (the middle of the figure). */
+    private Point2D player() { return scene.centreOf("student").orElse(PLAYER_FALLBACK); }
+
+    /** Where Mr. Reward's questions come from and the player's answers land. */
+    private Point2D reward() { return scene.centreOf("reward").orElse(REWARD_FALLBACK); }
 
     /** Mr. Reward's hand-drawn title card on a red band as he steps in; skipped when the art is missing. */
     private void titleCard() {
@@ -705,7 +931,7 @@ final class OpeningScreen extends Screen {
 
     // ---- text ---------------------------------------------------------------------------
 
-    /** A short line for the question list: the start of the prompt, cut at a word. */
+    /** A short line for a question strip: the start of the prompt, cut at a word. */
     static String excerpt(String prompt) {
         String text = prompt.strip().replaceAll("\\s+", " ");
         int max = 36;

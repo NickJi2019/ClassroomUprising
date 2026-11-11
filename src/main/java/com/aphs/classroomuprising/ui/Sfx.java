@@ -34,7 +34,9 @@ enum Sfx {
     /** A combat call-out banner snapped in. */
     CUTIN,
     /** An answer cost HP. */
-    HIT;
+    HIT,
+    /** The screen broke like glass (the player was defeated). */
+    SHATTER;
 
     /** The manifest name, e.g. {@code menu-open} for {@link #MENU_OPEN}. */
     String key() { return name().toLowerCase(Locale.ROOT).replace('_', '-'); }

@@ -15,8 +15,8 @@
 <?import com.aphs.classroomuprising.ui.TimeGauge?>
 <?import com.aphs.classroomuprising.ui.scene.SceneView?>
 
-<!-- The previous-semester final: story, then the exam (pick a question, answer it against its
-     clock), then the ending. Only one of picker / paper is shown at a time. -->
+<!-- The previous-semester final: story, then the exam in rounds (your turn, then Mr. Reward fires
+     a question at you, you answer it against its clock and fire back), then the ending. -->
 <StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" styleClass="screen, opening">
     <SceneView fx:id="scene"/>
     <AnchorPane pickOnBounds="false">
@@ -32,14 +32,16 @@
             <Label text="ICS4U FINAL EXAM  //  MR. REWARD" styleClass="display, opening-sub"/>
         </HBox>
 
-        <!-- Between questions: any unanswered question, in any order. No clock runs here. -->
-        <VBox fx:id="picker" spacing="10" prefWidth="560.0" visible="false" managed="false"
-              AnchorPane.leftAnchor="40.0" AnchorPane.topAnchor="96.0">
-            <HBox spacing="14" alignment="BASELINE_LEFT">
-                <Label fx:id="progress" styleClass="display, section-label"/>
-                <Label fx:id="nextClock" styleClass="mono, exam-next-clock"/>
+        <!-- The player's turn, between Mr. Reward's attacks: what to do next. No clock runs here. -->
+        <VBox fx:id="turn" spacing="12" prefWidth="620.0" visible="false" managed="false"
+              AnchorPane.leftAnchor="48.0" AnchorPane.topAnchor="150.0">
+            <HBox spacing="16" alignment="BASELINE_LEFT">
+                <Slant styleClass="tag-caret, turn-tag">
+                    <Label text="YOUR TURN" styleClass="display, turn-tag-label"/>
+                </Slant>
+                <Label fx:id="round" styleClass="mono, exam-next-clock"/>
             </HBox>
-            <ChoiceList fx:id="questions" stagger="12.0"/>
+            <ChoiceList fx:id="commands" styleClass="large" stagger="18.0"/>
         </VBox>
 
         <!-- One question: its prompt and full code on the left, the five options on the right. -->
@@ -89,6 +91,5 @@
                      AnchorPane.leftAnchor="230.0" AnchorPane.rightAnchor="40.0" AnchorPane.bottomAnchor="36.0"/>
     </AnchorPane>
     <Hud fx:id="hud"/>
-    <Region fx:id="blackout" styleClass="pass-out" mouseTransparent="true" opacity="0.0"/>
     <Pane fx:id="effects" mouseTransparent="true"/>
 </StackPane>

@@ -164,14 +164,21 @@ class OpeningFlowTest {
         assertEquals(view.ending(), OpeningPlay.view(session).ending());
     }
 
-    @Test void theScreenShowsShortPromptsAndHonestClocks() {
-        assertEquals("Short prompt.", OpeningScreen.excerpt("  Short \n prompt.  "));
-        String excerpt = OpeningScreen.excerpt("Consider the Book and AudioBook classes and the code segment in another class.");
-        assertTrue(excerpt.endsWith("…") && excerpt.length() <= 37, excerpt);
+    @Test void theScreenShowsHonestClocksAndHangsTheBulletsOnAnArc() {
         assertEquals("20.0", OpeningScreen.seconds(Duration.ofSeconds(20)));
         assertEquals("7.7", OpeningScreen.seconds(OpeningBattle.timeLimit(10)), "rounded down, never more time than there is");
         assertEquals("0.0", OpeningScreen.seconds(Duration.ofMillis(99)));
         for (OpeningBattle.DefeatReason reason : OpeningBattle.DefeatReason.values())
             assertFalse(OpeningScreen.reason(reason).isBlank());
+        // Ten bullets hang in front of him (to his left), first at the top, in a gentle arc.
+        javafx.geometry.Point2D origin = new javafx.geometry.Point2D(947, 330);
+        double lastY = Double.NEGATIVE_INFINITY;
+        for (int i = 0; i < 10; i++) {
+            javafx.geometry.Point2D slot = Danmaku.slot(i, 10, origin);
+            assertTrue(slot.getX() < origin.getX(), "in front of him: " + slot);
+            assertTrue(slot.getY() > lastY, "top to bottom in firing order");
+            assertEquals(235, slot.distance(origin), 1e-6);
+            lastY = slot.getY();
+        }
     }
 }

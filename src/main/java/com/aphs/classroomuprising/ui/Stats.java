@@ -19,6 +19,13 @@ final class Stats {
      */
     static final double SAN_FULL = 100;
 
+    /**
+     * Below this HP the screen's edges pulse red; below this SAN the SAN bar twitches. Display
+     * thresholds chosen by the team (frontend request 33), not game rules: nothing in the game
+     * changes at them.
+     */
+    static final double LOW_HP = 10, LOW_SAN = 10;
+
     /** One part of the XP total. */
     record Part(String name, double value) {}
 

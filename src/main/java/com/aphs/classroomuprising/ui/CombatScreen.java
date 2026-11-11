@@ -89,7 +89,6 @@ final class CombatScreen extends Screen {
     /** Holds QUIT TO TITLE while a refusal leaves no way forward. */
     @FXML private ChoiceList exit;
     @FXML private Region overtimeGlow;
-    @FXML private Region hitFlash;
     @FXML private Hud hud;
     @FXML private Pane cutins;
 
@@ -499,7 +498,7 @@ final class CombatScreen extends Screen {
         answer.clear();
         notice(notice, null);
         ctx.toasts().outcome(done);
-        if (done.after().student().hp() < done.before().student().hp()) hit();
+        // A drop in HP is shown by the HUD itself (red flash, jolt, edge pulse when low).
         refresh();
         if (last == null) return;
         if (last.complete()) {
@@ -584,20 +583,6 @@ final class CombatScreen extends Screen {
         if (e.isShiftDown()) targets.requestFocus();
         else if (commands.hasChoices()) commands.requestFocus();
         else targets.requestFocus();
-    }
-
-    /** The answer cost HP: a red flash and a short jolt of the HUD, where HP is shown. */
-    private void hit() {
-        Sfx.HIT.play(hitFlash);
-        new Timeline(
-                new KeyFrame(Duration.ZERO, new KeyValue(hitFlash.opacityProperty(), 0)),
-                new KeyFrame(Duration.millis(40), new KeyValue(hitFlash.opacityProperty(), 0.5)),
-                new KeyFrame(Duration.millis(340), new KeyValue(hitFlash.opacityProperty(), 0, MotionTokens.OUT))).play();
-        Timeline shake = new Timeline();
-        double[] xs = {-12, 9, -6, 3, 0};
-        for (int i = 0; i < xs.length; i++)
-            shake.getKeyFrames().add(new KeyFrame(Duration.millis(45 * (i + 1)), new KeyValue(hud.translateXProperty(), xs[i])));
-        shake.play();
     }
 
     // ---- helpers --------------------------------------------------------------------

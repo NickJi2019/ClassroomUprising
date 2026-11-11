@@ -36,6 +36,15 @@ public class Hud extends AnchorPane {
     private final KeyHints hints = new KeyHints();
     private VBox date;
     private HBox stats;
+    private Slant hpChip;
+    /** Edges of the screen pulsing red while HP is low. */
+    private final javafx.scene.layout.Region lowHp = new javafx.scene.layout.Region();
+    private final javafx.animation.Timeline lowHpPulse;
+    /** The whole screen flashing red when HP drops. */
+    private final javafx.scene.layout.Region hurtFlash = new javafx.scene.layout.Region();
+    /** The HP last shown, to notice a drop (null until the first show). */
+    private Double shownHp;
+    private Runnable onHurt = () -> {};
     /** The hints the screen asked for; while the XP panel is open the plate says how to close it. */
     private KeyHints.Hint[] screenHints = {KeyHints.Hint.of("ESC", "MENU")};
 
@@ -76,7 +85,8 @@ public class Hud extends AnchorPane {
         xpChip.addEventHandler(javafx.scene.input.MouseEvent.MOUSE_CLICKED, e -> {
             if (e.getButton() == javafx.scene.input.MouseButton.PRIMARY) toggleXp();
         });
-        stats = new HBox(12, chip("HP", "stat-hp", hp), chip("SAN", "stat-san", san), xpChip);
+        hpChip = chip("HP", "stat-hp", hp);
+        stats = new HBox(12, hpChip, chip("SAN", "stat-san", san), xpChip);
         stats.setAlignment(Pos.CENTER_RIGHT);
         AnchorPane.setRightAnchor(stats, 36.0);
         AnchorPane.setTopAnchor(stats, 30.0);
@@ -95,7 +105,71 @@ public class Hud extends AnchorPane {
         AnchorPane.setRightAnchor(hints, 18.0);
         AnchorPane.setBottomAnchor(hints, 4.0);
 
-        getChildren().addAll(date, stats, xpParts, demo, hints);
+        for (javafx.scene.layout.Region layer : List.of(lowHp, hurtFlash)) {
+            layer.setMouseTransparent(true);
+            layer.setOpacity(0);
+            AnchorPane.setLeftAnchor(layer, 0.0);
+            AnchorPane.setRightAnchor(layer, 0.0);
+            AnchorPane.setTopAnchor(layer, 0.0);
+            AnchorPane.setBottomAnchor(layer, 0.0);
+        }
+        // Full-screen gradients: drawn once, then only faded (cheap every frame).
+        lowHp.setCache(true);
+        hurtFlash.setCache(true);
+        lowHp.getStyleClass().add("low-hp-vignette");
+        hurtFlash.getStyleClass().add("hurt-flash");
+        lowHpPulse = new javafx.animation.Timeline(
+                new javafx.animation.KeyFrame(javafx.util.Duration.ZERO, new javafx.animation.KeyValue(lowHp.opacityProperty(), 0.25)),
+                new javafx.animation.KeyFrame(javafx.util.Duration.millis(520),
+                        new javafx.animation.KeyValue(lowHp.opacityProperty(), 0.85, javafx.animation.Interpolator.EASE_OUT)),
+                new javafx.animation.KeyFrame(javafx.util.Duration.millis(1150),
+                        new javafx.animation.KeyValue(lowHp.opacityProperty(), 0.25, javafx.animation.Interpolator.EASE_IN)));
+        lowHpPulse.setCycleCount(javafx.animation.Animation.INDEFINITE);
+
+        // The edge pulse and the hit flash lie under the stats, so the numbers stay readable.
+        getChildren().addAll(lowHp, hurtFlash, date, stats, xpParts, demo, hints);
+    }
+
+    /** Called when HP drops, so the screen can shake the player's character. */
+    void setOnHurt(Runnable action) { onHurt = action; }
+
+    /** Whether the low-HP edge pulse is running (for checks). */
+    boolean lowHpWarning() { return lowHpPulse.getStatus() == javafx.animation.Animation.Status.RUNNING; }
+
+    /** Whether the SAN bar is twitching (for checks). */
+    boolean sanDistressed() { return san.distressed(); }
+
+    /**
+     * The status effects for the HP and SAN now shown: a drop in HP flashes the screen red, jolts
+     * the HP chip and tells the screen ({@link #setOnHurt}); low HP pulses the edges red; very low
+     * SAN makes the SAN bar twitch. They only show what the core already changed.
+     */
+    private void effects(double hpNow, double sanNow) {
+        if (shownHp != null && hpNow < shownHp - 1e-9) hurt();
+        shownHp = hpNow;
+        boolean low = hpNow < Stats.LOW_HP;
+        if (low && lowHpPulse.getStatus() != javafx.animation.Animation.Status.RUNNING) lowHpPulse.play();
+        if (!low && lowHpPulse.getStatus() == javafx.animation.Animation.Status.RUNNING) {
+            lowHpPulse.stop();
+            lowHp.setOpacity(0);
+        }
+        san.setDistressed(sanNow < Stats.LOW_SAN);
+    }
+
+    private void hurt() {
+        Sfx.HIT.play(this);
+        new javafx.animation.Timeline(
+                new javafx.animation.KeyFrame(javafx.util.Duration.ZERO, new javafx.animation.KeyValue(hurtFlash.opacityProperty(), 0)),
+                new javafx.animation.KeyFrame(javafx.util.Duration.millis(40), new javafx.animation.KeyValue(hurtFlash.opacityProperty(), 0.55)),
+                new javafx.animation.KeyFrame(javafx.util.Duration.millis(380),
+                        new javafx.animation.KeyValue(hurtFlash.opacityProperty(), 0, MotionTokens.OUT))).play();
+        javafx.animation.Timeline jolt = new javafx.animation.Timeline();
+        double[] xs = {-12, 9, -6, 3, 0};
+        for (int i = 0; i < xs.length; i++)
+            jolt.getKeyFrames().add(new javafx.animation.KeyFrame(javafx.util.Duration.millis(45 * (i + 1)),
+                    new javafx.animation.KeyValue(hpChip.translateXProperty(), xs[i])));
+        jolt.play();
+        onHurt.run();
     }
 
     /** The key hints in the bottom-right corner, for what the screen offers right now. */
@@ -149,6 +223,7 @@ public class Hud extends AnchorPane {
         xp.setText(StatDelta.number(Stats.xp(student)));
         xpParts.show(student);
         demo.setText(demoLabel);
+        effects(student.hp(), student.san());
     }
 
     /** Hides or shows the three stat chips (the opening's story has none yet). */
@@ -169,6 +244,7 @@ public class Hud extends AnchorPane {
         san.set(Stats.sanFraction(state.effectiveSan()));
         xp.setText(StatDelta.number(Stats.xp(state.student())));
         xpParts.show(state.student());
+        effects(state.student().hp(), state.effectiveSan());
         demo.setText(demoLabel);
 
         pips.getChildren().clear();
