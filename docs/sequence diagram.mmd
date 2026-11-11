@@ -7,6 +7,7 @@ sequenceDiagram
     participant Content as ContentCatalog
     participant Grades as GradeBook
     participant Runner as JavaAssessmentRunner
+    participant Opening as OpeningBattle
     participant Combat as CombatSession
     participant Save as SaveManager
 
@@ -18,10 +19,34 @@ sequenceDiagram
     end
     Caller->>Game: Construct with initial state, explicit RuleValues and ContentCatalog
     Note over Game,State: Every changing operation works on a copy and commits only after success.
-    opt Opening not acknowledged
+    opt Shipped Demo opening not acknowledged
+        Caller->>Game: openingIntro()
+        Game-->>Caller: Authored previous-semester dialogue
+        Caller->>Game: startOpeningBattle()
+        Game->>Opening: Initial HP 9 with no cap, low SAN/XP, one duck
+        loop Choose unanswered questions until ending
+            Caller->>Game: startOpeningQuestion(id)
+            Game->>Opening: Start hard deadline for this answer ordinal
+            opt Use the sole duck
+                Caller->>Game: useOpeningDuck()
+                Game->>Opening: Reserve item and recovery delay, clock continues
+            end
+            loop Frontend timer pulses
+                Caller->>Game: advanceOpeningBattle()
+                Game->>Opening: Settle recovery or timeout in time order
+            end
+            opt Answer before timeout
+                Caller->>Game: answerOpeningQuestion(id, optionId)
+                Game->>Opening: Validate option, deduct 1 HP, immediately judge
+            end
+            Caller->>Game: openingBattle()
+            Game-->>Caller: Immutable feedback and possible ending
+        end
+        Note over Caller,Opening: Wrong or timeout loses, HP zero passes out, ten correct with HP left wins
+        Game-->>Caller: 67 defeat or 89 victory, animation cue and authored dialogue
+        Caller->>Caller: Play ending once (Claude frontend integration pending)
         Caller->>Game: completeOpening()
-        Game->>State: Mark opening completed
-        Note over Caller,Game: Actual opening battle/dialogue remains T01/T11, not rendered by this method.
+        Game->>State: Clear isolated battle, mark opening complete, keep fresh Day 1 stats and grades
     end
     alt Lesson slot
         Caller->>Game: showLesson()

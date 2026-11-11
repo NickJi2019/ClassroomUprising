@@ -1,13 +1,14 @@
 # Foundation implementation status
 
-Date: 2026-11-10. Current action: backend-only authored lesson decisions and classroom option settlement. Frontend two-level menu wiring and frontend-owned tests remain with Claude; no production UI, Main, assets or build dependency change.
+Date: 2026-11-10. Current action: backend-only previous-semester opening exam and story; HP 9 initially with no upper cap, one duck, immediate judging, hard decreasing deadlines, and 67/89 branches. Frontend two-level menu wiring and frontend-owned tests remain with Claude; no production UI, Main, assets or build dependency change.
 
 This record separates implemented behavior from the full design target. No production balancing configuration or missing game rule is approved by this implementation.
 
 | Area | Current implementation | Boundary |
 | --- | --- | --- |
 | Calendar | Exact 40-day schedule; six units; Midterm day 20 and Final day 40 | Authored content is external |
-| Daily flow | Opening acknowledgement, one Lesson choice, other classes, Hub slots, normal/early sleep, half-slot and closed-day transition | New two-level classroom menus await Claude; existing flat UI is not migrated; no actual opening battle |
+| Daily flow | Terminal opening acknowledgement, one Lesson choice, other classes, Hub slots, normal/early sleep, half-slot and closed-day transition | New two-level classroom menus await Claude; existing flat UI is not migrated; opening screen/animations not migrated |
+| Opening exam | Isolated OpeningBattle + OpeningContent; ten reviewed questions; 1 HP per answer; one consumable duck; backend timing and both ending cues/dialogue | UI/animation and associated frontend tests await Claude; no current-term grade pollution |
 | Effects | Explicit numeric deltas; tutorial negative effects waived; dated next-day effects | Amounts and composition are not production policy defaults |
 | Attendance | Two free absences, then percentage-point deductions; leave exempt; no major-exam skip | Tutorial accounting must be supplied; skipped-class free activities not implemented |
 | Questions | Fixed ordinary banks; sampled major banks; optional authored difficulty ranks for combat | Full question content, answer keys and approved timing choices remain explicit |
@@ -22,7 +23,7 @@ This record separates implemented behavior from the full design target. No produ
 | Java Lab | Actual JDK compilation, child-JVM cases, bounded output/time, independent style findings | Trusted local runner, not a security sandbox or automatic course grader |
 | Relationships/rewards | State representation and persistence | No authored interaction/item gameplay |
 
-No production damage, ending, SAN, XP, grade or detection defaults are installed. The separately approved Demo profile contains explicitly provisional initial attributes and activity/rule values; tests retain independent fixtures. PendingRuleException identifies missing gameplay/content T-numbers.
+No unspecified production damage, ending, SAN, XP, grade or detection defaults are installed. The explicit opening exception has fixed 1-HP cost, 67/89 story results and configured Demo attributes/item values. The separately approved Demo profile contains explicitly provisional initial attributes and activity/rule values; tests retain independent fixtures. PendingRuleException identifies missing gameplay/content T-numbers.
 
 ## Checks
 
@@ -109,3 +110,15 @@ Days 1–4 each have three response options and one neutral quiet option. Day 1 
 `lessonChoice(int lessonDay, String optionId)` validates day, phase, shown lesson, no makeup replacement and authored final ID. It returns authored feedback, applies the configured effect transactionally and advances once to OTHER_CLASSES. Repeats, invalid/stale IDs and overflow leave state unchanged. The existing one-argument method delegates to the same validation; legacy explicit fixture catalogs remain supported.
 
 The user explicitly kept the frontend with Claude. `ClassroomScreen`, `GameSession`, frontend-owned tests, FXML, CSS, assets and Main remain unchanged. The old flat screen does not yet show the two-level menu or authored labels. Full-suite failures from old frontend `ask`-success expectations are a known contract migration, not suppressed tests or approved reward aliases. Backend-owned Grade11ReviewContentTest is updated for the new interaction contract while retaining all lecture/example/slide checks. Frontend work and test migration are specified in [frontend-classroom-handoff.md](frontend-classroom-handoff.md).
+
+## Opening exam — backend only
+
+`OpeningContent` loads validated UTF-8 story, question, option, answer, provenance and provisional SAN/XP/duck data from `/demo/opening.properties`. `OpeningBattle` owns the isolated previous-semester state. GameController exposes intro/start/select/answer/duck/tick/view and validates terminal acknowledgement before Day 1. Snapshots copy the battle; public views are immutable and omit unsubmitted answer keys. No frontend code, assets, dependencies, Main arguments or save fields changed.
+
+The latest correction removes the HP upper cap entirely (not 100); initial opening HP is 9. The previous unlimited-duck proposal is replaced by one consumed item. Failed HP, wrong-answer and timeout branches produce 67; successful ten-question completion produces 89. Ending data requests frontend animation, not a claim that an animation exists. Both acknowledgements clear opening data and keep the original Day 1 initial student/empty gradebook. Tutorials continue to waive classroom penalties, not these explicit prologue rules.
+
+The normal combat policy remains independent: its soft timeout, grading, fatigue and item framework have not been filled in by opening constants. Explicit legacy catalogs without an opening scenario retain fixture acknowledgement compatibility. The shipped Demo always installs this scenario, and the old frontend skip is rejected.
+
+See [frontend-opening-handoff.md](frontend-opening-handoff.md) for the callable lifecycle and Claude prompt, and [opening-question-sources.md](opening-question-sources.md) for PDF pages/keys/fingerprints and executable question verification. Full-suite/frontend migration status and exact test evidence accompany this delivery; backend completion is not UI completion.
+
+Observed checks for this increment: full baseline **348 tests / 337 passed / 11 failed**; modified full suite **400 / 380 / 20**, all failures in preserved frontend tests (GameSessionCombatTest 9, GameSessionTest 8, TutorialTipsTest 2, ClockTimesTest 1). Backend/core, public contracts, unchanged Main entry checks and backend-owned review-content tests: **294 passed**, including **52 new opening/content/contract cases**. `installDist` succeeds and its JAR includes both opening classes and the authored resource. Class/sequence Mermaid sources render successfully. This is build/headless evidence, not a rendered opening or animation acceptance.

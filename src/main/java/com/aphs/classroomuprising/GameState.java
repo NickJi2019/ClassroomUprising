@@ -24,6 +24,7 @@ public final class GameState {
     Map<String, Double> relationships = new LinkedHashMap<>();
     ActiveAssessment active;
     CombatSession combat;
+    OpeningBattle openingBattle;
     record ActiveAssessment(DayPlan original, List<ContentCatalog.Question> questions, boolean makeup) {
         ActiveAssessment { questions = List.copyOf(questions); }
     }
@@ -42,7 +43,8 @@ public final class GameState {
         s.seriousCheating = new LinkedHashSet<>(seriousCheating);
         s.feedbackApplied = new LinkedHashSet<>(feedbackApplied); s.estimates = new LinkedHashMap<>(estimates);
         s.rewards = new LinkedHashSet<>(rewards); s.relationships = new LinkedHashMap<>(relationships);
-        s.active = active; s.combat = combat == null ? null : combat.copy(); return s;
+        s.active = active; s.combat = combat == null ? null : combat.copy();
+        s.openingBattle = openingBattle == null ? null : openingBattle.copy(); return s;
     }
     public String name() { return name; }
     public int day() { return day; }

@@ -111,7 +111,7 @@ class Grade11ReviewContentTest {
         assertTrue(result.process().stderr().contains("ArrayIndexOutOfBoundsException"));
     }
     @Test void lecturesLeadToOneAuthoredResponseWithTheSameCorrectTutorialBonus() throws Exception {
-        var game=DemoProfile.load().newGame("Review student",new Random(42));game.completeOpening();
+        var game=DemoProfile.load().newGame("Review student",new Random(42));com.aphs.classroomuprising.OpeningTestSupport.enterDayOne(game);
         for(int day=1;day<=2;day++) {
             if(game.snapshot().period()==DayPeriod.MORNING_BONUS) game.hubActivity("rest");
             var before=game.snapshot().student();var lesson=game.showLesson();
