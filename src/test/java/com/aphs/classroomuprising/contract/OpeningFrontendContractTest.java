@@ -25,8 +25,9 @@ class OpeningFrontendContractTest {
             assertEquals(OpeningBattle.Phase.QUESTION_REVEAL, game.openingBattle().phase());
             clock.addAndGet(Duration.ofMillis(760).toNanos());
             game.advanceOpeningBattle();
+            expectedLeft = expectedLeft.minusMillis(760);
             assertEquals(expectedLeft, game.openingBattle().remaining());
-            assertFalse(game.openingBattle().clockRunning());
+            assertTrue(game.openingBattle().clockRunning());
             game.startOpeningQuestion(q.id());
             assertEquals(Duration.ofMinutes(3), game.openingBattle().timeLimit());
             assertEquals(expectedLeft, game.openingBattle().remaining());
@@ -42,11 +43,11 @@ class OpeningFrontendContractTest {
             game.answerOpeningQuestion(q.id(), answers.get(q.id()));
             assertEquals(hpAfterHit, game.openingBattle().student().hp());
             assertEquals(expectedLeft, game.openingBattle().remaining());
-            assertFalse(game.openingBattle().clockRunning());
+            assertEquals(!game.openingBattle().finished(), game.openingBattle().clockRunning());
             var feedback = game.openingBattle().answers().getLast(); assertTrue(feedback.correct());
             assertEquals(q.id(), feedback.questionId()); assertFalse(feedback.explanation().isBlank());
         }
-        assertEquals(Duration.ofSeconds(75), expectedLeft);
+        assertEquals(Duration.ofMillis(67400), expectedLeft);
         var ending = game.openingBattle().ending();
         assertEquals(OpeningBattle.AnimationCue.VICTORY, ending.animation()); assertEquals(89, ending.grade());
         assertFalse(ending.dialogue().isEmpty()); assertFalse(game.snapshot().openingCompleted());

@@ -68,6 +68,7 @@ public final class GameController {
     }
     /** Story data only. Intro and ending presentation/animation belong to the frontend. */
     public List<String> openingIntro() { return content.opening().intro(); }
+    /** Starts the continuous 180-second exam clock, including menus and animations. */
     public Result startOpeningBattle() {
         return change("Opening exam started.", s -> {
             if (s.openingCompleted || s.day != 1 || s.openingBattle != null)
@@ -80,15 +81,15 @@ public final class GameController {
         return s.openingBattle;
     }
     public OpeningBattle.View openingBattle() { return opening(state).view(nanoClock.getAsLong()); }
-    /** Bullet impact: charge HP once without starting a clock, or immediately pass out at zero HP. */
+    /** Bullet impact: settle the running clock first, then charge HP once unless the exam has timed out. */
     public Result hitOpeningQuestion(String questionId) {
         return change("Opening question impact resolved; read the battle view.", s -> {
             opening(s).hit(questionId, nanoClock.getAsLong()); return List.of();
         });
     }
-    /** Call after reveal to resume the shared exam budget. Never charges HP or resets remaining time. */
+    /** Call after reveal to permit answering. The exam clock is already running; no HP charge or time reset. */
     public Result startOpeningQuestion(String questionId) {
-        return change("Opening question clock started.", s -> {
+        return change("Opening question ready for answers; read the battle view.", s -> {
             opening(s).start(questionId, nanoClock.getAsLong()); return List.of();
         });
     }

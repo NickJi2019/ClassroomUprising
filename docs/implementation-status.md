@@ -1,6 +1,6 @@
 # Foundation implementation status
 
-Date: 2026-11-10. Current action: the backend's previous-semester opening exam (backend request 22) is merged into the frontend history; its frontend integration follows as frontend request 32. Earlier frontend requests (22-31) are recorded below.
+Date: 2026-11-11. Current action: backend request 25 implements the continuous opening exam clock on top of frontend request 36 (298e5e3). Earlier request sections below are historical records; the current contract is in frontend-opening-handoff.md.
 
 This record separates implemented behavior from the full design target. No production balancing configuration or missing game rule is approved by this implementation.
 
@@ -8,7 +8,7 @@ This record separates implemented behavior from the full design target. No produ
 | --- | --- | --- |
 | Calendar | Exact 40-day schedule; six units; Midterm day 20 and Final day 40 | Authored content is external |
 | Daily flow | Opening exam and its acknowledgement, one Lesson choice, other classes, Hub slots, normal/early sleep, half-slot and closed-day transition | Two-level classroom menus and the opening exam connected in the frontend |
-| Opening exam | Isolated OpeningBattle + OpeningContent; ten reviewed questions; 1 HP per answer; one consumable duck; backend timing and both ending cues/dialogue | Played in `OpeningScreen` as a turn-based battle (frontend requests 32-34, 36), its ending told in `OpeningEndingScreen` (request 36); no current-term grade pollution |
+| Opening exam | Isolated OpeningBattle + OpeningContent; ten reviewed questions; 1 HP per impact; one consumable duck; continuous 180 seconds from battle start until ending; expiry precedes action effects | Played in `OpeningScreen` as a turn-based battle (frontend requests 32-34, 36), its ending told in `OpeningEndingScreen` (request 36); no current-term grade pollution |
 | Effects | Explicit numeric deltas; tutorial negative effects waived; dated next-day effects | Amounts and composition are not production policy defaults |
 | Attendance | Two free absences, then percentage-point deductions; leave exempt; no major-exam skip | Tutorial accounting must be supplied; skipped-class free activities not implemented |
 | Questions | Fixed ordinary banks; sampled major banks; optional authored difficulty ranks for combat | Full question content, answer keys and approved timing choices remain explicit |
@@ -151,7 +151,9 @@ See [frontend-opening-handoff.md](frontend-opening-handoff.md) for the callable 
 
 Observed checks for this increment: full baseline **348 tests / 337 passed / 11 failed**; modified full suite **400 / 380 / 20**, all failures in preserved frontend tests (GameSessionCombatTest 9, GameSessionTest 8, TutorialTipsTest 2, ClockTimesTest 1). Backend/core, public contracts, unchanged Main entry checks and backend-owned review-content tests: **294 passed**, including **52 new opening/content/contract cases**. `installDist` succeeds and its JAR includes both opening classes and the authored resource. Class/sequence Mermaid sources render successfully. This is build/headless evidence, not a rendered opening or animation acceptance.
 
-## Opening impact and reveal clock — current backend request 23
+## Historical: opening impact and reveal clock — backend request 23
+
+Clock-after-reveal behavior below was superseded by request 25; impact/reveal separation remains.
 
 This section supersedes earlier opening answer-cost/clock-at-hit descriptions. The user approved separating HP impact from clock start after reading request 33's frontend handoff. `hitOpeningQuestion(id)` charges 1 HP once and enters QUESTION_REVEAL; zero HP ends immediately at PASS_OUT/67. `startOpeningQuestion(id)` requires that impacted ID in QUESTION_REVEAL and starts the complete limit only then, without damage. Answers do not charge HP. Revelation has no deadline, and duplicate/stale callbacks reject transactionally. Ninth unhealed impact ends with eight submitted answers. All 67/89 and fresh Day1 paths, duck effects, no HP cap and normal semester combat remain unchanged.
 
@@ -159,11 +161,22 @@ Frontend request 33 already fires in authored order and renders impacts/ripples.
 
 Observed verification for this increment: baseline request33 **427/427 passed**. The modified full run reports **430 cases / 410 passed / 20 failures** in unchanged frontend tests: GameSessionTest10, LessonDecisionFlowTest6, TutorialTipsTest2, ClockTimesTest1, and OpeningFlowTest initializationError1. OpeningFlowTest's failed shared setup replaces its six test cases with one initializationError in the JUnit report; this explains the total instead of 435 (427 + 8 new backend cases). No test was removed or disabled. Backend/core/public-contract/entry/backend-owned lecture subset: **302 passed**; installDist succeeds. Full-suite green and runtime callback acceptance require Claude's frontend migration.
 
-## Shared opening answering budget — current backend request 24
+## Historical: shared opening answering budget — backend request 24
+
+Answering-only time and paused-phase behavior below were superseded by request 25.
 
 The user clarified that all ten questions share **180 seconds of answering time**, not three minutes per question and not continuous wall time across the whole battle. OpeningBattle accumulates completed-question elapsed time and combines it with the active question's monotonic interval. Only QUESTION consumes budget. SELECT_QUESTION, QUESTION_REVEAL, feedback/turn transitions and endings preserve the remainder. Active-question duck use counts; a duck between questions does not. At exact exhaustion the result remains TIMEOUT/67, with no duplicate impact damage or answer feedback. Polling/reading/repeated callbacks do not double charge or refill the budget.
 
 `View.timeLimit()` and `totalTimeLimit()` report180 seconds, `remaining()` reports shared leftover time in every phase, and `clockRunning()` distinguishes active answering. The legacy ordinal accessor reports the same total for every valid ordinal; it is not a new-question allowance. Snapshot copies preserve accumulated time. HP/duck/67-or89-to-Day1, question content and normal semester combat remain unchanged. The earlier per-question decreasing-limit descriptions are superseded for opening only. Frontend source remains unchanged and needs the existing split-callback migration plus shared-counter text/test updates, detailed in frontend-opening-handoff.md.
 
 
-Current request24 verification: baseline **430 cases / 410 passed / 20 frontend failures**. Modified full run **437 / 417 / 20**, with exactly the same failed test identities. Backend/core/public-contract/entry/backend-owned lecture subset: **309 passed**; seven new cases cover shared time accumulation, paused phases, repeated polling, between-question duck use, a later-question recovery/deadline tie, copied budget state, stable ending time and stale callbacks. Existing timing cases and the public consumer were updated to assert the shared budget instead of per-question limits. `installDist` succeeds and both diagrams render. The frontend source and its pending migration failures are preserved; this is not runtime UI verification.
+Historical request24 verification: baseline **430 cases / 410 passed / 20 frontend failures**. Modified full run **437 / 417 / 20**, with exactly the same failed test identities. Backend/core/public-contract/entry/backend-owned lecture subset: **309 passed**; seven new cases cover shared time accumulation, paused phases, repeated polling, between-question duck use, a later-question recovery/deadline tie, copied budget state, stable ending time and stale callbacks. Existing timing cases and the public consumer were updated to assert the shared budget instead of per-question limits. `installDist` succeeds and both diagrams render. The frontend source and its pending migration failures are preserved; this is not runtime UI verification.
+
+
+## Continuous opening clock — current backend request 25
+
+The user confirmed on 2026-11-11 that the same 180 seconds run continuously from `startOpeningBattle()` through SELECT_QUESTION, QUESTION_REVEAL, QUESTION and between-turn animations. Only an ending freezes the view. A fixed `battleStarted` timestamp replaces answering-segment accumulation; copies preserve the start and terminal elapsed time. `clockRunning()` is true whenever unfinished. `startOpeningQuestion` only permits answering after reveal; all public method signatures remain unchanged.
+
+Every hit/start/answer/duck first settles the clock, before validating IDs or applying effects. An expired callback commits TIMEOUT/67/DEFEAT with no new action; even a would-be lethal ninth impact keeps the last HP. Repeated callbacks after TIMEOUT are harmless. Pre-deadline invalid actions and post-non-timeout-ending actions retain transactional rejection. Recovery due strictly before timeout still settles on a missed pulse; timeout wins a tie in both question and turn phases. HP, one duck, questions, endings/Day 1, saves and normal combat are unchanged. No allowance was added for estimated animation time.
+
+Baseline 298e5e3: **443 passed**. Modified full suite: **462 passed**, no failures/skips; 19 added timing/late-callback/terminal cases. The old timing assertions specifically named in request 36 section 4 were migrated in OpeningFlowTest using an injected clock where exact initial time is asserted. Frontend implementation, Main, FXML/CSS and assets are unchanged. Real-window timeout presentation in each animation stage remains unverified in this backend increment; Claude's requested acceptance steps are in frontend-opening-handoff.md. Prior frontend harness observations remain evidence for their original revisions, not this new rule.

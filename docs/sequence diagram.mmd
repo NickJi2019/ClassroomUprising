@@ -23,35 +23,38 @@ sequenceDiagram
         Caller->>Game: openingIntro()
         Game-->>Caller: Authored previous-semester dialogue
         Caller->>Game: startOpeningBattle()
-        Game->>Opening: Initial HP 9 with no cap, low SAN/XP, one duck
+        Game->>Opening: Initial HP 9, no cap, low SAN/XP, one duck, start continuous 180-second deadline
+        Note over Caller,Opening: All live phases consume time, timer pulses run through menus and animations
         loop Mr. Reward fires next authored question until ending
-            Caller->>Game: hitOpeningQuestion(id) at bullet impact
-            Game->>Opening: Charge 1 HP once, enter QUESTION_REVEAL or immediate PASS_OUT
-            alt Impact depleted HP
-                Game-->>Caller: Immediate PASS_OUT, no reveal or answer clock
+            Caller->>Game: advanceOpeningBattle() on every pulse in any phase
+            Game->>Opening: Settle recovery and timeout in time order, timeout wins ties
+            Caller->>Game: hitOpeningQuestion(id) at bullet impact, if still live
+            Game->>Opening: Tick before validating or applying impact
+            alt Deadline reached
+                Game-->>Caller: TIMEOUT, 67, DEFEAT, no impact damage or action effects
+            else Impact depleted HP
+                Game-->>Caller: HP charged once, immediate PASS_OUT, no reveal or answer
             else Player survives impact
-                Caller->>Caller: Fully reveal question paper with no question clock
+                Game-->>Caller: HP charged once, QUESTION_REVEAL, clock still running
+                Caller->>Caller: Reveal question paper while exam time continues
                 Caller->>Game: startOpeningQuestion(id) on reveal completion
-                Game->>Opening: Resume leftover shared 180-second budget, no HP change
-                opt Use the sole duck during the question
+                Game->>Opening: Tick first, if live, permit answers, no clock or HP change
+                opt Use the sole duck when allowed and still live
                     Caller->>Game: useOpeningDuck()
-                    Game->>Opening: Reserve item and recovery delay, clock continues
+                    Game->>Opening: Tick first, if live, reserve item and recovery delay
                 end
-                loop Frontend timer pulses
-                    Caller->>Game: advanceOpeningBattle()
-                    Game->>Opening: Settle recovery or shared budget exhaustion in time order
-                end
-                opt Answer before timeout
+                opt Answer before ending
                     Caller->>Game: answerOpeningQuestion(id, optionId)
-                    Game->>Opening: Record elapsed answering time once, pause budget, judge, no HP change
+                    Game->>Opening: Tick first, if live, judge immediately, no HP charge or pause
                 end
             end
             Caller->>Game: openingBattle()
-            Game-->>Caller: Immutable feedback and possible ending
+            Game-->>Caller: Immutable live remaining time, feedback and possible ending
+            Note over Caller,Opening: Feedback, fold and counter-shot consume time unless already ended
         end
-        Note over Caller,Opening: Wrong or timeout loses, lethal hit passes out before any answer, ten correct wins
-        Game-->>Caller: 67 defeat or 89 victory, animation cue and authored dialogue
-        Caller->>Caller: Play ending once (Claude frontend integration pending)
+        Note over Caller,Opening: Late hit/start/answer/duck only settle timeout, including stale callbacks
+        Game-->>Caller: Freeze remaining, 67 defeat or 89 victory, cue and dialogue
+        Caller->>Caller: Play ending once, real-window continuous-timeout checks pending
         Caller->>Game: completeOpening()
         Game->>State: Clear isolated battle, mark opening complete, keep fresh Day 1 stats and grades
     end
