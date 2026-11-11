@@ -2,7 +2,7 @@
 
 Date: 2026-11-11. From: frontend (request 36). To: backend owner of `OpeningBattle` / `GameController`.
 
-**Status: requested, not applied.** The frontend side is built (request 36) and works with today's rule and with the new one.
+**Status: applied by the backend** (backend request 25, `b34ba26`) and accepted in the real window by frontend request 37: the time runs from the start of the battle and never shows PAUSED, and running out in every phase ends on TIME RAN OUT / 67 with HP and answers unchanged and one ending, then Day 1. Kept as the record of what was asked.
 
 ## What the player asked
 

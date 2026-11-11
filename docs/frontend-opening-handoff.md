@@ -71,7 +71,7 @@ Wrong answer, timeout or pass-out gives 67 with mockery; ten correct while alive
 
 Backend/headless evidence: baseline **443/443**, modified **462/462**, no failures or skipped cases. Nineteen added cases cover all live phases, pure reads versus pulse settlement, valid/invalid/repeated late callbacks, timeout rather than lethal ninth impact, between-turn recovery/deadline ordering, and victory/pass-out freezing. Existing cases now assert continuous menu/reveal/feedback time, snapshot start preservation, nanosecond boundaries, signed nanoTime wrap, unchanged damage and both Day 1 branches. The public consumer completes all ten questions with a duck and ten 0.76-second reveals: 112.6 seconds used, 67.4 remaining at victory.
 
-Real-window acceptance remains with Claude: test timeout during the initial turn/fan-out, bullet flight, reveal, verdict and counter-shot, alongside ordinary QUESTION timeout. Confirm TIME RAN OUT / 67, no late HP flash/drop, no re-opened question or duplicate ending, and fresh Day 1. Confirm the timer runs from battle start and never displays PAUSED while live. Backend tests do not establish visual timing, sound or keyboard/mouse acceptance.
+Real-window acceptance was run by frontend request 37 (all passed; see implementation-status.md). It was asked to test timeout during the initial turn/fan-out, bullet flight, reveal, verdict and counter-shot, alongside ordinary QUESTION timeout. Confirm TIME RAN OUT / 67, no late HP flash/drop, no re-opened question or duplicate ending, and fresh Day 1. Confirm the timer runs from battle start and never displays PAUSED while live. Backend tests do not establish visual timing, sound or keyboard/mouse acceptance.
 
 ## Prompt to Claude
 
