@@ -35,7 +35,7 @@ Command output, hashes and rollback evidence accompany this change as verificati
 
 ## Remaining design work
 
-The T01–T14 register in Sprint1 remains authoritative: Final combat, automatic grading/feedback, Retake reset/ending policy, production activity/recovery values, full lesson/question/rubric content and social/reward mechanics remain open. Normal sleep in EVENING/LATE_NIGHT is now confirmed; its recovery amount must be supplied.
+The T01–T14 register in [Sprint2.md](Sprint2.md) remains authoritative; [Sprint1.md](Sprint1.md) preserves the original document. Final combat, automatic grading/feedback, Retake reset/ending policy, production activity/recovery values, full lesson/question/rubric content and social/reward mechanics remain open. Normal sleep in EVENING/LATE_NIGHT is now confirmed; its recovery amount must be supplied.
 
 The class diagram shows the core classes, the JavaFX frontend layer and Main as its launcher. It does not present the planned StoryController/AssessmentController objects as working code. The sequence diagram traces callable prototype operations and labels separate planned boundaries. The IPO remains the target, not a claim that every row has been delivered.
 

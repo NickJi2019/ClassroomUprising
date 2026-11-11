@@ -1,6 +1,6 @@
 # Midterm AI Feasibility Audit — evidence notes
 
-Date: 2026-11-10. These notes collect facts for the Sprint 2 **Midterm AI Feasibility Audit Report** ([assignment](assignment.md), 30 marks). They are evidence, not the report itself. They do not change the rule register in [Sprint1.md](Sprint1.md).
+Date: 2026-11-10. These notes collect facts for the Sprint 2 **Midterm AI Feasibility Audit Report** ([assignment](assignment.md), 30 marks). They are evidence, not the report itself. They do not change the current rule register, now maintained in [Sprint2.md](Sprint2.md).
 
 > These notes were drafted by the same AI tool that wrote the JavaFX frontend. That makes them an AI self-review, not an independent check. The team must verify each row before using it. Cells marked **Team** need facts the repository does not contain.
 
@@ -8,7 +8,7 @@ Sources compared:
 
 - **Sprint 1 Scope**: the Scope Document and Feasibility Study in Sprint1.md. This is the original JRPG version, with levels, skills, equipment, a leaderboard, a classroom battle map and three boss phases.
 - **Design brief**: the team's design notes ("Official version of plan" plus the Chinese planning notes on the calendar, Lesson, Lab/Test, Student Hub, SAN and Rewards).
-- **Rule register**: Sprint1.md "Design basis and status — 2026-11-09". It holds the confirmed calendar, rules R01–R15 and pending rules T01–T14.
+- **Rule register at the time of this audit**: Sprint1.md "Design basis and status — 2026-11-09", containing the confirmed calendar, rules R01–R15 and pending rules T01–T14. The current register has since moved to [Sprint2.md](Sprint2.md); this reference update does not revise the dated audit observations below.
 - **Code**: this repository on 2026-11-10 (working tree), together with [implementation-status.md](implementation-status.md).
 
 ## 1. Sprint 1 constraints (criterion worth 5 marks)

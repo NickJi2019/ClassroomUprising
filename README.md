@@ -179,7 +179,7 @@ The core tests cover calendar/rules, save round trips and invalid files, and act
 
 Automated tests do not render the window. Rendering and the Day 1–5 path were checked separately on macOS; full manual play-testing has not been recorded.
 
-[Implementation status](docs/implementation-status.md) records current boundaries. [Sprint1](docs/Sprint1.md) remains the authority for approved rules and T01–T14 pending decisions. The class diagram includes the frontend layer; the sequence diagram traces core operations. Final combat, production grading/SAN formulas, full Retake/reset, endings, activities and authored content remain separate work.
+[Implementation status](docs/implementation-status.md) records current boundaries. [Sprint1](docs/Sprint1.md) preserves the original document. [Sprint2](docs/Sprint2.md) now holds the current approved rules and T01–T14 pending decisions. The class diagram includes the frontend layer; the sequence diagram traces core operations. Final combat, production grading/SAN formulas, full Retake/reset, endings, activities and authored content remain separate work.
 
 ## Authored daily lessons and classroom choices (backend increment, 2026-11-10)
 
