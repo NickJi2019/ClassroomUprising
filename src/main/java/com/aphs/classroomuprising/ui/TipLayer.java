@@ -26,8 +26,9 @@ final class TipLayer extends StackPane {
 
     TipLayer() {
         setPickOnBounds(false);
-        setAlignment(Pos.TOP_CENTER);
-        setPadding(new Insets(20, 0, 0, 0));
+        // Between the HUD's date block (ends at x 336) and its stat chips (start at about x 865).
+        setAlignment(Pos.TOP_LEFT);
+        setPadding(new Insets(20, 0, 0, 348));
     }
 
     void show(TutorialTips.Tip tip) {
@@ -53,8 +54,8 @@ final class TipLayer extends StackPane {
         HBox next = new HBox(14, badgeBox, text);
         next.getStyleClass().add("tip-card");
         next.setAlignment(Pos.CENTER_LEFT);
-        next.setMaxWidth(600);
-        next.setPrefWidth(600);
+        next.setMaxWidth(500);
+        next.setPrefWidth(500);
         next.setMaxHeight(USE_PREF_SIZE);
         next.setOnMouseClicked(e -> clear());
         card = next;

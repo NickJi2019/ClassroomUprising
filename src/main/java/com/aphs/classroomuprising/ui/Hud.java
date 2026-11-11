@@ -27,7 +27,7 @@ public class Hud extends AnchorPane {
     private final Label period = new Label();
     private final HBox pips = new HBox(5);
     private final Label hp = new Label();
-    private final SanBar san = new SanBar(150, 16);
+    private final SanBar san = new SanBar(130, 16);
     private final Label xp = new Label();
     private final Label xpCaret = new Label("▾");
     private final XpBreakdown xpParts = new XpBreakdown();
@@ -67,7 +67,7 @@ public class Hud extends AnchorPane {
         dayTag.getStyleClass().addAll("tag-caret", "hud-day");
         dayTag.setMaxWidth(USE_PREF_SIZE);
         course.getStyleClass().addAll("display", "hud-course");
-        // Ends before the tip card (which starts at x 340); a longer authored title ends in an ellipsis.
+        // Ends before the tip card (which starts at x 348); a longer authored title ends in an ellipsis.
         course.setMaxWidth(300);
         period.getStyleClass().addAll("display", "hud-period");
         pips.setAlignment(Pos.CENTER_LEFT);

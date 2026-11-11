@@ -51,11 +51,17 @@ final class HubScreen extends Screen {
     @Override
     protected Parent build() {
         StackPane root = Views.load("hub.fxml", this);
+        boolean dorm = inDorm(ctx.session().view());
         root.getChildren().add(1, new Backdrop(
-                new Backdrop.Glyph("STUDENT HUB", 420, 300, 170, true),
+                new Backdrop.Glyph(dorm ? "DORM" : "STUDENT HUB", 420, 300, 170, true),
                 new Backdrop.Glyph("while (awake)", 760, 90, 58, false)));
         options.setOnSelect(this::preview);
         return root;
+    }
+
+    /** Late night and the early-sleep morning happen in the dorm; other Hub periods at the Hub. */
+    private static boolean inDorm(GameState view) {
+        return view.period() == DayPeriod.LATE_NIGHT || view.period() == DayPeriod.MORNING_BONUS;
     }
 
     @Override
@@ -68,11 +74,12 @@ final class HubScreen extends Screen {
     protected void onShown() {
         GameState view = ctx.session().view();
         hud.show(view, ctx.demoLabel());
-        // Late night and the early-sleep morning happen in the dorm; other Hub periods at the Hub.
-        boolean dorm = view.period() == DayPeriod.LATE_NIGHT || view.period() == DayPeriod.MORNING_BONUS;
+        boolean dorm = inDorm(view);
         String time = view.period().name().toLowerCase(java.util.Locale.ROOT);
         ctx.stage(scene, dorm ? "dorm" : "hub", time, time);
-        place.setText(view.period() == DayPeriod.MORNING_BONUS ? "MORNING  ·  BONUS TIME" : "STUDENT HUB  ·  " + UiText.period(view.period()));
+        // The heading names the place shown.
+        place.setText(view.period() == DayPeriod.MORNING_BONUS ? "DORM  ·  MORNING BONUS TIME"
+                : (dorm ? "DORM  ·  " : "STUDENT HUB  ·  ") + UiText.period(view.period()));
         current = optionsFor(view);
         options.setChoices(current.stream()
                 .map(o -> ChoiceList.Choice.of(o.label(), null, () -> act(o)).tone(o.tone()))
