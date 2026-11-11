@@ -163,7 +163,7 @@ Lower-case letters, digits, `-` and `_` only; images `.png`, `.jpg` or `.jpeg`, 
 | `backgrounds/hallway.jpg` | delivered: the team's photo of a school hallway, 1920×1080 |
 | `backgrounds/student-hub.jpg` | delivered: the team's photo of the Student Hub, 1920×1080, used for every Hub period (the evening grade darkens it) |
 | `backgrounds/student-hub-evening.jpg` | optional, not listed: a dedicated evening photo can be added as `background.hub.evening` |
-| `backgrounds/dorm.jpg` (dorm, every period) | delivered: a dorm room at dusk with the lights on, cut to 16:9 keeping the wall lettering, 1920×1080, no metadata; the never-delivered late-night variant was taken out of the manifest, so late night shows this photo under the late-night grade |
+| `backgrounds/dorm.jpg` (dorm, every period) | delivered: a dorm room at dusk with the lights on, cut to 16:9 from the lower part of the photo (window, bed, desk and the string of lights; little ceiling), 1920×1080, no metadata; the never-delivered late-night variant was taken out of the manifest, so late night shows this photo under the late-night grade |
 | `characters/reward/*.png` (7 expressions, see Mr. Reward) | delivered: the team's photos of the teacher |
 | `ui/reward-logo.png` | delivered: the team's hand-drawn title |
 | `characters/student/neutral.png`, `worried.png` | missing |
