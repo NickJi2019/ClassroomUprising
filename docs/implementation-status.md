@@ -1,6 +1,6 @@
 # Foundation implementation status
 
-Date: 2026-11-10. Current action: the frontend now presents the authored lesson decisions in two classroom menus (frontend request 22) on top of the backend's lesson decisions and option settlement; no core, Main, asset or build dependency change in that request.
+Date: 2026-11-10. Current action: the backend's previous-semester opening exam (backend request 22) is merged into the frontend history; its frontend integration follows as frontend request 32. Earlier frontend requests (22-31) are recorded below.
 
 This record separates implemented behavior from the full design target. No production balancing configuration or missing game rule is approved by this implementation.
 
@@ -8,6 +8,7 @@ This record separates implemented behavior from the full design target. No produ
 | --- | --- | --- |
 | Calendar | Exact 40-day schedule; six units; Midterm day 20 and Final day 40 | Authored content is external |
 | Daily flow | Opening acknowledgement, one Lesson choice, other classes, Hub slots, normal/early sleep, half-slot and closed-day transition | Two-level classroom menus connected in the frontend; no actual opening battle |
+| Opening exam | Isolated OpeningBattle + OpeningContent; ten reviewed questions; 1 HP per answer; one consumable duck; backend timing and both ending cues/dialogue | UI/animation and associated frontend tests await Claude; no current-term grade pollution |
 | Effects | Explicit numeric deltas; tutorial negative effects waived; dated next-day effects | Amounts and composition are not production policy defaults |
 | Attendance | Two free absences, then percentage-point deductions; leave exempt; no major-exam skip | Tutorial accounting must be supplied; skipped-class free activities not implemented |
 | Questions | Fixed ordinary banks; sampled major banks; optional authored difficulty ranks for combat | Full question content, answer keys and approved timing choices remain explicit |
@@ -22,7 +23,7 @@ This record separates implemented behavior from the full design target. No produ
 | Java Lab | Actual JDK compilation, child-JVM cases, bounded output/time, independent style findings | Trusted local runner, not a security sandbox or automatic course grader |
 | Relationships/rewards | State representation and persistence | No authored interaction/item gameplay |
 
-No production damage, ending, SAN, XP, grade or detection defaults are installed. The separately approved Demo profile contains explicitly provisional initial attributes and activity/rule values; tests retain independent fixtures. PendingRuleException identifies missing gameplay/content T-numbers.
+No unspecified production damage, ending, SAN, XP, grade or detection defaults are installed. The explicit opening exception has fixed 1-HP cost, 67/89 story results and configured Demo attributes/item values. The separately approved Demo profile contains explicitly provisional initial attributes and activity/rule values; tests retain independent fixtures. PendingRuleException identifies missing gameplay/content T-numbers.
 
 ## Checks
 
@@ -122,3 +123,15 @@ Checks for frontend request 28: the 366 JUnit tests pass (no new unit tests: the
 Checks for frontend request 23: 360 JUnit tests pass (4 new in `DialogueHistoryTest`: each line keeps its slide, a new script starts without one, the whole Day 1 lecture replays with its slides, log paging). In the real screens (scratch harness): two taps advanced exactly one line; holding Enter with simulated keyboard auto-repeat fast-forwarded the rest of the Day 1 lecture in about 2.4 s with the FAST mark shown, then 5 more seconds of repeats left the class unsettled and the first menu unchanged; the log opened over the menu on the newest line, six lines up showed the VARIABLES slide, Esc closed the large slide and then the log without opening the Esc menu, focus returned to the menu and the state was unchanged; on the opening a 3-second mouse hold reached the end without pressing BEGIN THE RETAKE, and its log listed the 4 lines with no slide panel.
 
 Checks for frontend request 22: 356 JUnit tests pass (the 348 of the backend increment, with the 11 obsolete `ask` fixture steps in `GameSessionTest` and `GameSessionCombatTest` migrated to authored option IDs and their assertions kept, plus 8 in `LessonDecisionFlowTest`: Day 1 answers and Day 2 asks, three authored labels in order on Days 1-4 with no IDs shown, menus change nothing, the appropriate response's bonus once, wrong tutorial responses only warn, a wrong Day 3 response costs its SAN and grants nothing, quiet changes nothing, and stale days, malformed IDs and repeats never settle). In the real classroom screen (scratch harness): Days 1-2 played their 16 and 15 lecture lines with 7 and 5 slides cued and finished; on Days 1-3 the first menu, the responses, Backspace back and opening again left the state unchanged; a wrong Day 1 answer kept SAN and XP and showed the feedback and tutorial warning; the right Day 2 question added Coding Vibe +4 and Knowledge +2 with the feedback; quiet on Day 3 changed nothing and showed its narration. Manual play and other operating systems have not been checked.
+
+## Opening exam — backend only
+
+`OpeningContent` loads validated UTF-8 story, question, option, answer, provenance and provisional SAN/XP/duck data from `/demo/opening.properties`. `OpeningBattle` owns the isolated previous-semester state. GameController exposes intro/start/select/answer/duck/tick/view and validates terminal acknowledgement before Day 1. Snapshots copy the battle; public views are immutable and omit unsubmitted answer keys. No frontend code, assets, dependencies, Main arguments or save fields changed.
+
+The latest correction removes the HP upper cap entirely (not 100); initial opening HP is 9. The previous unlimited-duck proposal is replaced by one consumed item. Failed HP, wrong-answer and timeout branches produce 67; successful ten-question completion produces 89. Ending data requests frontend animation, not a claim that an animation exists. Both acknowledgements clear opening data and keep the original Day 1 initial student/empty gradebook. Tutorials continue to waive classroom penalties, not these explicit prologue rules.
+
+The normal combat policy remains independent: its soft timeout, grading, fatigue and item framework have not been filled in by opening constants. Explicit legacy catalogs without an opening scenario retain fixture acknowledgement compatibility. The shipped Demo always installs this scenario, and the old frontend skip is rejected.
+
+See [frontend-opening-handoff.md](frontend-opening-handoff.md) for the callable lifecycle and Claude prompt, and [opening-question-sources.md](opening-question-sources.md) for PDF pages/keys/fingerprints and executable question verification. Full-suite/frontend migration status and exact test evidence accompany this delivery; backend completion is not UI completion.
+
+Observed checks for this increment: full baseline **348 tests / 337 passed / 11 failed**; modified full suite **400 / 380 / 20**, all failures in preserved frontend tests (GameSessionCombatTest 9, GameSessionTest 8, TutorialTipsTest 2, ClockTimesTest 1). Backend/core, public contracts, unchanged Main entry checks and backend-owned review-content tests: **294 passed**, including **52 new opening/content/contract cases**. `installDist` succeeds and its JAR includes both opening classes and the authored resource. Class/sequence Mermaid sources render successfully. This is build/headless evidence, not a rendered opening or animation acceptance.

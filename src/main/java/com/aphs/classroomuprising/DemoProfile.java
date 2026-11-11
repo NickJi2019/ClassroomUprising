@@ -5,7 +5,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.random.RandomGenerator;
 
-/** Explicit opt-in demo data, not production defaults. No frontend, battle or grading policy. */
+/** Explicit opt-in demo data, not production defaults. No frontend or normal-assessment grading policy. */
 public record DemoProfile(String label, StudentState initialStudent, RuleValues rules, ContentCatalog content) {
     public DemoProfile {
         if (label == null || !label.startsWith("DEMO")) throw new IllegalArgumentException("Demo label required.");
@@ -52,7 +52,7 @@ public record DemoProfile(String label, StudentState initialStudent, RuleValues 
             var hub = new LinkedHashMap<String, StatChange>();
             for (String id : f.list("hub.ids")) hub.put(id, f.effect("hub." + id));
             // Assessments and later course content are deliberately absent, not fake evaluated marks.
-            var content = new ContentCatalog(lessons, hub, Map.of(), Map.of(), Map.of(), f.effect("other.reviseIcs"));
+            var content = new ContentCatalog(lessons, hub, Map.of(), Map.of(), Map.of(), f.effect("other.reviseIcs"), OpeningContent.load(f.text("opening.resource")));
             var profile = new DemoProfile(f.text("profile.label"), initial, rules, content);
             f.finish();
             return profile;
@@ -61,7 +61,7 @@ public record DemoProfile(String label, StudentState initialStudent, RuleValues 
         }
     }
 
-    /** Each call starts a separate Day 1 run; the opening acknowledgement is still required. */
+    /** Each call starts a separate Day 1 run; the opening exam and ending acknowledgement are still required. */
     public GameController newGame(String name, RandomGenerator random) {
         return new GameController(new GameState(name, initialStudent), rules, content, random);
     }

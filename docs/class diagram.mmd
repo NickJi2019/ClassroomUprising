@@ -309,6 +309,13 @@ classDiagram
         -RuleValues rules
         -ContentCatalog content
         +snapshot() GameState
+        +openingIntro() List~String~
+        +startOpeningBattle() Result
+        +startOpeningQuestion(String id) Result
+        +answerOpeningQuestion(String id, String option) Result
+        +useOpeningDuck() Result
+        +advanceOpeningBattle() Result
+        +openingBattle() OpeningView
         +completeOpening() Result
         +showLesson() Lesson
         +lessonChoice(String choice) Result
@@ -701,7 +708,7 @@ classDiagram
     Outcome <|.. Rejected
     Pending ..> PendingRuleException : shown, never swallowed
 
-    note for GameController "Opening is acknowledgement, not rendered combat.<br/>Midterm Continue/Retake explicitly report T10.<br/>Combat backend exists with explicit policy.<br/>Opening/Final battle presentation and endings remain pending."
+    note for GameController "Opening exam backend is implemented, rendering pending Claude.<br/>Midterm Continue/Retake explicitly report T10.<br/>Combat backend exists with explicit policy.<br/>Opening cues and dialogue exist, Final policy remains pending."
     note for GameState "HP is separate from marks and energy.<br/>Returned snapshots are defensive copies.<br/>Relationships/rewards are persisted data, not playable systems yet."
     note for RuleValues "Null is TBD, never zero.<br/>No production balancing defaults.<br/>Separate opt-in Demo supplies provisional values."
     note for ContentCatalog "One settlement: participate then response, OR quiet.<br/>Menu navigation is frontend-only and not yet wired.<br/>Day 1 raises hand; Day 2 asks a chosen question.<br/>Fixed ordinary questions, supplied major sample size.<br/>Demo supplies four lessons and two Hub activities.<br/>Assessment banks and later content remain pending."
@@ -725,3 +732,43 @@ classDiagram
     CombatSession --> Question : difficulty-ranked content
     note for CombatRules "30s soft threshold and Combo +5 are confirmed.<br/>HP formula, score conversion and ambiguous composition require explicit policy."
     note for CombatSession "Backend monotonic clock and stale-result tickets.<br/>Final completed answer gets Dasher.<br/>Reward delays are not inventory/effect operations.<br/>No mid-combat save."
+
+    class OpeningContent {
+        +load(String resource) OpeningContent$
+        +questions() List~QuestionView~
+        +initialStudent() StudentState
+        +intro() List~String~
+        +defeat() List~String~
+        +victory() List~String~
+    }
+    class OpeningBattle {
+        +timeLimit(int ordinal) Duration$
+        ~copy() OpeningBattle
+        ~view(long now) OpeningView
+        ~tick(long now) void
+    }
+    class OpeningView {
+        <<record>>
+        +Phase phase
+        +StudentState student
+        +int ducksRemaining
+        +boolean usingDuck
+        +Duration remaining
+        +List~Feedback~ answers
+        +OpeningEnding ending
+    }
+    class OpeningEnding {
+        <<record>>
+        +int grade
+        +DefeatReason reason
+        +AnimationCue animation
+        +List~String~ dialogue
+    }
+    ContentCatalog o-- OpeningContent : optional explicit scenario
+    GameState *-- OpeningBattle : ephemeral previous semester
+    GameController --> OpeningBattle : copy and settle
+    OpeningBattle --> OpeningContent : authored keys and story
+    OpeningBattle ..> OpeningView : immutable observation
+    OpeningView --> OpeningEnding
+    note for OpeningBattle "Initial HP 9, no upper cap, one duck.<br/>One HP per answer, immediate correctness.<br/>Hard deadline 20 seconds times 0.9 per ordinal.<br/>Both endings enter unchanged Day 1."
+    note for OpeningEnding "67 defeat or pass-out, 89 victory.<br/>Cues and dialogue only, frontend animation pending.<br/>Never inserted into this term's GradeBook."

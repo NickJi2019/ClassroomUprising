@@ -1,6 +1,6 @@
 # Classroom Uprising
 
-Java campus-life game: a **rule core** plus a **JavaFX frontend** that plays the approved Demo (Days 1–4). The earlier Swing UI, its demonstration content, launcher and Main command-line routes were removed and are not used by the new frontend.
+Java campus-life game: a **rule core** plus a **JavaFX frontend** for the approved Demo (Days 1–4). The latest backend opening exam and authored classroom menus await Claude frontend integration; the current old opening acknowledgement is rejected until the battle is played. The earlier Swing UI, its demonstration content, launcher and Main command-line routes were removed and are not used by the new frontend.
 
 ## Build
 
@@ -81,13 +81,15 @@ JavaAssessmentRunner compiles complete Java programs and runs supplied input/out
 
 ## Frontend integration: opt-in Demo profile
 
-The team approved a separate, labelled Demo configuration to unblock frontend work. This does **not** approve its numbers as production balancing. All Demo initial attributes, rule values, lesson text/choices and Hub effects are in `src/main/resources/demo/demo.properties` (UTF-8). `DemoProfile` loads and validates them; malformed/missing values fail explicitly rather than falling back.
+The team approved a separate, labelled Demo configuration to unblock frontend work. This does **not** approve its numbers as production balancing. Day 1–4 Demo initial attributes, rule values, lesson text/choices and Hub effects are in `src/main/resources/demo/demo.properties` (UTF-8). `DemoProfile` loads and validates them; malformed/missing values fail explicitly rather than falling back.
 
 ```java
 DemoProfile demo = DemoProfile.load();
 GameController game = demo.newGame(playerName, java.util.random.RandomGenerator.getDefault());
 // Display demo.label() visibly. Opening playback belongs to the frontend.
-// Only after that playback/acknowledgement:
+// Play the opening via startOpeningBattle/startOpeningQuestion/answerOpeningQuestion.
+// See docs/frontend-opening-handoff.md for timer, duck and ending callbacks.
+// Only after a terminal result AND its ending playback:
 game.completeOpening();
 ContentCatalog.Lesson lesson = game.showLesson();
 // Render lesson.text(), then show participation/quiet followed by decision.responses().
@@ -96,9 +98,9 @@ int lessonDay = game.snapshot().day();
 game.lessonChoice(lessonDay, selectedOptionId); // or lesson.decision().skip().id()
 ```
 
-The profile supplies Days 1–4 only. Day 1 uses RAISE_HAND (answer Mr. Reward); Day 2 uses ASK_TEACHER (choose a question). Every shipped lesson has three authored response options plus a neutral quiet option. One final response settles the class; opening the response menu grants nothing. Only an appropriate response grants its configured XP bonus. An inappropriate response has no XP bonus and a Demo-only -2 SAN effect, waived with a warning on Days 1–2. Quiet has zero immediate effects. Day 3 temporarily uses the ask-teacher variant, not both variants; this is Demo content, not final authoring approval. The calendar stays 40 days/six teaching units. Starting Day 5 Lab still reports T07: there is no supplied assessment bank, Lab rubric or grading policy. Later lesson/review content remains pending. The opening acknowledgement is not a combat implementation.
+The profile supplies Days 1–4 only. Day 1 uses RAISE_HAND (answer Mr. Reward); Day 2 uses ASK_TEACHER (choose a question). Every shipped lesson has three authored response options plus a neutral quiet option. One final response settles the class; opening the response menu grants nothing. Only an appropriate response grants its configured XP bonus. An inappropriate response has no XP bonus and a Demo-only -2 SAN effect, waived with a warning on Days 1–2. Quiet has zero immediate effects. Day 3 temporarily uses the ask-teacher variant, not both variants; this is Demo content, not final authoring approval. The calendar stays 40 days/six teaching units. Starting Day 5 Lab still reports T07: there is no supplied assessment bank, Lab rubric or grading policy. Later lesson/review content remains pending. The separate opening exam is implemented in the backend, with ten sourced MC questions and 67/89 story branches; its screen/animations await Claude. See [opening handoff](docs/frontend-opening-handoff.md) and [question sources](docs/opening-question-sources.md).
 
-Initial Demo values are HP 50, SAN 60, Coding Vibe 0 and six zero Knowledge values. Normal sleep restores 6 SAN, early sleep grants 3 SAN on waking, and using late night schedules -4 effective SAN and 0.5 XP gain for the following day. These are adjustable **Demo values only**. Hub IDs are `rest` and `study`; the resource describes each nine-number effect vector. Do not duplicate these values in UI controllers.
+Day 1 initial Demo values are HP 50, SAN 60, Coding Vibe 0 and six zero Knowledge values. Normal sleep restores 6 SAN, early sleep grants 3 SAN on waking, and using late night schedules -4 effective SAN and 0.5 XP gain for the following day. These are adjustable **Demo values only**. Hub IDs are `rest` and `study`; the resource describes each nine-number effect vector. Do not duplicate these values in UI controllers.
 
 - `demo.content().hubActivityIds()` returns immutable sorted IDs, not a phase-eligibility decision.
 - Read a fresh `game.snapshot()` after each mutation. Its `lessonShown()` and `hasActiveAssessment()` are authoritative read-only flags; old snapshots do not update themselves.
@@ -185,3 +187,9 @@ Content authors can copy [the populated lesson template](docs/templates/lesson.p
 Use `GameController.lessonChoice(lessonDay, optionId)` to guard stale-day callbacks; it resolves the authored ID transactionally and consumes the ICS slot once. Literal `ask`/`raise` actions no longer earn anything for the shipped Demo. The older method/three-argument Lesson constructor remain for explicit legacy fixture catalogs, not as automatic correct-answer aliases. Day-end save format, Main, CLI policy, combat and the 31 review lecture lines are unchanged.
 
 **Frontend integration (frontend request 22).** After the lecture, `ClassroomScreen` offers two menus built by `LessonMenu` from `Lesson.decision()`: take part (RAISE YOUR HAND on Day 1, ASK A QUESTION from Day 2) or the authored quiet option, then the three authored responses in order, with BACK (or Backspace) returning to the first menu. Opening or leaving these menus calls nothing in the core. The final choice goes once through `GameSession.lessonChoice(lessonDay, optionId)` with the day captured when the lecture opened. Afterwards Mr. Reward's authored feedback appears in the dialogue box (staying quiet shows its narration line instead), tutorial warnings as a card, and stat changes as toasts. When a decision prompt is a spoken line (Day 1), Mr. Reward asks it in the dialogue box before the menu. The lesson title replaces "LESSON" in the HUD course line. The obsolete `ask` fixture steps in the frontend tests now use authored option IDs; `LessonDecisionFlowTest` covers the menus and every settlement case. See [the frontend classroom handoff](docs/frontend-classroom-handoff.md).
+
+## Opening backend increment — 2026-11-10
+
+Opening HP starts at **9 with no upper cap**. Exactly one rubber duck is available; its isolated Demo action recovers 3 HP after 5 seconds while the active question clock continues. Opening SAN/XP are separately configured (SAN 1, Coding Vibe and six Knowledge values 0). Each answered question costs 1 HP, correctness is immediate, any wrong answer or timeout loses, and HP 0 passes out. Ten correct answers with positive HP win. Question limits are 20 seconds multiplied by 0.9 for each next answer ordinal. Both 67/89 endings lead to unchanged summer-school Day 1; neither grade enters the current GradeBook.
+
+Backend state/content, verified question transcriptions and public API are delivered. **The current UI has not been migrated and this is not a playable opening demo yet.** Existing frontend tests using direct opening acknowledgement and old classroom `ask` IDs need Claude's migration. Full-suite failures are retained and reported, not hidden. Normal semester CombatSession/CombatRules, Main, dependencies, assets and save schema are unchanged.

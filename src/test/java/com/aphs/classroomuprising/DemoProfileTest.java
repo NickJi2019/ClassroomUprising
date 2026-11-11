@@ -28,7 +28,7 @@ class DemoProfileTest {
         var a = demo.newGame("A", new Random(42)); var b = demo.newGame("B", new Random(42));
         assertEquals(1, a.snapshot().day()); assertFalse(a.snapshot().openingCompleted());
         assertThrows(IllegalStateException.class, a::showLesson);
-        a.completeOpening(); assertFalse(b.snapshot().openingCompleted());
+        OpeningTestSupport.enterDayOne(a); assertFalse(b.snapshot().openingCompleted());
         assertEquals(40, SchoolCalendar.days().size());
     }
 
@@ -47,7 +47,7 @@ class DemoProfileTest {
 
     @Test void fourDayWalkthroughUsesRealCoreTransitionsAndSaveLoad() throws Exception {
         var demo = DemoProfile.load(); var game = demo.newGame("Demo student", new Random(42));
-        game.completeOpening();
+        OpeningTestSupport.enterDayOne(game);
         for (int day = 1; day <= 4; day++) {
             assertEquals(day, game.snapshot().day());
             if (game.snapshot().period() == DayPeriod.MORNING_BONUS) {
@@ -97,7 +97,7 @@ class DemoProfileTest {
         var demo = parse(source().replace("initial.san=60", "initial.san=72")
                 .replace("rules.normalSleepSanRecovery=6", "rules.normalSleepSanRecovery=0"));
         var game = demo.newGame("Tuned Demo", new Random(42));
-        game.completeOpening(); game.showLesson(); game.lessonChoice("quiet"); game.otherClasses(false);
+        OpeningTestSupport.enterDayOne(game); game.showLesson(); game.lessonChoice("quiet"); game.otherClasses(false);
         game.hubActivity("study"); game.sleepNormally();
         assertEquals(72, game.snapshot().student().san());
     }

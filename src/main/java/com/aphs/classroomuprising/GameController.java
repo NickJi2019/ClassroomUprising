@@ -58,10 +58,46 @@ public final class GameController {
         return waived ? List.of("Tutorial: negative effects were warnings only.") : List.of();
     }
     public Result completeOpening() {
-        return change("Opening tutorial acknowledged.", s -> {
+        return change("Opening ending acknowledged; Day 1 is ready.", s -> {
             if (s.openingCompleted || s.day != 1) throw new IllegalStateException("Opening already completed.");
+            if (content.hasOpeningBattle() && (s.openingBattle == null || !s.openingBattle.finished()))
+                throw new IllegalStateException("Finish the opening exam and show its ending before Day 1.");
+            s.openingBattle = null; // Past-semester HP/SAN/XP and 67/89 never enter this term's state/grades.
             s.openingCompleted = true; return List.of();
         });
+    }
+    /** Story data only. Intro and ending presentation/animation belong to the frontend. */
+    public List<String> openingIntro() { return content.opening().intro(); }
+    public Result startOpeningBattle() {
+        return change("Opening exam started.", s -> {
+            if (s.openingCompleted || s.day != 1 || s.openingBattle != null)
+                throw new IllegalStateException("Opening battle already started or completed.");
+            s.openingBattle = new OpeningBattle(content.opening(), nanoClock.getAsLong()); return List.of();
+        });
+    }
+    private static OpeningBattle opening(GameState s) {
+        if (s.openingCompleted || s.openingBattle == null) throw new IllegalStateException("Start the opening exam first.");
+        return s.openingBattle;
+    }
+    public OpeningBattle.View openingBattle() { return opening(state).view(nanoClock.getAsLong()); }
+    public Result startOpeningQuestion(String questionId) {
+        return change("Opening question started.", s -> {
+            opening(s).select(questionId, nanoClock.getAsLong()); return List.of();
+        });
+    }
+    public Result answerOpeningQuestion(String questionId, String optionId) {
+        return change("Opening response resolved; read the battle feedback/ending.", s -> {
+            opening(s).answer(questionId, optionId, nanoClock.getAsLong()); return List.of();
+        });
+    }
+    public Result useOpeningDuck() {
+        return change("Rubber duck action resolved; read the battle view.", s -> {
+            opening(s).useDuck(nanoClock.getAsLong()); return List.of();
+        });
+    }
+    /** Invoke on each frontend timer pulse; timeouts settle even without an answer click. */
+    public Result advanceOpeningBattle() {
+        return change("Opening clock advanced.", s -> { opening(s).tick(nanoClock.getAsLong()); return List.of(); });
     }
     public ContentCatalog.Lesson showLesson() {
         phase(state, DayPeriod.ICS_CLASS);

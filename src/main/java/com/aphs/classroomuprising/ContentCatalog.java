@@ -35,6 +35,7 @@ public final class ContentCatalog {
                 throw new IllegalArgumentException("Difficulty rank must be positive.");
         }
     }
+    private final OpeningContent opening;
     private final Map<Integer, Lesson> lessons;
     private final Map<String, StatChange> hub;
     private final Map<Integer, StatChange> reviews;
@@ -45,6 +46,12 @@ public final class ContentCatalog {
     public ContentCatalog(Map<Integer, Lesson> lessons, Map<String, StatChange> hub,
             Map<Integer, StatChange> reviews, Map<String, List<Question>> banks,
             Map<CourseType, Integer> sampleCounts, StatChange otherClassRevision) {
+        this(lessons, hub, reviews, banks, sampleCounts, otherClassRevision, null);
+    }
+    public ContentCatalog(Map<Integer, Lesson> lessons, Map<String, StatChange> hub,
+            Map<Integer, StatChange> reviews, Map<String, List<Question>> banks,
+            Map<CourseType, Integer> sampleCounts, StatChange otherClassRevision, OpeningContent opening) {
+        this.opening = opening;
         this.lessons = Map.copyOf(lessons); this.hub = Map.copyOf(hub);
         this.reviews = Map.copyOf(reviews); this.sampleCounts = Map.copyOf(sampleCounts);
         var copy = new java.util.LinkedHashMap<String, List<Question>>();
@@ -55,6 +62,11 @@ public final class ContentCatalog {
             copy.put(id, q);
         });
         this.banks = Map.copyOf(copy); this.otherClassRevision = otherClassRevision;
+    }
+    public boolean hasOpeningBattle() { return opening != null; }
+    public OpeningContent opening() {
+        if (opening == null) throw new PendingRuleException("T11", "Opening story and exam content");
+        return opening;
     }
     public static ContentCatalog pending() {
         return new ContentCatalog(Map.of(), Map.of(), Map.of(), Map.of(), Map.of(), null);
