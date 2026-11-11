@@ -1,6 +1,10 @@
 sequenceDiagram
     autonumber
-    actor Caller as Core API caller (GameSession frontend controller or tests)
+    actor Caller as Frontend screen or direct API test caller
+    participant Session as GameSession
+    participant Router as Router
+    participant EndingUI as OpeningEndingScreen
+    participant App as AppContext
     participant Demo as DemoProfile (opt-in)
     participant Game as GameController
     participant State as GameState
@@ -11,7 +15,8 @@ sequenceDiagram
     participant Combat as CombatSession
     participant Save as SaveManager
 
-    Note over Caller,Save: Implemented foundation, not complete gameplay. Fixture values are not approved rules.
+    %% Main implementation checked 2026-11-11 at 95e2fab, including frontend 37 and backend 25.
+    Note over Caller,Save: Implemented routes and explicit pending policies, not complete gameplay. Demo values are not production rules.
     opt Explicitly selected Demo
         Caller->>Demo: load()
         Demo-->>Caller: Label, initial attributes, rules and Days 1-4 content
@@ -20,51 +25,96 @@ sequenceDiagram
     Caller->>Game: Construct with initial state, explicit RuleValues and ContentCatalog
     Note over Game,State: Every changing operation works on a copy and commits only after success.
     opt Shipped Demo opening not acknowledged
-        Caller->>Game: openingIntro()
-        Game-->>Caller: Authored previous-semester dialogue
-        Caller->>Game: startOpeningBattle()
+        Note over Caller,Session: Caller is OpeningScreen here, with GameSession forwarding to the core
+        Caller->>Session: openingIntro()
+        Session->>Game: openingIntro()
+        Game-->>Caller: Authored previous-semester dialogue via Session
+        Caller->>Session: startOpeningBattle() after intro
+        Session->>Game: startOpeningBattle()
         Game->>Opening: Initial HP 9, no cap, low SAN/XP, one duck, start continuous 180-second deadline
-        Note over Caller,Opening: All live phases consume time, timer pulses run through menus and animations
+        Note over Caller,Opening: All live phases consume time, including turn menus, log and animations
         loop Mr. Reward fires next authored question until ending
-            Caller->>Game: advanceOpeningBattle() on every pulse in any phase
+            Caller->>Session: advanceOpeningBattle() on pulses in any live stage
+            Session->>Game: advanceOpeningBattle()
             Game->>Opening: Settle recovery and timeout in time order, timeout wins ties
-            Caller->>Game: hitOpeningQuestion(id) at bullet impact, if still live
-            Game->>Opening: Tick before validating or applying impact
-            alt Deadline reached
-                Game-->>Caller: TIMEOUT, 67, DEFEAT, no impact damage or action effects
-            else Impact depleted HP
-                Game-->>Caller: HP charged once, immediate PASS_OUT, no reveal or answer
-            else Player survives impact
-                Game-->>Caller: HP charged once, QUESTION_REVEAL, clock still running
-                Caller->>Caller: Reveal question paper while exam time continues
-                Caller->>Game: startOpeningQuestion(id) on reveal completion
-                Game->>Opening: Tick first, if live, permit answers, no clock or HP change
-                opt Use the sole duck when allowed and still live
-                    Caller->>Game: useOpeningDuck()
-                    Game->>Opening: Tick first, if live, reserve item and recovery delay
-                end
-                opt Answer before ending
-                    Caller->>Game: answerOpeningQuestion(id, optionId)
-                    Game->>Opening: Tick first, if live, judge immediately, no HP charge or pause
+            opt Battle is still live at bullet impact
+                Caller->>Session: hitOpeningQuestion(id)
+                Session->>Game: hitOpeningQuestion(id)
+                Game->>Opening: Tick before validating or applying impact
+                alt Deadline reached
+                    Game-->>Caller: TIMEOUT, 67, DEFEAT, no impact damage or action effects
+                else Impact depleted HP
+                    Game-->>Caller: HP charged once, immediate PASS_OUT, no reveal or answer
+                else Player survives impact
+                    Game-->>Caller: HP charged once, QUESTION_REVEAL, clock still running
+                    Caller->>Caller: Ripple opens question paper while exam time continues
+                    Caller->>Session: startOpeningQuestion(id) on reveal completion if live
+                    Session->>Game: startOpeningQuestion(id)
+                    Game->>Opening: Tick first, permit answers only if live, no clock or HP change
                 end
             end
-            Caller->>Game: openingBattle()
-            Game-->>Caller: Immutable live remaining time, feedback and possible ending
-            Note over Caller,Opening: Feedback, fold and counter-shot consume time unless already ended
+            opt Use the sole duck in an allowed turn or question stage while live
+                Caller->>Session: useOpeningDuck()
+                Session->>Game: useOpeningDuck()
+                Game->>Opening: Tick first, if live reserve item, +3 HP after 5 seconds
+                Caller->>Caller: ItemBanner shows backend recovery progress, exam clock continues
+            end
+            opt Answer while question is open and duck is not working
+                Caller->>Session: answerOpeningQuestion(id, optionId)
+                Session->>Game: answerOpeningQuestion(id, optionId)
+                Game->>Opening: Tick first, if live judge immediately, no HP charge or pause
+            end
+            Caller->>Session: openingBattle()
+            Session->>Game: openingBattle()
+            Game-->>Session: Immutable live remaining time, feedback and possible ending
+            Session-->>Caller: Fetch of OpeningBattle.View
+            Note over Caller,Opening: UI draws backend time only. Feedback, fold and counter-shot consume time until the core ends.
+            opt Core reports TIMEOUT during a presentation stage
+                alt Turn or fan-out
+                    Caller->>Caller: beginEnding()
+                else Bullet in flight or counter-shot
+                    Caller->>Caller: Finish current animation then end, no late impact damage
+                else Paper revealing or question open
+                    Caller->>Caller: Finish reveal if needed, show TIME UP, fold and end
+                else Feedback being read
+                    Caller->>Caller: Fold and finish counter-shot, then end
+                end
+                Note over Caller,Session: A timed-out answer adds no feedback. Late callbacks cannot apply action effects.
+            end
         end
-        Note over Caller,Opening: Late hit/start/answer/duck only settle timeout, including stale callbacks
-        Game-->>Caller: Freeze remaining, 67 defeat or 89 victory, cue and dialogue
-        Caller->>Caller: Play ending once, real-window continuous-timeout checks pending
-        Caller->>Game: completeOpening()
+        Note over Caller,Opening: Core ending freezes time immediately, before presentation finishes
+        alt Wrong answer, HP zero or TIMEOUT
+            Caller->>Caller: Shatter, DEFEATED card and defeat reason, once
+        else Ten correct answers
+            Caller->>Caller: ALL TEN CORRECT call-out, once
+        end
+        Caller->>Router: show(new OpeningEndingScreen(ctx), null)
+        Router->>EndingUI: Show separate ending page after screen transition
+        EndingUI->>Session: openingBattle()
+        Session->>Game: openingBattle()
+        Game-->>EndingUI: Finished view with 67/89 grade, animation cue and authored dialogue via Session
+        EndingUI->>EndingUI: Hud.showWithoutStats, grade stamp, play ending dialogue
+        EndingUI->>EndingUI: After dialogue, offer BEGIN SUMMER SCHOOL
+        Note over EndingUI,Game: Both stories lead to fresh Day 1. No current-term mark or opening save.
+        EndingUI->>Session: completeOpening() on the player's choice
+        Session->>Game: completeOpening()
         Game->>State: Clear isolated battle, mark opening complete, keep fresh Day 1 stats and grades
+        Game-->>Session: Successful result
+        Session-->>EndingUI: Done outcome
+        EndingUI->>App: startDay(outcome), guarded against duplicate completion
+        App->>Router: show(new DayIntroScreen(...), null)
+        Router-->>Caller: DayIntroScreen shows Day 1 card
+        Caller->>App: advance() after the day card
+        App->>Router: show ClassroomScreen for Day 1 ICS slot
     end
+    Note over Caller,Game: Below, core calls abbreviate GameSession forwarding. ClassroomScreen uses openLesson and lessonChoice.
     alt Lesson slot
         Caller->>Game: showLesson()
         Game->>Content: lesson(day)
         Content-->>Game: Title, text/slide cues, interaction and authored decision
         Game->>State: Record content shown
         Game-->>Caller: Lesson content
-        Note over Caller,Game: Frontend menu wiring pending Claude. The following core contract is implemented.
+        Note over Caller,Game: ClassroomScreen and LessonMenu already implement the two-layer menu. SlideProjector follows lecture cues, TipLayer shows system tips.
         Caller->>Caller: Show participation or quiet, participation opens three labelled responses
         Note over Caller,State: Opening or returning from a menu makes no core call and grants nothing.
         Caller->>Game: lessonChoice(lessonDay, finalOptionId)
@@ -135,7 +185,7 @@ sequenceDiagram
         else Midterm or Final
             Grades-->>Game: Immediate official mark
             Game->>State: Enter MIDTERM_DECISION or FINAL_DECISION
-            Note over Caller,State: No automatic continuation, Final combat or ending formula is claimed.
+            Note over Caller,State: Semester endings are distinct from OpeningEndingScreen. Continue/Retake and ending policies remain T10.
         end
     else Review slot
         Caller->>Game: completeReview()
@@ -166,13 +216,17 @@ sequenceDiagram
                 end
             end
         end
-        Caller->>Save: saveAtDayEnd(game.snapshot(), path)
+        Note over Caller,Save: DayEndScreen automatically calls GameSession.saveDayEnd on display. Failure shows RETRY SAVE, NEXT DAY remains available.
+        Caller->>Save: saveAtDayEnd(game.snapshot(), path) via GameSession
         Save->>Save: Validate, write temporary versioned file, atomically replace destination
         Save-->>Caller: Success or explicit failure
-        Caller->>Save: load(path)
-        Save-->>Caller: Same closed-day snapshot, no automatic time advancement
-        Caller->>Game: Construct controller with restored state and compatible policy/content
-        Caller->>Game: beginNextDay()
+        opt Later CONTINUE from TitleScreen
+            Caller->>Save: load(path) via GameSession.load
+            Save-->>Caller: Same closed-day snapshot, no automatic time advancement
+            Caller->>Game: Construct controller with restored state and compatible policy/content
+            Note over Caller,Save: AppContext routes to DayEndScreen, which displays and saves the closed day again without regranting effects.
+        end
+        Caller->>Game: beginNextDay() on NEXT DAY
         Game->>State: Expire old effects, activate dated effects, grant earned morning entitlement once
         Game->>Grades: releaseDue(day)
         Grades-->>Game: Newly official ordinary results
@@ -197,4 +251,4 @@ sequenceDiagram
         end
         Note over Game,State: Two-opportunity counter helper exists. Complete reset, low-SAN priority and ending saves remain TBD.
     end
-    Note over Caller,Save: Invalid choices or missing rule/content inputs preserve state. No hidden game defaults or mid-activity saves.
+    Note over Caller,Save: Rejected choices or pending rule/content inputs preserve state. Opening deadline settlement can instead return a successful TIMEOUT-only result. No hidden game defaults or mid-activity saves.

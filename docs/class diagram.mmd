@@ -1,6 +1,7 @@
 classDiagram
     direction TB
-    %% Implemented classes, 2026-11-09: rule core plus the JavaFX frontend (package ui).
+    %% Main implementation checked 2026-11-11 at 95e2fab, including frontend 37 and backend 25.
+    %% Selected implemented classes, not every private UI helper. Package ui forwards core actions.
     %% FXGL and libGDX are build dependencies only. See implementation-status.md and Sprint1.md.
     class Main {
         +main(String[] args) void
@@ -17,6 +18,8 @@ classDiagram
         +show(Screen next, String caption) void
         +closePause() void
         +toasts() Toasts
+        ~fastForward() ObservableBooleanValue
+        ~showTimeChange(Screen next, DayPeriod from, DayPeriod to) void
     }
     class AppContext {
         -DemoProfile profile
@@ -26,6 +29,7 @@ classDiagram
         +begin(GameSession session) void
         +advance() void
         +startDay(Outcome outcome) void
+        ~openCombat(AssessmentView assessment) void
         +toTitle() void
         +audio() AudioDirector
         -screenFor(GameState view) Screen
@@ -42,7 +46,22 @@ classDiagram
         #allowsPause() boolean
     }
     class TitleScreen
-    class OpeningScreen
+    class OpeningScreen {
+        -OpeningBattle.View last
+        -boolean endingPlayed
+        -pulse(long now) void
+        -outOfTime() void
+        -impact(String questionId, int number) void
+        -revealed(String questionId, int number) void
+        -beginEnding() void
+        -toEnding() void
+    }
+    class OpeningEndingScreen {
+        -boolean done
+        #onShown() void
+        -offerDayOne() void
+        -complete() void
+    }
     class DayIntroScreen
     class ClassroomScreen
     class OtherClassesScreen
@@ -112,6 +131,7 @@ classDiagram
         CLOCK
         CUTIN
         HIT
+        SHATTER
         +play(Node from) void
     }
     class SoundPanel
@@ -131,6 +151,37 @@ classDiagram
     }
     class CutIn
     class TimeGauge
+    class Danmaku {
+        ~fanOut(List ids, List numbers, List lines, Point2D origin) Animation
+        ~fire(String id, Point2D target, Runnable onImpact) Animation
+        ~counter(Point2D from, Point2D target, String number, String line, boolean hits, Consumer onDone) Animation
+        ~clear() void
+    }
+    class Ripple {
+        ~open(Region panel, Point2D at) Animation$
+        ~close(Region panel, Point2D at) Animation$
+    }
+    class Shatter {
+        ~play(Pane layer, Node screen, Point2D at, Node behind, Runnable fallen) Animation$
+    }
+    class ItemBanner {
+        ~show(Pane layer, String kind, String name, String detail, Node icon) ItemBanner$
+        ~update(String what) void
+        ~finish(String newKind, String newName, String what, Duration hold) void
+        ~dismiss() void
+    }
+    class FastForward {
+        ~active() ReadOnlyBooleanProperty
+        ~markUsed() void
+        ~release() void
+    }
+    class SanBar {
+        ~set(double share) void
+        ~setDistressed(boolean on) void
+    }
+    class XpBreakdown {
+        ~show(StudentState student) void
+    }
     class LabScreen {
         -LabTask task
         -LabRunService runs
@@ -143,6 +194,16 @@ classDiagram
         +newGame(DemoProfile profile, String name, RandomGenerator random, Path savePath, CombatRules rules) GameSession$
         +load(DemoProfile profile, Path savePath, RandomGenerator random, CombatRules rules) GameSession$
         +view() GameState
+        +openingIntro() List~String~
+        +hasOpeningExam() boolean
+        +openingContent() OpeningContent
+        +startOpeningBattle() Outcome
+        +openingBattle() Fetch~OpeningView~
+        +hitOpeningQuestion(String questionId) Outcome
+        +startOpeningQuestion(String questionId) Outcome
+        +answerOpeningQuestion(String questionId, String optionId) Outcome
+        +useOpeningDuck() Outcome
+        +advanceOpeningBattle() Outcome
         +completeOpening() Outcome
         +openLesson() Fetch
         +lessonChoice(String id) Outcome
@@ -233,9 +294,13 @@ classDiagram
     class DialogueBox {
         +play(List lines, Runnable whenDone) void
         +advance() void
+        ~followFastForward(ObservableBooleanValue active) void
     }
     class Hud {
         +show(GameState state, String demoLabel) void
+        ~showStudent(StudentState student, String demoLabel) void
+        ~showWithoutStats(String demoLabel) void
+        ~setOnHurt(Runnable action) void
     }
     class ClockShift {
         -ParallelTransition animation
@@ -632,6 +697,7 @@ classDiagram
     Screen --> AppContext
     Screen <|-- TitleScreen
     Screen <|-- OpeningScreen
+    Screen <|-- OpeningEndingScreen
     Screen <|-- DayIntroScreen
     Screen <|-- ClassroomScreen
     Screen <|-- OtherClassesScreen
@@ -657,11 +723,36 @@ classDiagram
     DialogueBox --> DialogueHistory : every shown line and its slide
     ClassroomScreen --> DialogueLog : H or scroll up
     OpeningScreen --> DialogueLog : H or scroll up
+    OpeningScreen --> GameSession : actions and continuous clock polling
+    OpeningScreen --> Hud : backend stats and impact feedback
+    OpeningScreen --> TimeGauge : backend remaining time
+    OpeningScreen --> Danmaku : authored attacks and counter shots
+    OpeningScreen ..> Ripple : open and fold question paper
+    OpeningScreen --> ItemBanner : duck progress from backend view
+    OpeningScreen ..> Shatter : defeat and pass-out presentation
+    OpeningScreen ..> CutIn : victory call-out
+    OpeningScreen ..> OpeningEndingScreen : Router.show after terminal animation
+    OpeningEndingScreen --> GameSession : read finished battle and acknowledge once
+    OpeningEndingScreen --> DialogueBox : authored ending story
+    OpeningEndingScreen --> DialogueLog
+    OpeningEndingScreen --> ChoiceList : continue only after story
+    OpeningEndingScreen --> Hud : showWithoutStats
+    OpeningEndingScreen ..> AppContext : startDay after successful acknowledgement
+    AppContext ..> DayIntroScreen : startDay
+    DayIntroScreen ..> AppContext : advance after day card
+    AppContext ..> ClassroomScreen : route Day 1 ICS slot
+    Router *-- FastForward : scene keyboard and mouse hold filters
+    DialogueBox ..> Router : observes shared fastForward state
+    Hud *-- SanBar
+    Hud *-- XpBreakdown
+    Shatter ..> Sfx : SHATTER
+    ItemBanner ..> Sfx : CUTIN
     DialogueLog ..> AssetStore : slide images
     LessonMenu ..> LessonDecision : labels in authored order
     SlideProjector ..> DialogueScript : slide cues in lecture lines
     SlideProjector ..> AssetStore : slide images
-    ClassroomScreen ..> CombatScreen : assessment day starts a combat
+    ClassroomScreen ..> AppContext : openCombat after successful start
+    AppContext ..> CombatScreen : routes active assessment
     AppContext --> CombatRules : policy for new and loaded games
     AppContext --> CombatEvaluator : optional, none shipped
     CombatScreen --> CombatEvaluations
@@ -709,17 +800,21 @@ classDiagram
     Outcome <|.. Rejected
     Pending ..> PendingRuleException : shown, never swallowed
 
-    note for GameController "Opening exam backend is implemented, rendering pending Claude.<br/>Midterm Continue/Retake explicitly report T10.<br/>Combat backend exists with explicit policy.<br/>Opening cues and dialogue exist, Final policy remains pending."
+    note for GameController "Opening exam core and JavaFX presentation are implemented.<br/>Midterm Continue/Retake explicitly report T10.<br/>Combat backend exists with explicit policy.<br/>Opening cues and dialogue exist, Final policy remains pending."
     note for GameState "HP is separate from marks and energy.<br/>Returned snapshots are defensive copies.<br/>Relationships/rewards are persisted data, not playable systems yet."
     note for RuleValues "Null is TBD, never zero.<br/>No production balancing defaults.<br/>Separate opt-in Demo supplies provisional values."
-    note for ContentCatalog "One settlement: participate then response, OR quiet.<br/>Menu navigation is frontend-only and not yet wired.<br/>Day 1 raises hand; Day 2 asks a chosen question.<br/>Fixed ordinary questions, supplied major sample size.<br/>Demo supplies four lessons and two Hub activities.<br/>Assessment banks and later content remain pending."
+    note for ContentCatalog "One settlement: participate then response, OR quiet.<br/>ClassroomScreen and LessonMenu already wire both menu levels.<br/>Day 1 raises hand; Day 2 asks a chosen question.<br/>Fixed ordinary questions, supplied major sample size.<br/>Demo supplies four lessons and two Hub activities.<br/>Assessment banks and later content remain pending."
     note for GradeBook "65 Term / 10 Participation / 25 Final.<br/>Midterm belongs to Term; its weight is supplied explicitly.<br/>First two absences free, then minus one overall percentage point."
     note for AssessmentRecord "Ordinary including makeup: three-day delay.<br/>Midterm and Final: immediate result, no skip.<br/>Evaluator supplies mark; no HP or automatic rubric conversion."
     note for SaveManager "Only active DAY_END snapshots.<br/>Load does not advance or regrant effects.<br/>Ending/Retake autosave boundaries remain T12."
     note for JavaAssessmentRunner "Actual compiler and test processes with time/output limits.<br/>Trusted local code only, not an OS security sandbox.<br/>No automatic course-score rubric."
 
     note for Main "Opens the JavaFX game window only.<br/>Arguments are ignored: no CLI routes, modes or day jumps.<br/>FXGL and libGDX are prepared by Gradle, not started."
-    note for GameSession "Frontend controller: never edits GameState.<br/>Refusals become Pending/Rejected with nothing changed.<br/>showLesson() is called once per class."
+    note for GameSession "Frontend adapter: never edits GameState directly.<br/>Rejected/Pending actions retain state.<br/>A late opening action can succeed by settling TIMEOUT only.<br/>showLesson() is called once per class."
+    note for OpeningScreen "UI stages are presentation, not a second combat state machine.<br/>Polls the core throughout turns, log and animations.<br/>No independent deadline or HP/grade calculations.<br/>Timeout closes the current presentation path, ending plays once."
+    note for OpeningEndingScreen "Reads the finished OpeningBattle.Ending.<br/>Grade stamp and story, no battle stats.<br/>After dialogue: BEGIN SUMMER SCHOOL calls completeOpening once.<br/>Success routes through AppContext to DayIntroScreen and fresh Day 1.<br/>This is the opening result page, not the pending semester-ending system."
+    note for FastForward "Shared keyboard/mouse hold state for dialogue and transitions.<br/>Never changes the backend exam clock or selects an answer."
+    note for Hud "HP/SAN visual feedback follows backend snapshots.<br/>SanBar and XpBreakdown are display-only, not new stat policies."
     note for CombatEvaluations "One evaluation at a time; results return on the UI thread.<br/>Leaving the combat drops late results.<br/>A failed or refused result keeps the ticket and work for a retry."
     note for CombatScreen "Displays the backend view only: no UI timing, weights, HP or marks.<br/>No pause while a question's clock runs.<br/>No evaluator shipped: submission reports T06 (Lab) or T07."
     note for SlideProjector "A lecture line starting with a slide:name cue turns to that slide.<br/>Presentation only: never calls the core.<br/>Large view pauses the lecture until closed."
@@ -752,8 +847,9 @@ classDiagram
         ~view(long now) OpeningView
         ~tick(long now) void
     }
+    %% Diagram aliases: OpeningView = OpeningBattle.View, OpeningEnding = OpeningBattle.Ending.
     class OpeningView {
-        <<record>>
+        <<nested record>>
         +Phase phase
         +StudentState student
         +int ducksRemaining
@@ -764,7 +860,7 @@ classDiagram
         +OpeningEnding ending
     }
     class OpeningEnding {
-        <<record>>
+        <<nested record>>
         +int grade
         +DefeatReason reason
         +AnimationCue animation
